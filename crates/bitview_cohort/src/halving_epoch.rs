@@ -20,22 +20,22 @@ pub const HALVING_EPOCH_NAMES: ByHalvingEpoch<CohortName> = ByHalvingEpoch {
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct ByHalvingEpoch<T> {
     /// Uses UTXOs created during subsidy-halving epoch 0.
-    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved before the first halving (2009 to November 2012)."))]
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved before the first halving (blocks 0 to 299,999)."))]
     _0: T,
     /// Uses UTXOs created during subsidy-halving epoch 1.
-    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved between the first and second halvings (November 2012 to July 2016)."))]
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved between the first and second halvings (blocks 300,000 to 599,999)."))]
     _1: T,
     /// Uses UTXOs created during subsidy-halving epoch 2.
-    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved between the second and third halvings (July 2016 to May 2020)."))]
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved between the second and third halvings (blocks 600,000 to 899,999)."))]
     _2: T,
     /// Uses UTXOs created during subsidy-halving epoch 3.
-    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved between the third and fourth halvings (May 2020 to April 2024)."))]
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved between the third and fourth halvings (blocks 900,000 to 1,199,999)."))]
     _3: T,
     /// Uses UTXOs created during subsidy-halving epoch 4.
-    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved between the fourth and fifth halvings (from April 2024)."))]
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved between the fourth and fifth halvings (blocks 1,200,000 to 1,499,999)."))]
     _4: T,
-    /// Uses UTXOs created during subsidy-halving epoch 5.
-    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved between the fifth and sixth halvings."))]
+    /// Uses UTXOs created during subsidy-halving epoch 5 or any later one.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved after the fifth halving (from block 1,500,000)."))]
     _5: T,
 }
 
@@ -51,14 +51,15 @@ define_cohort_id!(
 );
 
 impl<T> ByHalvingEpoch<T> {
+    /// The cohort of coins created at `height`: its halving epoch, the last cohort for epoch 5
+    /// and every later one (a test chain halves every 150 blocks and goes far past it).
     pub fn get_mut(&mut self, height: Height) -> Option<&mut T> {
-        let halving = usize::from(HalvingEpoch::from(height));
-        let id = HalvingEpochId::ALL.get(halving).copied();
-        debug_assert!(
-            id.is_some(),
-            "no halving epoch cohort for halving {halving}"
-        );
-        id.map(|id| id.select_mut(self))
+        let last = HalvingEpochId::ALL.len() - 1;
+        let halving = usize::from(HalvingEpoch::from(height)).min(last);
+        HalvingEpochId::ALL
+            .get(halving)
+            .copied()
+            .map(|id| id.select_mut(self))
     }
 }
 

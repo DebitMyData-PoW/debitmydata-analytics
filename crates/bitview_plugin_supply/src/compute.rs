@@ -28,7 +28,7 @@ impl ComputePlugin for Vecs {
             &mining.rewards.unclaimed.block.sats,
             |height, op_return, unclaimed| {
                 let genesis = if height.to_usize() == 0 {
-                    Sats::FIFTY_BTC
+                    Sats::INITIAL_SUBSIDY
                 } else {
                     Sats::ZERO
                 };

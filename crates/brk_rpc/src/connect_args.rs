@@ -30,7 +30,8 @@ impl ConnectArgs {
 
     fn url(&self) -> String {
         let host = self.rpcconnect.as_deref().unwrap_or("localhost");
-        let port = self.rpcport.unwrap_or(8332);
+        // DebitMyData PoW Core's RPC port on its main network
+        let port = self.rpcport.unwrap_or(18557);
         // An IPv6 address (`::1`) needs brackets before the port.
         if host.parse::<Ipv6Addr>().is_ok() {
             format!("http://[{host}]:{port}")
@@ -72,13 +73,14 @@ impl ConnectArgs {
     }
 }
 
+/// DebitMyData PoW Core's data directory.
 fn default_bitcoin_dir() -> PathBuf {
     let home = PathBuf::from(env::var("HOME").unwrap());
     if env::consts::OS == "macos" {
         home.join("Library")
             .join("Application Support")
-            .join("Bitcoin")
+            .join("DebitMyData")
     } else {
-        home.join(".bitcoin")
+        home.join(".debitmydata")
     }
 }

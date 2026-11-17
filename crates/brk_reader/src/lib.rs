@@ -9,7 +9,7 @@ use std::{
 use bitcoin::Network;
 use brk_error::{Error, Result};
 use brk_rpc::Client;
-use brk_types::{BlkPosition, BlockHash, Height, ReadBlock};
+use brk_types::{BlkPosition, BlockHash, Chain, Height, ReadBlock};
 use canonical::CanonicalRange;
 use crossbeam_channel::IntoIter;
 use reader_inner::ReaderInner;
@@ -67,13 +67,22 @@ impl Reader {
         self.0.xor_bytes
     }
 
-    /// Errs unless the node runs mainnet: this reader parses mainnet's block files only (their
-    /// magic), and another network's would read as no blocks at all.
+    /// Errs unless the node runs the DebitMyData chain or a regtest chain (the tests'), and
+    /// selects that network for this process ([`brk_types::chain::select`]): its block files'
+    /// magic, its addresses and its block reward. Another network's blocks would read as none.
     pub fn check_network(&self) -> Result<()> {
-        match self.0.client.get_network()? {
-            Network::Bitcoin => Ok(()),
-            network => Err(Error::NotMainnet(network.to_string())),
-        }
+        let chain = match self.0.client.get_network()? {
+            Network::Bitcoin => Chain::Main,
+            Network::Regtest => Chain::Regtest,
+            network => return Err(Error::NotMainnet(network.to_string())),
+        };
+        brk_types::chain::select(chain).map_err(|kept| {
+            Error::NotMainnet(format!(
+                "{} (already reading {})",
+                chain.name(),
+                kept.name()
+            ))
+        })
     }
 
     /// Errs when the blocks directory's `xor.dat` is unreadable or malformed, or no longer the

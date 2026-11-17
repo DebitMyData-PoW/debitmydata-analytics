@@ -4,14 +4,18 @@ use brk_types::BlkPosition;
 
 use crate::{XORBytes, XORIndex, xor_bytes::XOR_LEN};
 
-const MAGIC_BYTES: [u8; 4] = [0xF9, 0xBE, 0xB4, 0xD9];
+/// The bytes before each block in the node's block files: the DebitMyData network's.
+fn magic_bytes() -> [u8; 4] {
+    brk_types::chain::current().magic()
+}
 
 /// Returns the position immediately after the matched magic, or
 /// `None` if no match. Advances `xor_i` by the bytes consumed either
 /// way.
 pub fn find_magic(bytes: &[u8], xor_i: &mut XORIndex, xor_bytes: XORBytes) -> Option<usize> {
     let len = bytes.len();
-    if len < MAGIC_BYTES.len() {
+    let magic = magic_bytes();
+    if len < magic.len() {
         xor_i.add_assign(len);
         return None;
     }
@@ -19,19 +23,19 @@ pub fn find_magic(bytes: &[u8], xor_i: &mut XORIndex, xor_bytes: XORBytes) -> Op
     let xb = *xor_bytes;
     let mut phase = xor_i.phase();
     let mut i = 0;
-    let stop = len - MAGIC_BYTES.len();
+    let stop = len - magic.len();
 
     while i <= stop {
-        if bytes[i] ^ xb[phase] == MAGIC_BYTES[0] {
+        if bytes[i] ^ xb[phase] == magic[0] {
             let p1 = (phase + 1) & (XOR_LEN - 1);
             let p2 = (phase + 2) & (XOR_LEN - 1);
             let p3 = (phase + 3) & (XOR_LEN - 1);
-            if bytes[i + 1] ^ xb[p1] == MAGIC_BYTES[1]
-                && bytes[i + 2] ^ xb[p2] == MAGIC_BYTES[2]
-                && bytes[i + 3] ^ xb[p3] == MAGIC_BYTES[3]
+            if bytes[i + 1] ^ xb[p1] == magic[1]
+                && bytes[i + 2] ^ xb[p2] == magic[2]
+                && bytes[i + 3] ^ xb[p3] == magic[3]
             {
-                xor_i.set_phase(phase + MAGIC_BYTES.len());
-                return Some(i + MAGIC_BYTES.len());
+                xor_i.set_phase(phase + magic.len());
+                return Some(i + magic.len());
             }
         }
         phase = (phase + 1) & (XOR_LEN - 1);
@@ -121,7 +125,7 @@ fn frame_at(
     XORIndex::at_offset(offset).bytes(&mut head, xor_bytes);
     let len = u32::from_le_bytes([head[4], head[5], head[6], head[7]]) as usize;
     Ok(
-        (head[..4] == MAGIC_BYTES && len != 0 && offset + HEAD_LEN + len <= file_len)
+        (head[..4] == magic_bytes() && len != 0 && offset + HEAD_LEN + len <= file_len)
             .then_some(len),
     )
 }
@@ -174,7 +178,7 @@ mod tests {
             match *part {
                 Part::Frame(len) => {
                     let start = bytes.len();
-                    bytes.extend(MAGIC_BYTES);
+                    bytes.extend(magic_bytes());
                     bytes.extend((len as u32).to_le_bytes());
                     bytes.extend((0..len).map(|i| (i * 7 + 1) as u8));
                     for (i, byte) in bytes[start..].iter_mut().enumerate() {
@@ -217,7 +221,7 @@ mod tests {
         // The header after the hole starts at 108 + 1000 = 1108, phase 4: a key byte equal to the
         // magic's first makes it zero on disk, so the zeros seem to end a byte later.
         let mut key = KEY;
-        key[1108 % 8] = MAGIC_BYTES[0];
+        key[1108 % 8] = magic_bytes()[0];
         let (file, expected) = blk("zeroed-head", key, &[Frame(100), Zeros(1000), Frame(50)]);
         assert_eq!(frames(&file, XORBytes::from(key), 0).unwrap(), expected);
     }

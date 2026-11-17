@@ -23,7 +23,14 @@ use std::fs;
 use vecdb::{Bytes, Pco, PrintableIndex, Stamp, VecIndex};
 
 pub const BLOCKS_PER_DIFF_EPOCH: u32 = 2016;
-pub const BLOCKS_PER_HALVING: u32 = 210_000;
+/// Blocks between two halvings on the DebitMyData chain; [`blocks_per_halving`] for the network
+/// this process reads.
+pub const BLOCKS_PER_HALVING: u32 = crate::Chain::Main.halving_blocks();
+
+/// Blocks between two halvings on the network this process reads.
+pub fn blocks_per_halving() -> u32 {
+    crate::chain::current().halving_blocks()
+}
 
 /// A block height: how many blocks came before it.
 #[derive(
@@ -48,7 +55,7 @@ pub const BLOCKS_PER_HALVING: u32 = 210_000;
 #[allow(clippy::duplicated_attributes)]
 #[cfg_attr(
     feature = "schemars",
-    schemars(example = 0, example = 210_000, example = 420_000, example = 840_000)
+    schemars(example = 0, example = 150_000, example = 300_000, example = 600_000)
 )]
 pub struct Height(u32);
 
@@ -80,16 +87,14 @@ impl Height {
     }
 
     pub fn left_before_next_halving(self) -> u32 {
-        BLOCKS_PER_HALVING - (*self % BLOCKS_PER_HALVING)
+        let blocks = blocks_per_halving();
+        blocks - (*self % blocks)
     }
 
-    /// Bitcoin Core's `GetBlockSubsidy`: 50 BTC shifted right once per halving.
+    /// DebitMyData PoW Core's `GetBlockSubsidy`: 35 DMD, halved every 300,000 blocks, starting
+    /// again after 32 halvings.
     pub fn subsidy(self) -> Sats {
-        Sats::from(
-            u64::from(Sats::FIFTY_BTC)
-                .checked_shr(self.0 / BLOCKS_PER_HALVING)
-                .unwrap_or(0),
-        )
+        Sats::from(crate::chain::current().subsidy(self.0))
     }
 
     pub fn index_name() -> &'static str {

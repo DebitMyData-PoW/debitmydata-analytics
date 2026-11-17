@@ -7,7 +7,7 @@ use bitview_traversable::Traversable;
 use bitview_vecs::{IndexSources, RangeMapVec, shapes::PerResolution};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{BLOCKS_PER_DIFF_EPOCH, BLOCKS_PER_HALVING, Height, Timestamp};
+use brk_types::{BLOCKS_PER_DIFF_EPOCH, Height, Timestamp, blocks_per_halving};
 use derive_more::{Deref, DerefMut};
 use vecdb::{
     Budgeted, ComputeVec, IndexVec, PcoVec, ReadableBoxedVec, ReadableVec, Rw, StorageMode, Version,
@@ -62,7 +62,7 @@ macro_rules! define_timestamps {
                         ),)*
                         halving_epoch: BoundaryTimestampVec::new(
                             raw_timestamps.clone(),
-                            BLOCKS_PER_HALVING as usize,
+                            blocks_per_halving() as usize,
                         ),
                         difficulty_epoch: BoundaryTimestampVec::new(
                             raw_timestamps,

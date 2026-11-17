@@ -93,7 +93,8 @@ impl Sats {
     pub const _100K_BTC: Self = Self(100_000_00_000_000);
     pub const ONE_BTC: Self = Self(1_00_000_000);
     pub const MAX: Self = Self(u64::MAX);
-    pub const FIFTY_BTC: Self = Self(50_00_000_000);
+    /// The block reward before the first halving, the genesis block's included: 35 DMD.
+    pub const INITIAL_SUBSIDY: Self = Self(crate::chain::INITIAL_SUBSIDY);
     pub const ONE_BTC_U64: u64 = 1_00_000_000;
     pub const ONE_BTC_U128: u128 = 1_00_000_000;
     pub fn new(sats: u64) -> Self {

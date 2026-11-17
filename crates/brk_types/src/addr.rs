@@ -1,6 +1,6 @@
 use std::{fmt, str::FromStr};
 
-use bitcoin::{Address as BitcoinAddress, Network, ScriptBuf};
+use bitcoin::ScriptBuf;
 use brk_error::Error;
 use derive_more::{Deref, From};
 #[cfg(feature = "schemars")]
@@ -13,14 +13,14 @@ use crate::AddressBytes;
 #[cfg(feature = "storage")]
 use vecdb::Formattable;
 
-/// Bitcoin address, or the hex public key of a P2PK output.
+/// DebitMyData address (`D…`, `dm1…`), or the hex public key of a P2PK output.
 #[derive(Debug, Clone, PartialEq, Eq, Deref, Serialize, Deserialize, From)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(transparent)]
 #[cfg_attr(feature = "schemars", schemars(
     example = &"04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
-    example = &"1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-    example = &"bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
+    example = &"DFxKjGyDs1eAyMQsMWxjsKM3SyCNWWZBZF",
+    example = &"dm1qw60arpcygrxtce4ng8yj42w6km3a6pgqdvgr80"
 ))]
 pub struct Address(String);
 
@@ -41,9 +41,10 @@ impl TryFrom<(&ScriptBuf, OutputType)> for Address {
                 Ok(Self(bytes_to_hex(bytes.as_slice())))
             }
             _ if output_type.is_addr() => {
-                let addr = BitcoinAddress::from_script(script, Network::Bitcoin)
-                    .map_err(|_| Error::InvalidAddress)?;
-                Ok(Self(addr.to_string()))
+                let addr = crate::chain::current()
+                    .address(script)
+                    .ok_or(Error::InvalidAddress)?;
+                Ok(Self(addr))
             }
             _ => Err(Error::InvalidAddress),
         }

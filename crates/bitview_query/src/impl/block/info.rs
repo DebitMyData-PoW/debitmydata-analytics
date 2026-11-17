@@ -2,7 +2,7 @@ use std::io::Read;
 
 use crate::{ReadPin, check_bound};
 use bitcoin::{
-    Address as BitcoinAddress, BlockHash as BitcoinBlockHash, Network, Transaction,
+    BlockHash as BitcoinBlockHash, Transaction,
     block::Header as BitcoinHeader,
     consensus::{Decodable, encode::VarInt},
     hashes::Hash,
@@ -193,9 +193,9 @@ impl Query {
             .output
             .iter()
             .filter_map(|output| {
-                BitcoinAddress::from_script(&output.script_pubkey, Network::Bitcoin)
-                    .ok()
-                    .map(|a| Address::from(a.to_string()))
+                brk_types::chain::current()
+                    .address(&output.script_pubkey)
+                    .map(Address::from)
             })
             .collect();
         // Collapse consecutive duplicates only: padding outputs to the same

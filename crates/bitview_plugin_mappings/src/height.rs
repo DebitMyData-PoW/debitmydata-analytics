@@ -36,7 +36,7 @@ pub struct Vecs {
     pub day3: LazyVec<Height, Day3, Timestamp>,
     /// Zero-based difficulty epoch: block height divided by 2,016, rounded down.
     pub difficulty_epoch: IndexVec<Height, DifficultyEpoch, ReadableBoxedVec<Height, Timestamp>>,
-    /// Zero-based halving epoch (block-subsidy era): block height divided by 210,000, rounded
+    /// Zero-based halving epoch (block-subsidy era): block height divided by 300,000, rounded
     /// down; epoch zero begins at genesis.
     pub halving_epoch: IndexVec<Height, HalvingEpoch, ReadableBoxedVec<Height, Timestamp>>,
     /// Zero-based ISO week containing the block's monotonic timestamp, counted

@@ -304,7 +304,7 @@ impl Config {
         );
         println!();
         println!(
-            "    --bitcoindir {}       Bitcoin directory {}",
+            "    --bitcoindir {}       DebitMyData node directory {}",
             "<PATH>".bright_black(),
             "[OS default]".bright_black()
         );
@@ -322,7 +322,7 @@ impl Config {
         println!(
             "    --rpcport {}          RPC port {}",
             "<PORT>".bright_black(),
-            "[8332]".bright_black()
+            "[18557]".bright_black()
         );
         println!(
             "    --rpccookiefile {}    RPC cookie file; relative paths resolve inside <bitcoindir> {}",
@@ -357,7 +357,7 @@ impl Config {
         println!("    {}", "bitviewdir = \"/path/to/data\"".bright_black());
         println!(
             "    {}",
-            "bitcoindir = \"/path/to/.bitcoin\"".bright_black()
+            "bitcoindir = \"/path/to/.debitmydata\"".bright_black()
         );
     }
 
