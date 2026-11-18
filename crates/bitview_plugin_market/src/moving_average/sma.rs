@@ -41,9 +41,8 @@ pub struct SmaVecs<M: StorageMode = Rw> {
     pub _200w: PriceWithRatio<M>,
     /// Uses a trailing 1,460-day monotonic-time window.
     pub _4y: PriceWithRatio<M>,
-    /// Mayer Multiple: Bitcoin spot price divided by its 200-day simple moving
-    /// average, computed from cent-precision prices; null before the first exchange
-    /// price (block 74,641), approximate while prices are a few cents.
+    /// Mayer Multiple: the reference price divided by its 200-day simple moving
+    /// average, computed from prices in millionths of a dollar.
     #[traversable(wrap = "200d", rename = "mayer_multiple")]
     #[traversable(lead = "Mayer Multiple: the price against its 200-day average.")]
     pub mayer_multiple: LazyPerBlock<Multiple>,

@@ -13,7 +13,7 @@ use crate::{
 /// Trailing-window deltas of a value in its plain units.
 pub type LazyRollingDeltasFromHeight<S, C, B> =
     LazyRollingDeltas<LazyDeltaFromHeight<S, C, DeltaChange>, S, B>;
-/// Trailing-window deltas in BTC and satoshis.
+/// Trailing-window deltas in DMD and satoshis.
 pub type LazyRollingDeltasAmountFromHeight<S, C, B> =
     LazyRollingDeltas<LazyDeltaAmountFromHeight<S, C>, S, B>;
 /// Trailing-window deltas in USD and cents.

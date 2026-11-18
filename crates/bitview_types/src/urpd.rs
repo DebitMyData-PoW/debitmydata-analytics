@@ -23,7 +23,7 @@ pub struct Urpd {
     pub aggregation: UrpdAggregation,
     /// Price at `height`, in USD. Anchor for `unrealized_pnl`.
     pub close: Dollars,
-    /// Sum of `buckets.supply`, in BTC.
+    /// Sum of `buckets.supply`, in DMD.
     pub supply: Bitcoin,
     pub buckets: UrpdBuckets,
 }

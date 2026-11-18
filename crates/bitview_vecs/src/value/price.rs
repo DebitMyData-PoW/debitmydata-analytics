@@ -5,14 +5,14 @@ use vecdb::{Convert, Database, Ident, ReadableCloneableVec};
 
 use crate::{IndexSources, LazyPerBlock, PerBlock};
 
-/// A price in USD and cents per BTC. The field types preserve each family's source, sampling and
+/// A price in USD and millionths of a dollar per DMD. The field types preserve each family's source, sampling and
 /// rounding policy.
 #[derive(Clone, Traversable)]
 #[traversable(merge)]
 pub struct Price<C, U = LazyPerBlock<Dollars, Cents>> {
-    /// Reported in USD per BTC.
+    /// Reported in USD per DMD.
     pub usd: U,
-    /// Reported in cents per BTC.
+    /// Reported in millionths of a dollar per DMD.
     #[traversable(hidden)]
     pub cents: C,
 }

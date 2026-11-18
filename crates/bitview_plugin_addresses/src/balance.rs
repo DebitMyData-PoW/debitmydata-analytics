@@ -96,9 +96,9 @@ impl ZeroBalanceVecs {
 pub struct BalanceActivity<M: StorageMode = Rw> {
     /// Value the band's addresses spent in each block, each spend attributed by its address's
     /// balance immediately before that input is applied, so one address can contribute to
-    /// several bands within a block. BTC representations use the spent output value; USD
+    /// several bands within a block. DMD representations use the spent output value; USD
     /// representations value it at the spending block's spot price.
-    #[traversable(lead = "Transfer volume: the bitcoin these addresses spent.")]
+    #[traversable(lead = "Transfer volume: the DMD these addresses spent.")]
     pub transfer_volume: CumulativeValue<M>,
 }
 
@@ -249,7 +249,7 @@ impl Balances {
     }
 
     /// Writes each band's values and the capital they hold together, summed exactly and
-    /// converted to cents once.
+    /// converted to millionths of a dollar once.
     #[inline(always)]
     pub fn push(&mut self, states: &AmountRange<AddrCohortState>, price: Cents) {
         let (zero, bands) = self.bands.split_mut();

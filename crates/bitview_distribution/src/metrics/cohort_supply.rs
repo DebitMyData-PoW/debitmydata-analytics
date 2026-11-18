@@ -12,8 +12,8 @@ use crate::families::Supply;
 /// supply series name (`age_1d_to_1w_supply`).
 #[derive(Traversable)]
 pub struct CohortSupply<M: StorageMode = Rw> {
-    /// Supply: amount of bitcoin held in the cohort's unspent transaction outputs.
-    #[traversable(lead = "Supply: the bitcoin held.")]
+    /// Supply: amount of DMD held in the cohort's unspent transaction outputs.
+    #[traversable(lead = "Supply: the DMD held.")]
     pub total: Supply<M>,
     #[traversable(flatten)]
     change: SupplyChange,

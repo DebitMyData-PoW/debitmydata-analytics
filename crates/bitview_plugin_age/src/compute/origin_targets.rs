@@ -18,7 +18,7 @@ pub struct OriginTargets<'a> {
 
 impl OriginTargets<'_> {
     /// Writes every cohort's values once the block's spends and receives are applied, and the
-    /// capital of all ranges together, summed exactly and converted to cents once.
+    /// capital of all ranges together, summed exactly and converted to millionths of a dollar once.
     #[inline(always)]
     pub fn push(&mut self, states: &mut UTXOStates, price: Cents) {
         let mut all_capital = CentsSats::ZERO;

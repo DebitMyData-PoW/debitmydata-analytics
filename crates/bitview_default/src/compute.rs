@@ -3,7 +3,6 @@ use std::thread;
 use bitview_plugin::{BootstrapAction, ComputePluginSet, UpdateContext};
 use bitview_plugin_addresses::Dependencies as AddressesDependencies;
 use bitview_plugin_age::Dependencies as AgeDependencies;
-use bitview_plugin_bedrock::Dependencies as BedrockDependencies;
 use bitview_plugin_blocks::Dependencies as BlocksDependencies;
 use bitview_plugin_coinflow::Dependencies as CoinflowDependencies;
 use bitview_plugin_cointime::Dependencies as CointimeDependencies;
@@ -18,7 +17,6 @@ use bitview_plugin_outputs::Dependencies as OutputsDependencies;
 use bitview_plugin_pools::Dependencies as PoolsDependencies;
 use bitview_plugin_price::Dependencies as PriceDependencies;
 use bitview_plugin_profitability::Dependencies as ProfitabilityDependencies;
-use bitview_plugin_rarity_meter::Dependencies as RarityMeterDependencies;
 use bitview_plugin_supply::Dependencies as SupplyDependencies;
 use bitview_plugin_transactions::Dependencies as TransactionsDependencies;
 use bitview_plugin_utxo_set::Dependencies as UtxoSetDependencies;
@@ -323,40 +321,10 @@ impl DefaultPlugins {
                     },
                     context,
                 )?;
-                let cointime = self.cointime.as_ref();
-                let coinflow = coinflow.join().unwrap()?;
-
-                let (bedrock, rarity_meter) = join(
-                    || {
-                        timed_compute(
-                            &mut *self.bedrock,
-                            BedrockDependencies {
-                                urpd,
-                                indexer,
-                                age,
-                                holders,
-                                cointime,
-                                coinflow,
-                            },
-                            context,
-                        )
-                    },
-                    || {
-                        timed_compute(
-                            &mut *self.rarity_meter,
-                            RarityMeterDependencies {
-                                indexer,
-                                holders,
-                                cointime,
-                                coinflow,
-                                price,
-                            },
-                            context,
-                        )
-                    },
-                );
-                bedrock?;
-                rarity_meter?;
+                coinflow.join().unwrap()?;
+                // Bitview's Bedrock and Rarity Meter models are left out here: calibrated on
+                // Bitcoin's market history (from its second halving, over 210,000 blocks), they
+                // have nothing to read on DebitMyData's young chain and its reference price.
                 for branch in mining_tail.into_iter().chain([entry, profitability]) {
                     branch.join().unwrap()?;
                 }

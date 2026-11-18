@@ -33,7 +33,7 @@ impl CentsSquaredSats {
         Self(price.inner() as u128 * value.inner())
     }
 
-    /// The capitalized price (cents per BTC) given the realized cap, rounded to the nearest cent;
+    /// The capitalized price (millionths of a dollar per DMD) given the realized cap, rounded to the nearest millionth of a dollar;
     /// undefined (NaN) without cap.
     #[inline(always)]
     pub fn capitalized_price(self, cap: CentsSats) -> Cents {

@@ -18,7 +18,7 @@ use crate::{
 #[derive(Traversable)]
 pub struct Supply<M: StorageMode = Rw> {
     /// Total unspent supply.
-    #[traversable(lead = "Supply: the bitcoin held.")]
+    #[traversable(lead = "Supply: the DMD held.")]
     pub total: LazySpotValuePerBlock,
     /// Supply in profit: creation price at or below the spot price.
     #[traversable(
@@ -31,7 +31,7 @@ pub struct Supply<M: StorageMode = Rw> {
     )]
     pub in_loss: Part<LazySpotValuePerBlock, M>,
     /// Change in the cohort's supply over a trailing window.
-    #[traversable(lead = "Supply change: how much the bitcoin held changed.")]
+    #[traversable(lead = "Supply change: how much the DMD held changed.")]
     pub delta: LazyRollingDeltasAmountFromHeight<Sats, SatsSigned, PartsPerMillionSigned64>,
 }
 

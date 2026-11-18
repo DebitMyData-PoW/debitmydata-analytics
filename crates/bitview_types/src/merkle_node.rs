@@ -2,7 +2,7 @@ use derive_more::{Deref, From};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// A merkle tree node: a double-SHA256 hash, hex-encoded in Bitcoin's display byte order.
+/// A merkle tree node: a double-SHA256 hash, hex-encoded in the usual display byte order.
 #[derive(Debug, Clone, Deref, From, Serialize, Deserialize, JsonSchema)]
 #[serde(transparent)]
 #[schemars(

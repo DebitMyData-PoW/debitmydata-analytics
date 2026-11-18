@@ -416,7 +416,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/difficulty-adjustment",
         summary: "Difficulty adjustment",
-        description: "Get current difficulty adjustment progress and estimates.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustment)*",
+        description: "Progress through the current 2,016-block period and its estimates, as mempool.space reports a difficulty epoch. DebitMyData's difficulty itself adjusts at every block (LWMA): the period is Bitview's, for comparing.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustment)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -453,7 +453,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/server/disk",
         summary: "Disk usage",
-        description: "Returns allocated file bytes (file lengths on non-Unix platforms) for BRK and Bitcoin data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.",
+        description: "Returns allocated file bytes (file lengths on non-Unix platforms) for Bitview's and the node's data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -514,7 +514,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/historical-price",
         summary: "Historical price",
-        description: "Completed four-hour BTC/USD closes, newest first as mempool.space lists them, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*",
+        description: "Completed four-hour closes of DMD's reference price (the cost of mining one DMD, at least $0.001; not a market price), newest first as mempool.space lists them, labeled by interval end, from the chain's first block. With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -526,9 +526,9 @@ pub static COMMANDS: &[Command] = &[
     Command {
         name: "get-live-price",
         method: "GET",
-        path: "/api/oracle/price",
-        summary: "Live BTC/USD price",
-        description: "Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available, to the cent: `price` of `GET /api/oracle/live`. Confirmed per-height history is available at `GET /api/series/price/height`. Not found before the oracle's first prices.",
+        path: "/api/price",
+        summary: "DMD reference price",
+        description: "DMD's reference price in US dollars at the latest block: the cost of the electricity it takes to mine one DMD, never below $0.001 (DebitMyData's minimum rate). Not a market price. Every block's is at `GET /api/series/price/height`.",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -592,7 +592,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/fees/mempool-blocks",
         summary: "Projected mempool blocks",
-        description: "Projected blocks for fee estimation. Block 0 reflects Bitcoin Core's actual next-block selection; blocks 1+ are a fee-tier approximation.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*",
+        description: "Projected blocks for fee estimation. Block 0 reflects the node's actual next-block selection; blocks 1+ are a fee-tier approximation.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -630,44 +630,6 @@ pub static COMMANDS: &[Command] = &[
         summary: "OpenAPI specification",
         description: "Full OpenAPI 3.1 specification for this API. Build tools from this document.",
         path_parameters: &[
-        ],
-        query_parameters: &[
-        ],
-        request_body: None,
-    },
-    Command {
-        name: "get-oracle-block",
-        method: "GET",
-        path: "/api/oracle/blocks/{height}",
-        summary: "The oracle at a block",
-        description: "How the oracle read a confirmed block, after height 508,000: what it counted (the smoothed histogram of the payments of the block and the 11 before it, by amount on its log scale; the block's outputs as its filter judged them, each skipped one under the first rule that skips it), where it looked (every candidate bin in its window, 12 below the block before's answer to 11 above, with its score) and what it found (the bin it picked and its price). Bins: 200 a decade, a bin `round(log10(sats) * 200)`; as where $100 lands, a bin is the price `10^(10 - bin / 200)` dollars. A settled block's never changes.",
-        path_parameters: &[
-            Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
-        ],
-        query_parameters: &[
-        ],
-        request_body: None,
-    },
-    Command {
-        name: "get-oracle-live",
-        method: "GET",
-        path: "/api/oracle/live",
-        summary: "The oracle now",
-        description: "The oracle's reading now, as `GET /api/oracle/blocks/{height}` reads a block: with the mempool's outputs blended in as the next block (`mempool` true, `height` the next block's, `outputs` the mempool's), its search from the tip's answer, `price` the live price; without a mempool at the tip, the tip block's own. One snapshot: its parts never from two moments, `hash` the confirmed tip it was read at. Not found before the oracle's first prices, nor before height 508,000.",
-        path_parameters: &[
-        ],
-        query_parameters: &[
-        ],
-        request_body: None,
-    },
-    Command {
-        name: "get-oracle-payments",
-        method: "GET",
-        path: "/api/oracle/payments/{start}",
-        summary: "The oracle's payments, 144 blocks at a time",
-        description: "For each of the 144 blocks from `start` (a multiple of 144, else a bad request; from 508,032, earlier ones out of range): its payments as the oracle filters them, each read as each of its 19 round-dollar amounts ($1 to $10,000) at its exact amount in sats, counted by the price each reading implies, in buckets a tenth of a bin wide (0.115% of price) over the block's search window: finer than the oracle's bins, the evidence behind its prices. The chunk at the tip holds its blocks so far, `hash` its last block's; a whole, settled chunk never changes.",
-        path_parameters: &[
-            Parameter { api_name: "start", name: "start", required: true, value_name: "Height", repeatable: false, description: Some("The first block's height.") },
         ],
         query_parameters: &[
         ],
@@ -792,8 +754,8 @@ pub static COMMANDS: &[Command] = &[
         name: "get-prices",
         method: "GET",
         path: "/api/v1/prices",
-        summary: "Current BTC price",
-        description: "Returns bitcoin latest price (on-chain derived, USD only).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-price)*",
+        summary: "Current DMD price",
+        description: "DMD's reference price at the latest block (the cost of mining one DMD, at least $0.001; not a market price), USD only.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-price)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -975,7 +937,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/server/sync",
         summary: "Sync status",
-        description: "Returns a coherent local index snapshot and a separately observed Bitcoin Core tip height. The two heights can differ during indexing or a reorg. Conditional requests refresh these observations before validation.",
+        description: "Returns a coherent local index snapshot and a separately observed node tip height. The two heights can differ during indexing or a reorg. Conditional requests refresh these observations before validation.",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -1131,7 +1093,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/urpd/{cohort}/{point}",
         summary: "URPD at block height or date",
-        description: "URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.",
+        description: "URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is DMD. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.",
         path_parameters: &[
             Parameter { api_name: "cohort", name: "cohort", required: true, value_name: "UrpdCohort", repeatable: false, description: None },
             Parameter { api_name: "point", name: "point", required: true, value_name: "HeightOrDate", repeatable: false, description: Some("Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)") },
@@ -1162,7 +1124,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/utxo-set/{point}",
         summary: "UTXO set at block height or date",
-        description: "The UTXO set after a block (`840000`) or after the last published block of a UTC day (`YYYY-MM-DD`), by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.",
+        description: "The UTXO set after a block (`840000`) or after the last published block of a UTC day (`YYYY-MM-DD`), by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (DMD) is what remains unspent of block `i`'s outputs.",
         path_parameters: &[
             Parameter { api_name: "point", name: "point", required: true, value_name: "HeightOrDate", repeatable: false, description: Some("Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)") },
         ],
@@ -1175,7 +1137,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/utxo-set/{point}/diff",
         summary: "UTXO set changes of a block or date",
-        description: "What a block (`840000`) or a UTC day's published blocks (`YYYY-MM-DD`) changed in the UTXO set. Returns `{ first, last, hash, date, created, spent }`: `created` has one row per block, `spent` one row per creation height, each as columnar `height`, `count` and `supply` (BTC). The set after block `first - 1` plus `created` minus `spent` is the set after block `last`.",
+        description: "What a block (`840000`) or a UTC day's published blocks (`YYYY-MM-DD`) changed in the UTXO set. Returns `{ first, last, hash, date, created, spent }`: `created` has one row per block, `spent` one row per creation height, each as columnar `height`, `count` and `supply` (DMD). The set after block `first - 1` plus `created` minus `spent` is the set after block `last`.",
         path_parameters: &[
             Parameter { api_name: "point", name: "point", required: true, value_name: "HeightOrDate", repeatable: false, description: Some("Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)") },
         ],
@@ -1276,9 +1238,9 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/validate-address/{address}",
         summary: "Validate address",
-        description: "Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses; a string that isn't 2 to 130 letters and digits answers 400.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-validate)*",
+        description: "Validate a DebitMyData address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses; a string that isn't 2 to 130 letters and digits answers 400.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-validate)*",
         path_parameters: &[
-            Parameter { api_name: "address", name: "address", required: true, value_name: "string", repeatable: false, description: Some("Bitcoin address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130);\nanything else answers 400, as mempool.space does") },
+            Parameter { api_name: "address", name: "address", required: true, value_name: "string", repeatable: false, description: Some("DebitMyData address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130);\nanything else answers 400, as mempool.space does") },
         ],
         query_parameters: &[
         ],

@@ -32,7 +32,7 @@ struct TxOutSchema {
     /// Esplora/mempool.space script type.
     #[schemars(example = &"v0_p2wpkh")]
     scriptpubkey_type: OutputTypeNormalized,
-    /// Bitcoin address, omitted for scripts without an address (P2PK included, as Esplora).
+    /// DebitMyData address, omitted for scripts without an address (P2PK included, as Esplora).
     #[schemars(example = &"bc1q8vryck26jhuh0uqr2ttwj96szfnu4nwxfmu39y")]
     scriptpubkey_address: Address,
     /// Value of the output in satoshis.

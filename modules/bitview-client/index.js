@@ -2,7 +2,7 @@
 // Do not edit manually
 
 /**
- * Bitcoin address, or the hex public key of a P2PK output.
+ * DebitMyData address (`D…`, `dm1…`), or the hex public key of a P2PK output.
  *
  * @typedef {string} Address
  */
@@ -76,7 +76,7 @@ address payload bytes.
  * Address information compatible with mempool.space API format.
  *
  * @typedef {Object} AddressStats
- * @property {Address} address - Bitcoin address, or the hex public key of a P2PK output
+ * @property {Address} address - DebitMyData address, or the hex public key of a P2PK output
  * @property {OutputType} addressType - Output script type
  * @property {AddressChainStats} chainStats - Statistics for confirmed transactions on the blockchain
  * @property {AddressMempoolStats} mempoolStats - Statistics for unconfirmed transactions in the mempool
@@ -103,7 +103,7 @@ cursor skips the mempool). One that is neither answers 422.
  * @property {?string=} error - Error message for invalid addresses
  */
 /**
- * An amount in bitcoin, as a decimal number (1 BTC = 100,000,000 satoshis).
+ * An amount in DMD, as a decimal number (1 DMD = 100,000,000 satoshis).
  *
  * @typedef {number} Bitcoin
  */
@@ -191,7 +191,7 @@ sequence isn't final), from timestamp 1,771,507,776 on; null before
  * @property {Height} avgHeight - Average block height in this bucket
  * @property {Timestamp} timestamp - Average block timestamp in this bucket
  * @property {Sats} avgFees - Mean fees per block in this bucket, rounded half up (sats)
- * @property {Dollars} USD - Mean BTC/USD spot price over the bucket's blocks (the price, not the fees in USD)
+ * @property {Dollars} USD - Mean DMD/USD reference price over the bucket's blocks (the price, not the fees in USD)
  */
 /**
  * Double-SHA256 block-header hash, serialized in Bitcoin's conventional
@@ -283,7 +283,7 @@ sequence isn't final), from timestamp 1,771,507,776 on; null before
  * @property {Height} avgHeight - Average block height in this bucket
  * @property {Timestamp} timestamp - Average block timestamp in this bucket
  * @property {Sats} avgRewards - Mean coinbase reward (subsidy + fees) per block in this bucket, rounded half up (sats)
- * @property {Dollars} USD - Mean BTC/USD spot price over the bucket's blocks (the price, not the rewards in USD)
+ * @property {Dollars} USD - Mean DMD/USD reference price over the bucket's blocks (the price, not the rewards in USD)
  */
 /**
  * One time bucket of blocks.
@@ -542,9 +542,9 @@ mainnet, as mempool.space
  * @typedef {Object} DiskUsage
  * @property {string} brk - Human-readable brk data size (e.g., "48.8 GiB")
  * @property {number} brkBytes - brk data size in bytes
- * @property {string} bitcoin - Human-readable Bitcoin blocks directory size
- * @property {number} bitcoinBytes - Bitcoin blocks directory size in bytes
- * @property {number} ratio - Ratio of BRK bytes to Bitcoin bytes; zero when Bitcoin bytes are zero.
+ * @property {string} bitcoin - Human-readable node blocks directory size
+ * @property {number} bitcoinBytes - Node blocks directory size in bytes
+ * @property {number} ratio - Ratio of Bitview's bytes to the node's; zero when the node's are zero.
  */
 /**
  * US dollars multiplied by blocks: coinblocks valued at the spot price.
@@ -552,8 +552,8 @@ mainnet, as mempool.space
  * @typedef {number} DollarBlocks
  */
 /**
- * US dollars multiplied by days, per bitcoin: coin days valued at the spot price, per
- * bitcoin of supply.
+ * US dollars multiplied by days, per DMD: coin days valued at the spot price, per
+ * DMD of supply.
  *
  * @typedef {number} DollarDaysPerCoin
  */
@@ -611,7 +611,7 @@ mainnet, as mempool.space
  */
 /** @typedef {("json"|"csv")} Format */
 /**
- * Index of a halving epoch (210,000 blocks).
+ * Index of a halving epoch (300,000 blocks on DebitMyData).
  *
  * @typedef {number} HalvingEpoch
  */
@@ -652,7 +652,7 @@ mainnet, as mempool.space
  * @property {number} uptimeSeconds - Uptime in seconds
  * @property {Height} indexedHeight - Height of the last indexed block
  * @property {Height} computedHeight - Height of the last computed block (series)
- * @property {Height} tipHeight - Height of the Bitcoin node's chain tip; `/health` reports `indexed_height` instead, without
+ * @property {Height} tipHeight - Height of the node's chain tip; `/health` reports `indexed_height` instead, without
 asking the node
  * @property {Height} blocksBehind - Number of blocks behind the tip
  * @property {string} lastIndexedAt - Human-readable timestamp of the last indexed block (ISO 8601)
@@ -850,7 +850,7 @@ a bin closing at the first fee rate change past 50,000 vB
  * @property {Sats} value - Total output value (sats)
  */
 /**
- * A merkle tree node: a double-SHA256 hash, hex-encoded in Bitcoin's display byte order.
+ * A merkle tree node: a double-SHA256 hash, hex-encoded in the usual display byte order.
  *
  * @typedef {string} MerkleNode
  */
@@ -907,74 +907,6 @@ a bin closing at the first fee rate change past 50,000 vB
  * Index of an OP_RETURN output.
  *
  * @typedef {TypeIndex} OpReturnOutputIndex
- */
-/**
- * The oracle at one block: what it counted (`histogram`, `outputs`), where it looked (`first_bin`,
- * `scores`) and what it found (`bin`, `price`).
- *
- * Bins are the oracle's log scale of amounts in sats, 200 a decade: amount `sats` is in bin
- * `round(log10(sats) * 200)`, bin 0 at 1 sat to bin 2399 just under 10^12. Read as where $100
- * lands, a bin is a price: `10^(10 - bin / 200)` dollars, higher bins lower prices.
- *
- * @typedef {Object} OracleBlock
- * @property {Height} height - The block's height; live with the mempool, the next block's.
- * @property {BlockHash} hash - The confirmed block it was read at: this block's hash; live with the mempool, the tip's
-(block `height - 1`), the one the mempool is blended onto.
- * @property {boolean} mempool - Whether it's the live reading with the mempool blended in as the next block (`outputs` the
-mempool's), rather than a confirmed block's.
- * @property {Dollars} price - The price it found, in dollars: `bin` as a price, to the cent.
- * @property {number} bin - The bin it picked, refined between bins by a parabola through the best score and its
-neighbours.
- * @property {number} firstBin - The search window's first candidate bin: 12 below the block before's answer, rounded, 24
-candidates in all.
- * @property {number[]} scores - Each candidate's score, from `first_bin` on, unitless: for each of the 19 round-dollar
-amounts ($1, 2, 3, 5, 10, 15, 20, 25, 30, 50, 100, 150, 200, 300, 500, 1k, 2k, 5k, 10k),
-the histogram's count where that amount lands if $100 is at the candidate, over that
-amount's peak in the window, summed. The highest is the pick's bin; all zero when the window
-held no payments at all, and the oracle kept the block before's answer.
- * @property {number[]} histogram - The smoothed histogram it scored, 2,400 bins: the block's payments and the 11 blocks'
-before it (live, the mempool's as the next block's), each block's counts weighted
-`(2/7) * (5/7)^age`, the newest at age 0.
- * @property {OracleOutputs} outputs - The block's own outputs (live, the mempool's) as the oracle's filter judged them.
- */
-/**
- * One block's payments read as round dollars, over the oracle's search window for it.
- *
- * @typedef {Object} OracleBlockPayments
- * @property {Height} height
- * @property {number} firstBucket - The first bucket's index: the window's first bin's lower edge (half a bin under it) over
-`step`.
- * @property {number[]} counts - The readings in each bucket from `first_bucket` on: bucket `first_bucket + k` at index `k`.
- */
-/**
- * A block's outputs as the oracle's filter judged them: each skipped one under the first rule
- * that skips it, in the filter's order, and the payments it kept. They add up to the block's
- * outputs.
- *
- * @typedef {Object} OracleOutputs
- * @property {number} coinbase - The coinbase's: new coins, not payments.
- * @property {number} fanOut - Those of transactions with more outputs than the fan-out cap (250; 100 before height
-630,000): batch payouts.
- * @property {number} opReturn - Those of transactions carrying an OP_RETURN output: data, not payments.
- * @property {number} taproot - Taproot outputs: mostly protocol traffic.
- * @property {number} dust - Under 1,000 sats.
- * @property {number} roundBtc - Round amounts in bitcoin (within 0.1% of 1, 2, 3, 5 or 6 times a power of ten sats).
- * @property {number} payments - The rest: the payments it counted.
- */
-/**
- * 144 blocks' payments, each read as each of the oracle's 19 round-dollar amounts ($1 to
- * $10,000) at its exact amount in sats, counted by the price each reading implies in buckets a
- * tenth of the oracle's bins.
- *
- * A reading of `sats` as `amount` dollars implies $100 lands at bin
- * `(log10(sats) + 2 - log10(amount)) * 200`; bucket `b` holds the readings in bins
- * `[b * step, (b + 1) * step)`, prices from `10^(10 - (b + 1) * step / 200)` up to
- * `10^(10 - b * step / 200)` dollars.
- *
- * @typedef {Object} OraclePayments
- * @property {BlockHash} hash - The last block's hash: it commits to every block before it.
- * @property {number} step - A bucket's width in oracle bins: 0.1, a price range of 0.115%.
- * @property {OracleBlockPayments[]} blocks - Each block's, in order.
  */
 /**
  * The output a transaction input spends: its transaction index and output position, written as
@@ -1164,7 +1096,7 @@ as a decimal string
 /**
  * A mining pool's identifier, as written in URLs.
  *
- * @typedef {("unknown"|"blockfills"|"ultimuspool"|"terrapool"|"luxor"|"1thash"|"btccom"|"bitfarms"|"huobipool"|"wayicn"|"canoepool"|"btctop"|"bitcoincom"|"175btc"|"gbminers"|"axbt"|"asicminer"|"bitminter"|"bitcoinrussia"|"btcserv"|"simplecoinus"|"btcguild"|"eligius"|"ozcoin"|"eclipsemc"|"maxbtc"|"triplemining"|"coinlab"|"50btc"|"ghashio"|"stminingcorp"|"bitparking"|"mmpool"|"polmine"|"kncminer"|"bitalo"|"f2pool"|"hhtt"|"megabigpower"|"mtred"|"nmcbit"|"yourbtcnet"|"givemecoins"|"braiinspool"|"antpool"|"multicoinco"|"bcpoolio"|"cointerra"|"kanopool"|"solock"|"ckpool"|"nicehash"|"bitclub"|"bitcoinaffiliatenetwork"|"btcc"|"bwpool"|"exxbw"|"bitsolo"|"bitfury"|"21inc"|"digitalbtc"|"8baochi"|"mybtccoinpool"|"tbdice"|"hashpool"|"nexious"|"bravomining"|"hotpool"|"okexpool"|"bcmonster"|"1hash"|"bixin"|"tatmaspool"|"viabtc"|"connectbtc"|"batpool"|"waterhole"|"dcexploration"|"dcex"|"btpool"|"58coin"|"bitcoinindia"|"shawnp0wers"|"phashio"|"rigpool"|"haozhuzhu"|"7pool"|"miningkings"|"hashbx"|"dpool"|"rawpool"|"haominer"|"helix"|"bitcoinukraine"|"poolin"|"secretsuperstar"|"tigerpoolnet"|"sigmapoolcom"|"okpooltop"|"hummerpool"|"tangpool"|"bytepool"|"spiderpool"|"novablock"|"miningcity"|"binancepool"|"minerium"|"lubiancom"|"okkong"|"aaopool"|"emcdpool"|"foundryusa"|"sbicrypto"|"arkpool"|"purebtccom"|"marapool"|"kucoinpool"|"entrustcharitypool"|"okminer"|"titan"|"pegapool"|"btcnuggets"|"cloudhashing"|"digitalxmintsy"|"telco214"|"btcpoolparty"|"multipool"|"transactioncoinmining"|"btcdig"|"trickysbtcpool"|"btcmp"|"eobot"|"unomp"|"patels"|"gogreenlight"|"bitcoinindiapool"|"ekanembtc"|"canoe"|"tiger"|"1m1x"|"zulupool"|"secpool"|"ocean"|"whitepool"|"wiz"|"wk057"|"futurebitapollosolo"|"carbonnegative"|"portlandhodl"|"phoenix"|"neopool"|"maxipool"|"bitfufupool"|"gdpool"|"miningdutch"|"publicpool"|"miningsquared"|"innopolistech"|"btclab"|"parasite"|"redrockpool"|"est3lar"|"braiinssolo"|"solopoolcom"|"noderunners"|"dmnd")} PoolSlug
+ * @typedef {("unknown"|"blockfills"|"ultimuspool"|"terrapool"|"luxor"|"1thash"|"btccom"|"bitfarms"|"huobipool"|"wayicn"|"canoepool"|"btctop"|"bitcoincom"|"175btc"|"gbminers"|"axbt"|"asicminer"|"bitminter"|"bitcoinrussia"|"btcserv"|"simplecoinus"|"btcguild"|"eligius"|"ozcoin"|"eclipsemc"|"maxbtc"|"triplemining"|"coinlab"|"50btc"|"ghashio"|"stminingcorp"|"bitparking"|"mmpool"|"polmine"|"kncminer"|"bitalo"|"f2pool"|"hhtt"|"megabigpower"|"mtred"|"nmcbit"|"yourbtcnet"|"givemecoins"|"braiinspool"|"antpool"|"multicoinco"|"bcpoolio"|"cointerra"|"kanopool"|"solock"|"ckpool"|"nicehash"|"bitclub"|"bitcoinaffiliatenetwork"|"btcc"|"bwpool"|"exxbw"|"bitsolo"|"bitfury"|"21inc"|"digitalbtc"|"8baochi"|"mybtccoinpool"|"tbdice"|"hashpool"|"nexious"|"bravomining"|"hotpool"|"okexpool"|"bcmonster"|"1hash"|"bixin"|"tatmaspool"|"viabtc"|"connectbtc"|"batpool"|"waterhole"|"dcexploration"|"dcex"|"btpool"|"58coin"|"bitcoinindia"|"shawnp0wers"|"phashio"|"rigpool"|"haozhuzhu"|"7pool"|"miningkings"|"hashbx"|"dpool"|"rawpool"|"haominer"|"helix"|"bitcoinukraine"|"poolin"|"secretsuperstar"|"tigerpoolnet"|"sigmapoolcom"|"okpooltop"|"hummerpool"|"tangpool"|"bytepool"|"spiderpool"|"novablock"|"miningcity"|"binancepool"|"minerium"|"lubiancom"|"okkong"|"aaopool"|"emcdpool"|"foundryusa"|"sbicrypto"|"arkpool"|"purebtccom"|"marapool"|"kucoinpool"|"entrustcharitypool"|"okminer"|"titan"|"pegapool"|"btcnuggets"|"cloudhashing"|"digitalxmintsy"|"telco214"|"btcpoolparty"|"multipool"|"transactioncoinmining"|"btcdig"|"trickysbtcpool"|"btcmp"|"eobot"|"unomp"|"patels"|"gogreenlight"|"bitcoinindiapool"|"ekanembtc"|"canoe"|"tiger"|"1m1x"|"zulupool"|"secpool"|"ocean"|"whitepool"|"wiz"|"wk057"|"futurebitapollosolo"|"carbonnegative"|"portlandhodl"|"phoenix"|"neopool"|"maxipool"|"bitfufupool"|"gdpool"|"miningdutch"|"publicpool"|"miningsquared"|"innopolistech"|"btclab"|"parasite"|"redrockpool"|"est3lar"|"braiinssolo"|"solopoolcom"|"noderunners"|"dmnd"|"debitmydata")} PoolSlug
  */
 /**
  * @typedef {Object} PoolSlugAndHeightParam
@@ -1213,11 +1145,11 @@ it; `minimumFee` when no third projected block exists
  * @property {FeeRate} minimumFee - The node's current mempool minimum fee rate, rounded up to 0.001 sat/vB (at least 0.001)
  */
 /**
- * A BTC/USD price at a time: the current price (`/api/v1/prices`) or one historical close
+ * A DMD/USD price at a time: the current price (`/api/v1/prices`) or one historical close
  *
  * @typedef {Object} PricePoint
  * @property {Timestamp} time - Unix timestamp
- * @property {Dollars} USD - BTC/USD price
+ * @property {Dollars} USD - DMD/USD price
  */
 /**
  * A positional index, YYYY-MM-DD date, or ISO 8601 timestamp.
@@ -1302,7 +1234,7 @@ on serialization otherwise.
  * @property {string} totalTx - Total transactions, coinbase included
  */
 /**
- * An amount in satoshis (100,000,000 to a bitcoin).
+ * An amount in satoshis (100,000,000 to a DMD).
  *
  * @typedef {number} Sats
  */
@@ -1310,11 +1242,6 @@ on serialization otherwise.
  * A signed amount in satoshis.
  *
  * @typedef {number} SatsSigned
- */
-/**
- * A signed model score; undefined (null) where the model has no calibration yet.
- *
- * @typedef {number} Score
  */
 /**
  * @typedef {Object} SearchQuery
@@ -1400,14 +1327,10 @@ undefined one (e.g. NaN).
  * @typedef {number} SigOps
  */
 /**
- * @typedef {Object} StartParam
- * @property {Height} start - The first block's height.
- */
-/**
  * @typedef {Object} SyncStatus
  * @property {Height} indexedHeight - Height of the last indexed block
  * @property {Height} computedHeight - Height of the last computed block (series)
- * @property {Height} tipHeight - Height of the Bitcoin node's chain tip; `/health` reports `indexed_height` instead, without
+ * @property {Height} tipHeight - Height of the node's chain tip; `/health` reports `indexed_height` instead, without
 asking the node
  * @property {Height} blocksBehind - Number of blocks behind the tip
  * @property {string} lastIndexedAt - Human-readable timestamp of the last indexed block (ISO 8601)
@@ -1481,7 +1404,7 @@ asking the node
  * @property {Hex} scriptpubkey - Script pubkey (locking script), encoded as hexadecimal.
  * @property {string} scriptpubkeyAsm - Script pubkey in assembly format.
  * @property {OutputTypeNormalized} scriptpubkeyType - Esplora/mempool.space script type.
- * @property {Address=} scriptpubkeyAddress - Bitcoin address, omitted for scripts without an address (P2PK included, as Esplora).
+ * @property {Address=} scriptpubkeyAddress - DebitMyData address, omitted for scripts without an address (P2PK included, as Esplora).
  * @property {Sats} value - Value of the output in satoshis.
  */
 /**
@@ -1505,7 +1428,7 @@ asking the node
  */
 /**
  * Compact indexed transaction-version category. Values 1, 2, and 3 preserve
- * those exact signed 32-bit Bitcoin transaction versions; 255 represents every
+ * those exact signed 32-bit transaction versions; 255 represents every
  * other version.
  *
  * @typedef {number} TxVersion
@@ -1562,12 +1485,13 @@ asking the node
  * @property {UrpdWeight} weight
  * @property {UrpdAggregation} aggregation
  * @property {Dollars} close - Price at `height`, in USD. Anchor for `unrealized_pnl`.
- * @property {Bitcoin} supply - Sum of `buckets.supply`, in BTC.
+ * @property {Bitcoin} supply - Sum of `buckets.supply`, in DMD.
  * @property {UrpdBuckets} buckets
  */
 /**
  * Aggregation strategy for URPD buckets.
- * Options: raw (no aggregation), lin200/lin500/lin1000 (linear $200/$500/$1000),
+ * Options: raw (no aggregation), lin200/lin500/lin1000 (linear: $0.0002/$0.0005/$0.001, that
+ * many millionths of a dollar, for DMD's prices),
  * log10/log50/log100/log200/log500/log1000/log2000 (logarithmic, that many buckets per decade).
  *
  * @typedef {("raw"|"lin200"|"lin500"|"lin1000"|"log10"|"log50"|"log100"|"log200"|"log500"|"log1000"|"log2000")} UrpdAggregation
@@ -1577,8 +1501,8 @@ asking the node
  *
  * @typedef {Object} UrpdBuckets
  * @property {Dollars[]} price - Each bucket's price, in USD: its lower bound when aggregated, and for `raw` the price its
-coins' creation prices round to (four significant digits of the price in cents).
- * @property {Bitcoin[]} supply - Supply held with a last-move price inside each bucket, in BTC. With a `wakefulness` or
+coins' creation prices round to (four significant digits of the price in millionths of a dollar).
+ * @property {Bitcoin[]} supply - Supply held with a last-move price inside each bucket, in DMD. With a `wakefulness` or
 `mobility` weight, the weighted supply, floored to whole satoshis at each grid price.
  * @property {Dollars[]} realizedCap - Realized cap contribution in USD: `price * supply` summed over the coins in each bucket,
 each coin's creation price taken on the price grid (the `raw` bucket price, within 0.05%
@@ -1631,14 +1555,14 @@ capital, rounded to the cent once. Can be negative.
  * @typedef {Object} UtxoChanges
  * @property {Height[]} height - Creation height of each row.
  * @property {number[]} count - Number of outputs in each row.
- * @property {Bitcoin[]} supply - BTC held by the outputs in each row.
+ * @property {Bitcoin[]} supply - DMD held by the outputs in each row.
  */
 /**
  * Columnar unspent amounts indexed by creation height.
  *
  * @typedef {Object} UtxoOrigins
  * @property {number[]} count - Number of unspent outputs per creation height.
- * @property {Bitcoin[]} supply - BTC held by the unspent outputs per creation height.
+ * @property {Bitcoin[]} supply - DMD held by the unspent outputs per creation height.
  */
 /**
  * The UTXO set after a block, grouped by the height of the block that created each output.
@@ -1654,7 +1578,7 @@ capital, rounded to the cent once. Can be negative.
  * @property {Date} date - UTC date of the represented block's monotonic timestamp (the running maximum of block
 times).
  * @property {number} count - Number of unspent outputs.
- * @property {Bitcoin} supply - BTC held by the unspent outputs.
+ * @property {Bitcoin} supply - DMD held by the unspent outputs.
  * @property {UtxoOrigins} origins - Unspent outputs by creation height: entry `i` is what remains of block `i`'s outputs.
  */
 /**
@@ -1678,7 +1602,7 @@ coinbase outputs of blocks 91812 and 91722, which duplicates at 91842 and 91880 
  */
 /**
  * @typedef {Object} ValidateAddressParam
- * @property {string} address - Bitcoin address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130);
+ * @property {string} address - DebitMyData address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130);
 anything else answers 400, as mempool.space does
  */
 /**
@@ -2725,555 +2649,6 @@ const _s = (children) => (c, b) => _n(c, b, children);
 
 /**
  * @typedef {{
- *   p0_1: SeriesPattern1<?Dollars>,
- *   p0_5: SeriesPattern1<?Dollars>,
- *   p1: SeriesPattern1<?Dollars>,
- *   p2: SeriesPattern1<?Dollars>,
- *   p5: SeriesPattern1<?Dollars>,
- *   p10: SeriesPattern1<?Dollars>,
- *   p20: SeriesPattern1<?Dollars>,
- *   p30: SeriesPattern1<?Dollars>,
- *   p40: SeriesPattern1<?Dollars>,
- *   median: SeriesPattern1<?Dollars>,
- *   p60: SeriesPattern1<?Dollars>,
- *   p70: SeriesPattern1<?Dollars>,
- *   p80: SeriesPattern1<?Dollars>,
- *   p90: SeriesPattern1<?Dollars>,
- *   p95: SeriesPattern1<?Dollars>,
- *   p98: SeriesPattern1<?Dollars>,
- *   p99: SeriesPattern1<?Dollars>,
- *   p99_5: SeriesPattern1<?Dollars>,
- *   p99_9: SeriesPattern1<?Dollars>,
- *   level: SeriesPattern1<?Score>,
- *   score: SeriesPattern1<?Score>,
- * }} Meter
- */
-const _Meter = _s({
-  p0_1: [_i1, '*_p0_1'],
-  p0_5: [_i1, '*_p0_5'],
-  p1: [_i1, '*_p1'],
-  p2: [_i1, '*_p2'],
-  p5: [_i1, '*_p5'],
-  p10: [_i1, '*_p10'],
-  p20: [_i1, '*_p20'],
-  p30: [_i1, '*_p30'],
-  p40: [_i1, '*_p40'],
-  median: [_i1, '*_median'],
-  p60: [_i1, '*_p60'],
-  p70: [_i1, '*_p70'],
-  p80: [_i1, '*_p80'],
-  p90: [_i1, '*_p90'],
-  p95: [_i1, '*_p95'],
-  p98: [_i1, '*_p98'],
-  p99: [_i1, '*_p99'],
-  p99_5: [_i1, '*_p99_5'],
-  p99_9: [_i1, '*_p99_9'],
-  level: [_i1, '*_level'],
-  score: [_i1, '*_score'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   value: SeriesPattern1<A>,
- *   p0_1: SeriesPattern1<A>,
- *   p0_5: SeriesPattern1<A>,
- *   p1: SeriesPattern1<A>,
- *   p2: SeriesPattern1<A>,
- *   p5: SeriesPattern1<A>,
- *   p10: SeriesPattern1<A>,
- *   p20: SeriesPattern1<A>,
- *   p30: SeriesPattern1<A>,
- *   p40: SeriesPattern1<A>,
- *   median: SeriesPattern1<A>,
- *   p60: SeriesPattern1<A>,
- *   p70: SeriesPattern1<A>,
- *   p80: SeriesPattern1<A>,
- *   p90: SeriesPattern1<A>,
- *   p95: SeriesPattern1<A>,
- *   p98: SeriesPattern1<A>,
- *   p99: SeriesPattern1<A>,
- *   p99_5: SeriesPattern1<A>,
- *   p99_9: SeriesPattern1<A>,
- * }} Extreme
- */
-const _Extreme = _s({
-  value: [_i1, '*'],
-  p0_1: [_i1, '*_rarity_p0_1'],
-  p0_5: [_i1, '*_rarity_p0_5'],
-  p1: [_i1, '*_rarity_p1'],
-  p2: [_i1, '*_rarity_p2'],
-  p5: [_i1, '*_rarity_p5'],
-  p10: [_i1, '*_rarity_p10'],
-  p20: [_i1, '*_rarity_p20'],
-  p30: [_i1, '*_rarity_p30'],
-  p40: [_i1, '*_rarity_p40'],
-  median: [_i1, '*_rarity_median'],
-  p60: [_i1, '*_rarity_p60'],
-  p70: [_i1, '*_rarity_p70'],
-  p80: [_i1, '*_rarity_p80'],
-  p90: [_i1, '*_rarity_p90'],
-  p95: [_i1, '*_rarity_p95'],
-  p98: [_i1, '*_rarity_p98'],
-  p99: [_i1, '*_rarity_p99'],
-  p99_5: [_i1, '*_rarity_p99_5'],
-  p99_9: [_i1, '*_rarity_p99_9'],
-});
-
-/**
- * @typedef {{
- *   supplyInLoss: Extreme<?Bitcoin>,
- *   realizedProfitSum24h: Extreme<?Dollars>,
- *   realizedLossSum24h: Extreme<?Dollars>,
- *   realizedPeakRegretSum24h: Extreme<?Dollars>,
- *   sellSideRiskRatio24h: Extreme<?Ratio>,
- * }} Extremes
- */
-const _Extremes = _s({
-  supplyInLoss: [_Extreme, 'supply_in_loss'],
-  realizedProfitSum24h: [_Extreme, 'realized_profit_sum_*'],
-  realizedLossSum24h: [_Extreme, 'realized_loss_sum_*'],
-  realizedPeakRegretSum24h: [_Extreme, 'realized_peak_regret_sum_*'],
-  sellSideRiskRatio24h: [_Extreme, 'sell_side_risk_ratio_*'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Multiple>,
- *   band: SeriesPattern1<?Dollars>,
- * }} MobileMedianCapitalizedPriceMedian
- */
-const _MobileMedianCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'mobile_median_capitalized_price_ratio_*'],
-  band: [_i1, 'mobile_median_capitalized_price_*'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Multiple>,
- *   band: SeriesPattern1<?Dollars>,
- * }} MobileMedianRealizedPriceMedian
- */
-const _MobileMedianRealizedPriceMedian = _s({
-  ratio: [_i1, 'mobile_median_realized_price_ratio_*'],
-  band: [_i1, 'mobile_median_realized_price_*'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Multiple>,
- *   band: SeriesPattern1<?Dollars>,
- * }} MobileRealizedPriceMedian
- */
-const _MobileRealizedPriceMedian = _s({
-  ratio: [_i1, 'mobile_realized_price_ratio_*'],
-  band: [_i1, 'mobile_realized_price_*'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Multiple>,
- *   band: SeriesPattern1<?Dollars>,
- * }} AwakeRealizedPriceMedian
- */
-const _AwakeRealizedPriceMedian = _s({
-  ratio: [_i1, 'awake_realized_price_ratio_*'],
-  band: [_i1, 'awake_realized_price_*'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Multiple>,
- *   band: SeriesPattern1<?Dollars>,
- * }} Under6mCapitalizedPriceMedian
- */
-const _Under6mCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'age_under_6m_capitalized_price_ratio_*'],
-  band: [_i1, 'age_under_6m_capitalized_price_*'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Multiple>,
- *   band: SeriesPattern1<?Dollars>,
- * }} Under6mRealizedPriceMedian
- */
-const _Under6mRealizedPriceMedian = _s({
-  ratio: [_i1, 'age_under_6m_realized_price_ratio_*'],
-  band: [_i1, 'age_under_6m_realized_price_*'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Multiple>,
- *   band: SeriesPattern1<?Dollars>,
- * }} SthMedianCapitalizedPriceMedian
- */
-const _SthMedianCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'sth_median_capitalized_price_ratio_*'],
-  band: [_i1, 'sth_median_capitalized_price_*'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Multiple>,
- *   band: SeriesPattern1<?Dollars>,
- * }} SthMedianRealizedPriceMedian
- */
-const _SthMedianRealizedPriceMedian = _s({
-  ratio: [_i1, 'sth_median_realized_price_ratio_*'],
-  band: [_i1, 'sth_median_realized_price_*'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Multiple>,
- *   band: SeriesPattern1<?Dollars>,
- * }} SthCapitalizedPriceMedian
- */
-const _SthCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'sth_capitalized_price_ratio_*'],
-  band: [_i1, 'sth_capitalized_price_*'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Multiple>,
- *   band: SeriesPattern1<?Dollars>,
- * }} SthRealizedPriceMedian
- */
-const _SthRealizedPriceMedian = _s({
-  ratio: [_i1, 'sth_realized_price_ratio_*'],
-  band: [_i1, 'sth_realized_price_*'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Multiple>,
- *   band: SeriesPattern1<?Dollars>,
- * }} TrueMarketMeanMedian
- */
-const _TrueMarketMeanMedian = _s({
-  ratio: [_i1, 'true_market_mean_ratio_*'],
-  band: [_i1, 'true_market_mean_*'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Multiple>,
- *   band: SeriesPattern1<?Dollars>,
- * }} VaultedPriceMedian
- */
-const _VaultedPriceMedian = _s({
-  ratio: [_i1, 'vaulted_price_ratio_*'],
-  band: [_i1, 'vaulted_price_*'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Multiple>,
- *   band: SeriesPattern1<?Dollars>,
- * }} AllMedianCapitalizedPriceMedian
- */
-const _AllMedianCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'median_capitalized_price_ratio_*'],
-  band: [_i1, 'median_capitalized_price_*'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Multiple>,
- *   band: SeriesPattern1<?Dollars>,
- * }} AllMedianRealizedPriceMedian
- */
-const _AllMedianRealizedPriceMedian = _s({
-  ratio: [_i1, 'median_realized_price_ratio_*'],
-  band: [_i1, 'median_realized_price_*'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   value: SeriesPattern1<?Dollars>,
- *   ratio: SeriesPattern1<?Multiple>,
- *   p0_1: A,
- *   p0_5: A,
- *   p1: A,
- *   p2: A,
- *   p5: A,
- *   p10: A,
- *   p20: A,
- *   p30: A,
- *   p40: A,
- *   median: A,
- *   p60: A,
- *   p70: A,
- *   p80: A,
- *   p90: A,
- *   p95: A,
- *   p98: A,
- *   p99: A,
- *   p99_5: A,
- *   p99_9: A,
- * }} MedianComponent
- */
-/** @type {_Make} */
-const _MedianComponent = (c, b, f0) => _n(c, b, {
-  value: [_i1, '*'],
-  ratio: [_i1, '*_ratio'],
-  p0_1: [f0, 'rarity_p0_1'],
-  p0_5: [f0, 'rarity_p0_5'],
-  p1: [f0, 'rarity_p1'],
-  p2: [f0, 'rarity_p2'],
-  p5: [f0, 'rarity_p5'],
-  p10: [f0, 'rarity_p10'],
-  p20: [f0, 'rarity_p20'],
-  p30: [f0, 'rarity_p30'],
-  p40: [f0, 'rarity_p40'],
-  median: [f0, 'rarity_median'],
-  p60: [f0, 'rarity_p60'],
-  p70: [f0, 'rarity_p70'],
-  p80: [f0, 'rarity_p80'],
-  p90: [f0, 'rarity_p90'],
-  p95: [f0, 'rarity_p95'],
-  p98: [f0, 'rarity_p98'],
-  p99: [f0, 'rarity_p99'],
-  p99_5: [f0, 'rarity_p99_5'],
-  p99_9: [f0, 'rarity_p99_9'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Multiple>,
- *   band: SeriesPattern1<?Dollars>,
- * }} AllCapitalizedPriceMedian
- */
-const _AllCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'capitalized_price_ratio_*'],
-  band: [_i1, 'capitalized_price_*'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Multiple>,
- *   band: SeriesPattern1<?Dollars>,
- * }} AllRealizedPriceMedian
- */
-const _AllRealizedPriceMedian = _s({
-  ratio: [_i1, 'realized_price_ratio_*'],
-  band: [_i1, 'realized_price_*'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   p0_1: A,
- *   p0_5: A,
- *   p1: A,
- *   p2: A,
- *   p5: A,
- *   p10: A,
- *   p20: A,
- *   p30: A,
- *   p40: A,
- *   median: A,
- *   p60: A,
- *   p70: A,
- *   p80: A,
- *   p90: A,
- *   p95: A,
- *   p98: A,
- *   p99: A,
- *   p99_5: A,
- *   p99_9: A,
- * }} RarityPercentiles
- */
-/** @type {_Make} */
-const _RarityPercentiles = (c, b, f0) => _n(c, b, {
-  p0_1: [f0, '*_p0_1'],
-  p0_5: [f0, '*_p0_5'],
-  p1: [f0, '*_p1'],
-  p2: [f0, '*_p2'],
-  p5: [f0, '*_p5'],
-  p10: [f0, '*_p10'],
-  p20: [f0, '*_p20'],
-  p30: [f0, '*_p30'],
-  p40: [f0, '*_p40'],
-  median: [f0, '*_median'],
-  p60: [f0, '*_p60'],
-  p70: [f0, '*_p70'],
-  p80: [f0, '*_p80'],
-  p90: [f0, '*_p90'],
-  p95: [f0, '*_p95'],
-  p98: [f0, '*_p98'],
-  p99: [f0, '*_p99'],
-  p99_5: [f0, '*_p99_5'],
-  p99_9: [f0, '*_p99_9'],
-});
-
-/**
- * @typedef {{
- *   realizedPrice: RarityPercentiles<MobileRealizedPriceMedian>,
- *   medianRealizedPrice: MedianComponent<MobileMedianRealizedPriceMedian>,
- *   medianCapitalizedPrice: MedianComponent<MobileMedianCapitalizedPriceMedian>,
- * }} MobileComponents
- */
-const _MobileComponents = _s({
-  realizedPrice: [(c, b) => _RarityPercentiles(c, b, _MobileRealizedPriceMedian), 'rarity'],
-  medianRealizedPrice: [(c, b) => _MedianComponent(c, b, _MobileMedianRealizedPriceMedian), '*_realized_price'],
-  medianCapitalizedPrice: [(c, b) => _MedianComponent(c, b, _MobileMedianCapitalizedPriceMedian), '*_capitalized_price'],
-});
-
-/**
- * @typedef {{
- *   realizedPrice: RarityPercentiles<AwakeRealizedPriceMedian>,
- * }} AwakeComponents
- */
-const _AwakeComponents = _s({
-  realizedPrice: [(c, b) => _RarityPercentiles(c, b, _AwakeRealizedPriceMedian), '*'],
-});
-
-/**
- * @typedef {{
- *   realizedPrice: RarityPercentiles<Under6mRealizedPriceMedian>,
- *   capitalizedPrice: RarityPercentiles<Under6mCapitalizedPriceMedian>,
- * }} MeanComponents
- */
-const _MeanComponents = _s({
-  realizedPrice: [(c, b) => _RarityPercentiles(c, b, _Under6mRealizedPriceMedian), '*'],
-  capitalizedPrice: [(c, b) => _RarityPercentiles(c, b, _Under6mCapitalizedPriceMedian), '*'],
-});
-
-/**
- * @typedef {{
- *   realizedPrice: RarityPercentiles<SthRealizedPriceMedian>,
- *   capitalizedPrice: RarityPercentiles<SthCapitalizedPriceMedian>,
- *   medianRealizedPrice: MedianComponent<SthMedianRealizedPriceMedian>,
- *   medianCapitalizedPrice: MedianComponent<SthMedianCapitalizedPriceMedian>,
- * }} CohortComponents
- */
-const _CohortComponents = _s({
-  realizedPrice: [(c, b) => _RarityPercentiles(c, b, _SthRealizedPriceMedian), '*'],
-  capitalizedPrice: [(c, b) => _RarityPercentiles(c, b, _SthCapitalizedPriceMedian), '*'],
-  medianRealizedPrice: [(c, b) => _MedianComponent(c, b, _SthMedianRealizedPriceMedian), 'sth_median_realized_price'],
-  medianCapitalizedPrice: [(c, b) => _MedianComponent(c, b, _SthMedianCapitalizedPriceMedian), 'sth_median_capitalized_price'],
-});
-
-/**
- * @typedef {{
- *   realizedPrice: RarityPercentiles<AllRealizedPriceMedian>,
- *   capitalizedPrice: RarityPercentiles<AllCapitalizedPriceMedian>,
- *   medianRealizedPrice: MedianComponent<AllMedianRealizedPriceMedian>,
- *   medianCapitalizedPrice: MedianComponent<AllMedianCapitalizedPriceMedian>,
- *   vaultedPrice: RarityPercentiles<VaultedPriceMedian>,
- *   trueMarketMean: RarityPercentiles<TrueMarketMeanMedian>,
- * }} AllComponents
- */
-const _AllComponents = _s({
-  realizedPrice: [(c, b) => _RarityPercentiles(c, b, _AllRealizedPriceMedian), '*'],
-  capitalizedPrice: [(c, b) => _RarityPercentiles(c, b, _AllCapitalizedPriceMedian), '*'],
-  medianRealizedPrice: [(c, b) => _MedianComponent(c, b, _AllMedianRealizedPriceMedian), 'median_realized_price'],
-  medianCapitalizedPrice: [(c, b) => _MedianComponent(c, b, _AllMedianCapitalizedPriceMedian), 'median_capitalized_price'],
-  vaultedPrice: [(c, b) => _RarityPercentiles(c, b, _VaultedPriceMedian), '*'],
-  trueMarketMean: [(c, b) => _RarityPercentiles(c, b, _TrueMarketMeanMedian), '*'],
-});
-
-/**
- * @typedef {{
- *   all: AllComponents,
- *   sth: CohortComponents,
- *   under6m: MeanComponents,
- *   awake: AwakeComponents,
- *   mobile: MobileComponents,
- * }} Components
- */
-const _Components = _s({
-  all: [_AllComponents, '*'],
-  sth: [_CohortComponents, '*'],
-  under6m: [_MeanComponents, '*'],
-  awake: [_AwakeComponents, '*'],
-  mobile: [_MobileComponents, 'mobile_median'],
-});
-
-/**
- * @typedef {{
- *   components: Components,
- *   extremes: Extremes,
- *   full: Meter,
- *   local: Meter,
- *   cycle: Meter,
- * }} RarityMeter
- */
-const _RarityMeter = _s({
-  components: [_Components, '*'],
-  extremes: [_Extremes, '24h'],
-  full: [_Meter, '*_meter'],
-  local: [_Meter, 'local_*_meter'],
-  cycle: [_Meter, 'cycle_*_meter'],
-});
-
-/**
- * @typedef {{
- *   p95ToP98: SeriesPattern1<?Dollars>,
- *   p98ToP99: SeriesPattern1<?Dollars>,
- *   p99ToP99_5: SeriesPattern1<?Dollars>,
- *   p99_5ToP99_9: SeriesPattern1<?Dollars>,
- *   belowP99_9: SeriesPattern1<?Dollars>,
- * }} EntryCapital
- */
-const _EntryCapital = _s({
-  p95ToP98: [_i1, '*_p95_to_p98'],
-  p98ToP99: [_i1, '*_p98_to_p99'],
-  p99ToP99_5: [_i1, '*_p99_to_p99_5'],
-  p99_5ToP99_9: [_i1, '*_p99_5_to_p99_9'],
-  belowP99_9: [_i1, '*_below_p99_9'],
-});
-
-/**
- * @typedef {{
- *   p10: SeriesPattern1<?Dollars>,
- *   p20: SeriesPattern1<?Dollars>,
- *   p30: SeriesPattern1<?Dollars>,
- *   p40: SeriesPattern1<?Dollars>,
- *   median: SeriesPattern1<?Dollars>,
- *   p60: SeriesPattern1<?Dollars>,
- *   p70: SeriesPattern1<?Dollars>,
- *   p80: SeriesPattern1<?Dollars>,
- *   p90: SeriesPattern1<?Dollars>,
- * }} Levels
- */
-const _Levels = _s({
-  p10: [_i1, '*_p10'],
-  p20: [_i1, '*_p20'],
-  p30: [_i1, '*_p30'],
-  p40: [_i1, '*_p40'],
-  median: [_i1, '*_median'],
-  p60: [_i1, '*_p60'],
-  p70: [_i1, '*_p70'],
-  p80: [_i1, '*_p80'],
-  p90: [_i1, '*_p90'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   p95: SeriesPattern1<A>,
- *   p98: SeriesPattern1<A>,
- *   p99: SeriesPattern1<A>,
- *   p99_5: SeriesPattern1<A>,
- *   p99_9: SeriesPattern1<A>,
- * }} Percentiles
- */
-const _Percentiles = _s({
-  p95: [_i1, '*_p95'],
-  p98: [_i1, '*_p98'],
-  p99: [_i1, '*_p99'],
-  p99_5: [_i1, '*_p99_5'],
-  p99_9: [_i1, '*_p99_9'],
-});
-
-/**
- * @typedef {{
  *   value: SeriesPattern1<?Dollars>,
  *   ratio: SeriesPattern1<?Multiple>,
  *   aviv: SeriesPattern1<?Multiple>,
@@ -3937,53 +3312,6 @@ const _PerTxDistribution = _s({
 const _Value = _s({
   btc: [_i1, '*'],
   usd: [_i1, '*_usd'],
-});
-
-/**
- * @typedef {{
- *   p95ToP98: Value,
- *   p98ToP99: Value,
- *   p99ToP99_5: Value,
- *   p99_5ToP99_9: Value,
- *   belowP99_9: Value,
- * }} EntrySupply
- */
-const _EntrySupply = _s({
-  p95ToP98: [_Value, '*_p95_to_p98'],
-  p98ToP99: [_Value, '*_p98_to_p99'],
-  p99ToP99_5: [_Value, '*_p99_to_p99_5'],
-  p99_5ToP99_9: [_Value, '*_p99_5_to_p99_9'],
-  belowP99_9: [_Value, '*_below_p99_9'],
-});
-
-/**
- * @typedef {{
- *   supplyInLossShareThreshold: Percentiles<?Percent>,
- *   floor: Percentiles<?Dollars>,
- *   costBasisAboveP95Floor: Levels,
- *   entrySupply: EntrySupply,
- *   entryCapital: EntryCapital,
- * }} Mode
- */
-const _Mode = _s({
-  supplyInLossShareThreshold: [_Percentiles, '*_supply_in_loss_share_threshold'],
-  floor: [_Percentiles, '*_floor'],
-  costBasisAboveP95Floor: [_Levels, '*_cost_basis_above_p95_floor'],
-  entrySupply: [_EntrySupply, '*_entry_supply'],
-  entryCapital: [_EntryCapital, '*_entry_capital'],
-});
-
-/**
- * @typedef {{
- *   awake: Mode,
- *   mobile: Mode,
- *   unweighted: Mode,
- * }} Bedrock
- */
-const _Bedrock = _s({
-  awake: [_Mode, '*_awake'],
-  mobile: [_Mode, '*_mobile'],
-  unweighted: [_Mode, '*_unweighted'],
 });
 
 /**
@@ -5921,341 +5249,13 @@ const _Pool = _s({
  * @typedef {{
  *   blockPool: SeriesPattern18<PoolSlug>,
  *   unknown: Pool,
- *   blockfills: Pool,
- *   ultimuspool: Pool,
- *   terrapool: Pool,
- *   luxor: Pool,
- *   _1thash: Pool,
- *   btccom: Pool,
- *   bitfarms: Pool,
- *   huobipool: Pool,
- *   wayicn: Pool,
- *   canoepool: Pool,
- *   btctop: Pool,
- *   bitcoincom: Pool,
- *   _175btc: Pool,
- *   gbminers: Pool,
- *   axbt: Pool,
- *   asicminer: Pool,
- *   bitminter: Pool,
- *   bitcoinrussia: Pool,
- *   btcserv: Pool,
- *   simplecoinus: Pool,
- *   btcguild: Pool,
- *   eligius: Pool,
- *   ozcoin: Pool,
- *   eclipsemc: Pool,
- *   maxbtc: Pool,
- *   triplemining: Pool,
- *   coinlab: Pool,
- *   _50btc: Pool,
- *   ghashio: Pool,
- *   stminingcorp: Pool,
- *   bitparking: Pool,
- *   mmpool: Pool,
- *   polmine: Pool,
- *   kncminer: Pool,
- *   bitalo: Pool,
- *   f2pool: Pool,
- *   hhtt: Pool,
- *   megabigpower: Pool,
- *   mtred: Pool,
- *   nmcbit: Pool,
- *   yourbtcnet: Pool,
- *   givemecoins: Pool,
- *   braiinspool: Pool,
- *   antpool: Pool,
- *   multicoinco: Pool,
- *   bcpoolio: Pool,
- *   cointerra: Pool,
- *   kanopool: Pool,
- *   solock: Pool,
- *   ckpool: Pool,
- *   nicehash: Pool,
- *   bitclub: Pool,
- *   bitcoinaffiliatenetwork: Pool,
- *   btcc: Pool,
- *   bwpool: Pool,
- *   exxbw: Pool,
- *   bitsolo: Pool,
- *   bitfury: Pool,
- *   _21inc: Pool,
- *   digitalbtc: Pool,
- *   _8baochi: Pool,
- *   mybtccoinpool: Pool,
- *   tbdice: Pool,
- *   hashpool: Pool,
- *   nexious: Pool,
- *   bravomining: Pool,
- *   hotpool: Pool,
- *   okexpool: Pool,
- *   bcmonster: Pool,
- *   _1hash: Pool,
- *   bixin: Pool,
- *   tatmaspool: Pool,
- *   viabtc: Pool,
- *   connectbtc: Pool,
- *   batpool: Pool,
- *   waterhole: Pool,
- *   dcexploration: Pool,
- *   dcex: Pool,
- *   btpool: Pool,
- *   _58coin: Pool,
- *   bitcoinindia: Pool,
- *   shawnp0wers: Pool,
- *   phashio: Pool,
- *   rigpool: Pool,
- *   haozhuzhu: Pool,
- *   _7pool: Pool,
- *   miningkings: Pool,
- *   hashbx: Pool,
- *   dpool: Pool,
- *   rawpool: Pool,
- *   haominer: Pool,
- *   helix: Pool,
- *   bitcoinukraine: Pool,
- *   poolin: Pool,
- *   secretsuperstar: Pool,
- *   tigerpoolnet: Pool,
- *   sigmapoolcom: Pool,
- *   okpooltop: Pool,
- *   hummerpool: Pool,
- *   tangpool: Pool,
- *   bytepool: Pool,
- *   spiderpool: Pool,
- *   novablock: Pool,
- *   miningcity: Pool,
- *   binancepool: Pool,
- *   minerium: Pool,
- *   lubiancom: Pool,
- *   okkong: Pool,
- *   aaopool: Pool,
- *   emcdpool: Pool,
- *   foundryusa: Pool,
- *   sbicrypto: Pool,
- *   arkpool: Pool,
- *   purebtccom: Pool,
- *   marapool: Pool,
- *   kucoinpool: Pool,
- *   entrustcharitypool: Pool,
- *   okminer: Pool,
- *   titan: Pool,
- *   pegapool: Pool,
- *   btcnuggets: Pool,
- *   cloudhashing: Pool,
- *   digitalxmintsy: Pool,
- *   telco214: Pool,
- *   btcpoolparty: Pool,
- *   multipool: Pool,
- *   transactioncoinmining: Pool,
- *   btcdig: Pool,
- *   trickysbtcpool: Pool,
- *   btcmp: Pool,
- *   eobot: Pool,
- *   unomp: Pool,
- *   patels: Pool,
- *   gogreenlight: Pool,
- *   bitcoinindiapool: Pool,
- *   ekanembtc: Pool,
- *   canoe: Pool,
- *   tiger: Pool,
- *   _1m1x: Pool,
- *   zulupool: Pool,
- *   secpool: Pool,
- *   ocean: Pool,
- *   whitepool: Pool,
- *   wiz: Pool,
- *   wk057: Pool,
- *   futurebitapollosolo: Pool,
- *   carbonnegative: Pool,
- *   portlandhodl: Pool,
- *   phoenix: Pool,
- *   neopool: Pool,
- *   maxipool: Pool,
- *   bitfufupool: Pool,
- *   gdpool: Pool,
- *   miningdutch: Pool,
- *   publicpool: Pool,
- *   miningsquared: Pool,
- *   innopolistech: Pool,
- *   btclab: Pool,
- *   parasite: Pool,
- *   redrockpool: Pool,
- *   est3lar: Pool,
- *   braiinssolo: Pool,
- *   solopoolcom: Pool,
- *   noderunners: Pool,
- *   dmnd: Pool,
+ *   debitmydata: Pool,
  * }} Pools
  */
 const _Pools = _s({
   blockPool: [_i18, 'block_*'],
   unknown: [_Pool, '*_unknown'],
-  blockfills: [_Pool, '*_blockfills'],
-  ultimuspool: [_Pool, '*_ultimuspool'],
-  terrapool: [_Pool, '*_terrapool'],
-  luxor: [_Pool, '*_luxor'],
-  _1thash: [_Pool, '*_1thash'],
-  btccom: [_Pool, '*_btccom'],
-  bitfarms: [_Pool, '*_bitfarms'],
-  huobipool: [_Pool, '*_huobipool'],
-  wayicn: [_Pool, '*_wayicn'],
-  canoepool: [_Pool, '*_canoepool'],
-  btctop: [_Pool, '*_btctop'],
-  bitcoincom: [_Pool, '*_bitcoincom'],
-  _175btc: [_Pool, '*_175btc'],
-  gbminers: [_Pool, '*_gbminers'],
-  axbt: [_Pool, '*_axbt'],
-  asicminer: [_Pool, '*_asicminer'],
-  bitminter: [_Pool, '*_bitminter'],
-  bitcoinrussia: [_Pool, '*_bitcoinrussia'],
-  btcserv: [_Pool, '*_btcserv'],
-  simplecoinus: [_Pool, '*_simplecoinus'],
-  btcguild: [_Pool, '*_btcguild'],
-  eligius: [_Pool, '*_eligius'],
-  ozcoin: [_Pool, '*_ozcoin'],
-  eclipsemc: [_Pool, '*_eclipsemc'],
-  maxbtc: [_Pool, '*_maxbtc'],
-  triplemining: [_Pool, '*_triplemining'],
-  coinlab: [_Pool, '*_coinlab'],
-  _50btc: [_Pool, '*_50btc'],
-  ghashio: [_Pool, '*_ghashio'],
-  stminingcorp: [_Pool, '*_stminingcorp'],
-  bitparking: [_Pool, '*_bitparking'],
-  mmpool: [_Pool, '*_mmpool'],
-  polmine: [_Pool, '*_polmine'],
-  kncminer: [_Pool, '*_kncminer'],
-  bitalo: [_Pool, '*_bitalo'],
-  f2pool: [_Pool, '*_f2pool'],
-  hhtt: [_Pool, '*_hhtt'],
-  megabigpower: [_Pool, '*_megabigpower'],
-  mtred: [_Pool, '*_mtred'],
-  nmcbit: [_Pool, '*_nmcbit'],
-  yourbtcnet: [_Pool, '*_yourbtcnet'],
-  givemecoins: [_Pool, '*_givemecoins'],
-  braiinspool: [_Pool, '*_braiinspool'],
-  antpool: [_Pool, '*_antpool'],
-  multicoinco: [_Pool, '*_multicoinco'],
-  bcpoolio: [_Pool, '*_bcpoolio'],
-  cointerra: [_Pool, '*_cointerra'],
-  kanopool: [_Pool, '*_kanopool'],
-  solock: [_Pool, '*_solock'],
-  ckpool: [_Pool, '*_ckpool'],
-  nicehash: [_Pool, '*_nicehash'],
-  bitclub: [_Pool, '*_bitclub'],
-  bitcoinaffiliatenetwork: [_Pool, '*_bitcoinaffiliatenetwork'],
-  btcc: [_Pool, '*_btcc'],
-  bwpool: [_Pool, '*_bwpool'],
-  exxbw: [_Pool, '*_exxbw'],
-  bitsolo: [_Pool, '*_bitsolo'],
-  bitfury: [_Pool, '*_bitfury'],
-  _21inc: [_Pool, '*_21inc'],
-  digitalbtc: [_Pool, '*_digitalbtc'],
-  _8baochi: [_Pool, '*_8baochi'],
-  mybtccoinpool: [_Pool, '*_mybtccoinpool'],
-  tbdice: [_Pool, '*_tbdice'],
-  hashpool: [_Pool, '*_hashpool'],
-  nexious: [_Pool, '*_nexious'],
-  bravomining: [_Pool, '*_bravomining'],
-  hotpool: [_Pool, '*_hotpool'],
-  okexpool: [_Pool, '*_okexpool'],
-  bcmonster: [_Pool, '*_bcmonster'],
-  _1hash: [_Pool, '*_1hash'],
-  bixin: [_Pool, '*_bixin'],
-  tatmaspool: [_Pool, '*_tatmaspool'],
-  viabtc: [_Pool, '*_viabtc'],
-  connectbtc: [_Pool, '*_connectbtc'],
-  batpool: [_Pool, '*_batpool'],
-  waterhole: [_Pool, '*_waterhole'],
-  dcexploration: [_Pool, '*_dcexploration'],
-  dcex: [_Pool, '*_dcex'],
-  btpool: [_Pool, '*_btpool'],
-  _58coin: [_Pool, '*_58coin'],
-  bitcoinindia: [_Pool, '*_bitcoinindia'],
-  shawnp0wers: [_Pool, '*_shawnp0wers'],
-  phashio: [_Pool, '*_phashio'],
-  rigpool: [_Pool, '*_rigpool'],
-  haozhuzhu: [_Pool, '*_haozhuzhu'],
-  _7pool: [_Pool, '*_7pool'],
-  miningkings: [_Pool, '*_miningkings'],
-  hashbx: [_Pool, '*_hashbx'],
-  dpool: [_Pool, '*_dpool'],
-  rawpool: [_Pool, '*_rawpool'],
-  haominer: [_Pool, '*_haominer'],
-  helix: [_Pool, '*_helix'],
-  bitcoinukraine: [_Pool, '*_bitcoinukraine'],
-  poolin: [_Pool, '*_poolin'],
-  secretsuperstar: [_Pool, '*_secretsuperstar'],
-  tigerpoolnet: [_Pool, '*_tigerpoolnet'],
-  sigmapoolcom: [_Pool, '*_sigmapoolcom'],
-  okpooltop: [_Pool, '*_okpooltop'],
-  hummerpool: [_Pool, '*_hummerpool'],
-  tangpool: [_Pool, '*_tangpool'],
-  bytepool: [_Pool, '*_bytepool'],
-  spiderpool: [_Pool, '*_spiderpool'],
-  novablock: [_Pool, '*_novablock'],
-  miningcity: [_Pool, '*_miningcity'],
-  binancepool: [_Pool, '*_binancepool'],
-  minerium: [_Pool, '*_minerium'],
-  lubiancom: [_Pool, '*_lubiancom'],
-  okkong: [_Pool, '*_okkong'],
-  aaopool: [_Pool, '*_aaopool'],
-  emcdpool: [_Pool, '*_emcdpool'],
-  foundryusa: [_Pool, '*_foundryusa'],
-  sbicrypto: [_Pool, '*_sbicrypto'],
-  arkpool: [_Pool, '*_arkpool'],
-  purebtccom: [_Pool, '*_purebtccom'],
-  marapool: [_Pool, '*_marapool'],
-  kucoinpool: [_Pool, '*_kucoinpool'],
-  entrustcharitypool: [_Pool, '*_entrustcharitypool'],
-  okminer: [_Pool, '*_okminer'],
-  titan: [_Pool, '*_titan'],
-  pegapool: [_Pool, '*_pegapool'],
-  btcnuggets: [_Pool, '*_btcnuggets'],
-  cloudhashing: [_Pool, '*_cloudhashing'],
-  digitalxmintsy: [_Pool, '*_digitalxmintsy'],
-  telco214: [_Pool, '*_telco214'],
-  btcpoolparty: [_Pool, '*_btcpoolparty'],
-  multipool: [_Pool, '*_multipool'],
-  transactioncoinmining: [_Pool, '*_transactioncoinmining'],
-  btcdig: [_Pool, '*_btcdig'],
-  trickysbtcpool: [_Pool, '*_trickysbtcpool'],
-  btcmp: [_Pool, '*_btcmp'],
-  eobot: [_Pool, '*_eobot'],
-  unomp: [_Pool, '*_unomp'],
-  patels: [_Pool, '*_patels'],
-  gogreenlight: [_Pool, '*_gogreenlight'],
-  bitcoinindiapool: [_Pool, '*_bitcoinindiapool'],
-  ekanembtc: [_Pool, '*_ekanembtc'],
-  canoe: [_Pool, '*_canoe'],
-  tiger: [_Pool, '*_tiger'],
-  _1m1x: [_Pool, '*_1m1x'],
-  zulupool: [_Pool, '*_zulupool'],
-  secpool: [_Pool, '*_secpool'],
-  ocean: [_Pool, '*_ocean'],
-  whitepool: [_Pool, '*_whitepool'],
-  wiz: [_Pool, '*_wiz'],
-  wk057: [_Pool, '*_wk057'],
-  futurebitapollosolo: [_Pool, '*_futurebitapollosolo'],
-  carbonnegative: [_Pool, '*_carbonnegative'],
-  portlandhodl: [_Pool, '*_portlandhodl'],
-  phoenix: [_Pool, '*_phoenix'],
-  neopool: [_Pool, '*_neopool'],
-  maxipool: [_Pool, '*_maxipool'],
-  bitfufupool: [_Pool, '*_bitfufupool'],
-  gdpool: [_Pool, '*_gdpool'],
-  miningdutch: [_Pool, '*_miningdutch'],
-  publicpool: [_Pool, '*_publicpool'],
-  miningsquared: [_Pool, '*_miningsquared'],
-  innopolistech: [_Pool, '*_innopolistech'],
-  btclab: [_Pool, '*_btclab'],
-  parasite: [_Pool, '*_parasite'],
-  redrockpool: [_Pool, '*_redrockpool'],
-  est3lar: [_Pool, '*_est3lar'],
-  braiinssolo: [_Pool, '*_braiinssolo'],
-  solopoolcom: [_Pool, '*_solopoolcom'],
-  noderunners: [_Pool, '*_noderunners'],
-  dmnd: [_Pool, '*_dmnd'],
+  debitmydata: [_Pool, '*_debitmydata'],
 });
 
 /**
@@ -7166,8 +6166,6 @@ const _Indexer = _s({
  *   supply: Supply,
  *   cointime: Cointime,
  *   coinflow: Coinflow,
- *   bedrock: Bedrock,
- *   rarityMeter: RarityMeter,
  * }} SeriesTree
  */
 const _SeriesTree = _s({
@@ -7192,8 +6190,6 @@ const _SeriesTree = _s({
   supply: [_Supply, 'circulating_supply'],
   cointime: [_Cointime, 'age'],
   coinflow: [_Coinflow, 'age'],
-  bedrock: [_Bedrock, 'bedrock'],
-  rarityMeter: [_RarityMeter, 'rarity'],
 });
 
 /**
@@ -7238,172 +6234,8 @@ class BitviewClient extends BitviewClientBase {
   ]);
 
   POOL_SLUG_TO_NAME = /** @type {const} */ ({
-    "175btc": "175btc",
-    "1hash": "1Hash",
-    "1m1x": "1M1X",
-    "1thash": "1THash",
-    "21inc": "21 Inc.",
-    "50btc": "50BTC",
-    "58coin": "58COIN",
-    "7pool": "7pool",
-    "8baochi": "8baochi",
-    "aaopool": "AAO Pool",
-    "antpool": "AntPool",
-    "arkpool": "ArkPool",
-    "asicminer": "ASICMiner",
-    "axbt": "A-XBT",
-    "batpool": "BATPOOL",
-    "bcmonster": "BCMonster",
-    "bcpoolio": "bcpool.io",
-    "binancepool": "Binance Pool",
-    "bitalo": "Bitalo",
-    "bitclub": "BitClub",
-    "bitcoinaffiliatenetwork": "Bitcoin Affiliate Network",
-    "bitcoincom": "Bitcoin.com",
-    "bitcoinindia": "Bitcoin India",
-    "bitcoinindiapool": "BitcoinIndia",
-    "bitcoinrussia": "BitcoinRussia",
-    "bitcoinukraine": "Bitcoin-Ukraine",
-    "bitfarms": "Bitfarms",
-    "bitfufupool": "BitFuFuPool",
-    "bitfury": "BitFury",
-    "bitminter": "BitMinter",
-    "bitparking": "Bitparking",
-    "bitsolo": "Bitsolo",
-    "bixin": "Bixin",
-    "blockfills": "BlockFills",
-    "braiinspool": "Braiins Pool",
-    "braiinssolo": "Braiins Solo",
-    "bravomining": "Bravo Mining",
-    "btcc": "BTCC",
-    "btccom": "BTC.com",
-    "btcdig": "BTCDig",
-    "btcguild": "BTC Guild",
-    "btclab": "BTCLab",
-    "btcmp": "BTCMP",
-    "btcnuggets": "BTC Nuggets",
-    "btcpoolparty": "BTC Pool Party",
-    "btcserv": "BTCServ",
-    "btctop": "BTC.TOP",
-    "btpool": "BTPOOL",
-    "bwpool": "BWPool",
-    "bytepool": "BytePool",
-    "canoe": "CANOE",
-    "canoepool": "CanoePool",
-    "carbonnegative": "Carbon Negative",
-    "ckpool": "CKPool",
-    "cloudhashing": "CloudHashing",
-    "coinlab": "CoinLab",
-    "cointerra": "Cointerra",
-    "connectbtc": "ConnectBTC",
-    "dcex": "DCEX",
-    "dcexploration": "DCExploration",
-    "digitalbtc": "digitalBTC",
-    "digitalxmintsy": "digitalX Mintsy",
-    "dmnd": "DMND",
-    "dpool": "DPOOL",
-    "eclipsemc": "EclipseMC",
-    "ekanembtc": "EkanemBTC",
-    "eligius": "Eligius",
-    "emcdpool": "EMCDPool",
-    "entrustcharitypool": "Entrust Charity Pool",
-    "eobot": "Eobot",
-    "est3lar": "Est3lar",
-    "exxbw": "EXX&BW",
-    "f2pool": "F2Pool",
-    "foundryusa": "Foundry USA",
-    "futurebitapollosolo": "FutureBit Apollo Solo",
-    "gbminers": "GBMiners",
-    "gdpool": "GDPool",
-    "ghashio": "GHash.IO",
-    "givemecoins": "Give Me Coins",
-    "gogreenlight": "GoGreenLight",
-    "haominer": "haominer",
-    "haozhuzhu": "HAOZHUZHU",
-    "hashbx": "HashBX",
-    "hashpool": "HASHPOOL",
-    "helix": "Helix",
-    "hhtt": "HHTT",
-    "hotpool": "HotPool",
-    "hummerpool": "Hummerpool",
-    "huobipool": "Huobi.pool",
-    "innopolistech": "Innopolis Tech",
-    "kanopool": "KanoPool",
-    "kncminer": "KnCMiner",
-    "kucoinpool": "KuCoinPool",
-    "lubiancom": "Lubian.com",
-    "luxor": "Luxor",
-    "marapool": "MARA Pool",
-    "maxbtc": "MaxBTC",
-    "maxipool": "MaxiPool",
-    "megabigpower": "MegaBigPower",
-    "minerium": "Minerium",
-    "miningcity": "MiningCity",
-    "miningdutch": "Mining-Dutch",
-    "miningkings": "MiningKings",
-    "miningsquared": "Mining Squared",
-    "mmpool": "mmpool",
-    "mtred": "Mt Red",
-    "multicoinco": "MultiCoin.co",
-    "multipool": "Multipool",
-    "mybtccoinpool": "myBTCcoin Pool",
-    "neopool": "Neopool",
-    "nexious": "Nexious",
-    "nicehash": "NiceHash",
-    "nmcbit": "NMCbit",
-    "noderunners": "Noderunners",
-    "novablock": "NovaBlock",
-    "ocean": "OCEAN",
-    "okexpool": "OKExPool",
-    "okkong": "OKKONG",
-    "okminer": "OKMINER",
-    "okpooltop": "okpool.top",
-    "ozcoin": "OzCoin",
-    "parasite": "Parasite",
-    "patels": "Patels",
-    "pegapool": "PEGA Pool",
-    "phashio": "PHash.IO",
-    "phoenix": "Phoenix",
-    "polmine": "Polmine",
-    "poolin": "Poolin",
-    "portlandhodl": "Portland.HODL",
-    "publicpool": "Public Pool",
-    "purebtccom": "PureBTC.COM",
-    "rawpool": "Rawpool",
-    "redrockpool": "RedRock Pool",
-    "rigpool": "RigPool",
-    "sbicrypto": "SBI Crypto",
-    "secpool": "SECPOOL",
-    "secretsuperstar": "SecretSuperstar",
-    "shawnp0wers": "shawnp0wers",
-    "sigmapoolcom": "Sigmapool.com",
-    "simplecoinus": "simplecoin.us",
-    "solock": "Solo CK",
-    "solopoolcom": "SoloPool.com",
-    "spiderpool": "SpiderPool",
-    "stminingcorp": "ST Mining Corp",
-    "tangpool": "Tangpool",
-    "tatmaspool": "TATMAS Pool",
-    "tbdice": "TBDice",
-    "telco214": "Telco 214",
-    "terrapool": "Terra Pool",
-    "tiger": "tiger",
-    "tigerpoolnet": "tigerpool.net",
-    "titan": "Titan",
-    "transactioncoinmining": "transactioncoinmining",
-    "trickysbtcpool": "Tricky's BTC Pool",
-    "triplemining": "TripleMining",
-    "ultimuspool": "ULTIMUSPOOL",
-    "unknown": "Unknown",
-    "unomp": "UNOMP",
-    "viabtc": "ViaBTC",
-    "waterhole": "Waterhole",
-    "wayicn": "WAYI.CN",
-    "whitepool": "WhitePool",
-    "wiz": "wiz",
-    "wk057": "wk057",
-    "yourbtcnet": "Yourbtc.net",
-    "zulupool": "Zulupool"
+    "debitmydata": "DebitMyData Pool",
+    "unknown": "Unknown"
   });
 
   TERM_NAMES = /** @type {const} */ ({
@@ -7777,38 +6609,38 @@ class BitviewClient extends BitviewClientBase {
     },
     "_10mTo100mSats": {
       "id": "10m_to_100m_sats",
-      "short": "0.1-1 BTC",
-      "long": "0.1-1 BTC"
+      "short": "0.1-1 DMD",
+      "long": "0.1-1 DMD"
     },
     "_1To10Btc": {
       "id": "1_to_10_btc",
-      "short": "1-10 BTC",
-      "long": "1-10 BTC"
+      "short": "1-10 DMD",
+      "long": "1-10 DMD"
     },
     "_10To100Btc": {
       "id": "10_to_100_btc",
-      "short": "10-100 BTC",
-      "long": "10-100 BTC"
+      "short": "10-100 DMD",
+      "long": "10-100 DMD"
     },
     "_100To1kBtc": {
       "id": "100_to_1k_btc",
-      "short": "100-1k BTC",
-      "long": "100-1K BTC"
+      "short": "100-1k DMD",
+      "long": "100-1K DMD"
     },
     "_1kTo10kBtc": {
       "id": "1k_to_10k_btc",
-      "short": "1k-10k BTC",
-      "long": "1K-10K BTC"
+      "short": "1k-10k DMD",
+      "long": "1K-10K DMD"
     },
     "_10kTo100kBtc": {
       "id": "10k_to_100k_btc",
-      "short": "10k-100k BTC",
-      "long": "10K-100K BTC"
+      "short": "10k-100k DMD",
+      "long": "10K-100K DMD"
     },
     "over100kBtc": {
       "id": "over_100k_btc",
-      "short": "100k+ BTC",
-      "long": "100K+ BTC"
+      "short": "100k+ DMD",
+      "long": "100K+ DMD"
     }
   });
 
@@ -8055,7 +6887,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Sync status
    *
-   * Returns a coherent local index snapshot and a separately observed Bitcoin Core tip height. The two heights can differ during indexing or a reorg. Conditional requests refresh these observations before validation.
+   * Returns a coherent local index snapshot and a separately observed node tip height. The two heights can differ during indexing or a reorg. Conditional requests refresh these observations before validation.
    *
    * Endpoint: `GET /api/server/sync`
    * @param {{ signal?: AbortSignal, onValue?: (value: SyncStatus) => void, cache?: boolean, memCache?: boolean }} [options]
@@ -8088,7 +6920,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Disk usage
    *
-   * Returns allocated file bytes (file lengths on non-Unix platforms) for BRK and Bitcoin data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.
+   * Returns allocated file bytes (file lengths on non-Unix platforms) for Bitview's and the node's data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.
    *
    * Endpoint: `GET /api/server/disk`
    * @param {{ signal?: AbortSignal, onValue?: (value: DiskUsage) => void, cache?: boolean, memCache?: boolean }} [options]
@@ -8373,7 +7205,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * URPD at block height or date
    *
-   * URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
+   * URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is DMD. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
    *
    * Endpoint: `GET /api/urpd/{cohort}/{point}`
    *
@@ -8396,7 +7228,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Difficulty adjustment
    *
-   * Get current difficulty adjustment progress and estimates.
+   * Progress through the current 2,016-block period and its estimates, as mempool.space reports a difficulty epoch. DebitMyData's difficulty itself adjusts at every block (LWMA): the period is Bitview's, for comparing.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustment)*
    *
@@ -8410,9 +7242,9 @@ class BitviewClient extends BitviewClientBase {
   }
 
   /**
-   * Current BTC price
+   * Current DMD price
    *
-   * Returns bitcoin latest price (on-chain derived, USD only).
+   * DMD's reference price at the latest block (the cost of mining one DMD, at least $0.001; not a market price), USD only.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-price)*
    *
@@ -8428,7 +7260,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Historical price
    *
-   * Completed four-hour BTC/USD closes, newest first as mempool.space lists them, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.
+   * Completed four-hour closes of DMD's reference price (the cost of mining one DMD, at least $0.001; not a market price), newest first as mempool.space lists them, labeled by interval end, from the chain's first block. With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*
    *
@@ -8597,13 +7429,13 @@ cursor skips the mempool). One that is neither answers 422.
   /**
    * Validate address
    *
-   * Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses; a string that isn't 2 to 130 letters and digits answers 400.
+   * Validate a DebitMyData address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses; a string that isn't 2 to 130 letters and digits answers 400.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-validate)*
    *
    * Endpoint: `GET /api/v1/validate-address/{address}`
    *
-   * @param {string} address - Bitcoin address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130);
+   * @param {string} address - DebitMyData address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130);
 anything else answers 400, as mempool.space does
    * @param {{ signal?: AbortSignal, onValue?: (value: AddressValidation) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<AddressValidation>}
@@ -9223,7 +8055,7 @@ anything else answers 400, as mempool.space does
   /**
    * Projected mempool blocks
    *
-   * Projected blocks for fee estimation. Block 0 reflects Bitcoin Core's actual next-block selection; blocks 1+ are a fee-tier approximation.
+   * Projected blocks for fee estimation. Block 0 reflects the node's actual next-block selection; blocks 1+ are a fee-tier approximation.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*
    *
@@ -9628,7 +8460,7 @@ anything else answers 400, as mempool.space does
   /**
    * UTXO set at block height or date
    *
-   * The UTXO set after a block (`840000`) or after the last published block of a UTC day (`YYYY-MM-DD`), by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.
+   * The UTXO set after a block (`840000`) or after the last published block of a UTC day (`YYYY-MM-DD`), by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (DMD) is what remains unspent of block `i`'s outputs.
    *
    * Endpoint: `GET /api/utxo-set/{point}`
    *
@@ -9644,7 +8476,7 @@ anything else answers 400, as mempool.space does
   /**
    * UTXO set changes of a block or date
    *
-   * What a block (`840000`) or a UTC day's published blocks (`YYYY-MM-DD`) changed in the UTXO set. Returns `{ first, last, hash, date, created, spent }`: `created` has one row per block, `spent` one row per creation height, each as columnar `height`, `count` and `supply` (BTC). The set after block `first - 1` plus `created` minus `spent` is the set after block `last`.
+   * What a block (`840000`) or a UTC day's published blocks (`YYYY-MM-DD`) changed in the UTXO set. Returns `{ first, last, hash, date, created, spent }`: `created` has one row per block, `spent` one row per creation height, each as columnar `height`, `count` and `supply` (DMD). The set after block `first - 1` plus `created` minus `spent` is the set after block `last`.
    *
    * Endpoint: `GET /api/utxo-set/{point}/diff`
    *
@@ -9658,62 +8490,16 @@ anything else answers 400, as mempool.space does
   }
 
   /**
-   * Live BTC/USD price
+   * DMD reference price
    *
-   * Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available, to the cent: `price` of `GET /api/oracle/live`. Confirmed per-height history is available at `GET /api/series/price/height`. Not found before the oracle's first prices.
+   * DMD's reference price in US dollars at the latest block: the cost of the electricity it takes to mine one DMD, never below $0.001 (DebitMyData's minimum rate). Not a market price. Every block's is at `GET /api/series/price/height`.
    *
-   * Endpoint: `GET /api/oracle/price`
+   * Endpoint: `GET /api/price`
    * @param {{ signal?: AbortSignal, onValue?: (value: Dollars) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Dollars>}
    */
   async getLivePrice({ signal, onValue, cache, memCache } = {}) {
-    const path = `/api/oracle/price`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
-  }
-
-  /**
-   * The oracle now
-   *
-   * The oracle's reading now, as `GET /api/oracle/blocks/{height}` reads a block: with the mempool's outputs blended in as the next block (`mempool` true, `height` the next block's, `outputs` the mempool's), its search from the tip's answer, `price` the live price; without a mempool at the tip, the tip block's own. One snapshot: its parts never from two moments, `hash` the confirmed tip it was read at. Not found before the oracle's first prices, nor before height 508,000.
-   *
-   * Endpoint: `GET /api/oracle/live`
-   * @param {{ signal?: AbortSignal, onValue?: (value: OracleBlock) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<OracleBlock>}
-   */
-  async getOracleLive({ signal, onValue, cache, memCache } = {}) {
-    const path = `/api/oracle/live`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
-  }
-
-  /**
-   * The oracle at a block
-   *
-   * How the oracle read a confirmed block, after height 508,000: what it counted (the smoothed histogram of the payments of the block and the 11 before it, by amount on its log scale; the block's outputs as its filter judged them, each skipped one under the first rule that skips it), where it looked (every candidate bin in its window, 12 below the block before's answer to 11 above, with its score) and what it found (the bin it picked and its price). Bins: 200 a decade, a bin `round(log10(sats) * 200)`; as where $100 lands, a bin is the price `10^(10 - bin / 200)` dollars. A settled block's never changes.
-   *
-   * Endpoint: `GET /api/oracle/blocks/{height}`
-   *
-   * @param {Height} height
-   * @param {{ signal?: AbortSignal, onValue?: (value: OracleBlock) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<OracleBlock>}
-   */
-  async getOracleBlock(height, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/oracle/blocks/${encodeURIComponent(height)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
-  }
-
-  /**
-   * The oracle's payments, 144 blocks at a time
-   *
-   * For each of the 144 blocks from `start` (a multiple of 144, else a bad request; from 508,032, earlier ones out of range): its payments as the oracle filters them, each read as each of its 19 round-dollar amounts ($1 to $10,000) at its exact amount in sats, counted by the price each reading implies, in buckets a tenth of a bin wide (0.115% of price) over the block's search window: finer than the oracle's bins, the evidence behind its prices. The chunk at the tip holds its blocks so far, `hash` its last block's; a whole, settled chunk never changes.
-   *
-   * Endpoint: `GET /api/oracle/payments/{start}`
-   *
-   * @param {Height} start - The first block's height.
-   * @param {{ signal?: AbortSignal, onValue?: (value: OraclePayments) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<OraclePayments>}
-   */
-  async getOraclePayments(start, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/oracle/payments/${encodeURIComponent(start)}`;
+    const path = `/api/price`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 

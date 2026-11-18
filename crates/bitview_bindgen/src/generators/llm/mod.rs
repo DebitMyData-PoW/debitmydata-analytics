@@ -13,8 +13,7 @@ use crate::{Endpoint, ResponseKind, Ty, TypeSchemas, collect_schema_refs, openap
 
 mod manifest;
 
-const BASE_URL: &str = "https://bitview.space";
-const MCP_URL: &str = "https://mcp.bitview.space/";
+const BASE_URL: &str = "https://analytics.debitmydata.io";
 
 pub(crate) fn generate_llm_clients(
     catalog: &TreeNode,
@@ -66,7 +65,7 @@ fn count_metrics(node: &TreeNode) -> usize {
 fn render_llms(title: &str, version: &str, metric_count: usize, endpoints: &[&Endpoint]) -> String {
     format!(
         "# {title}\n\n\
-> Free, open-source Bitcoin analytics API and block explorer. {metric_count} on-chain time-series and {} API operations.\n\n\
+> Free, open-source analytics API for the DebitMyData (DMD) chain, built on Bitview. {metric_count} on-chain time-series and {} API operations. US dollar values use DMD's reference price (the cost of mining one DMD, at least $0.001), not a market price.\n\n\
 ## API\n\n\
 - Version: `{version}`\n\
 - Base URL: {BASE_URL}\n\
@@ -84,17 +83,8 @@ Never invent a series identifier.\n\n\
 2. Inspect a returned identifier: `GET /api/series/<series>` returns its description, supported indexes, value type, unit (what the value type measures), and the indexes whose values can be null (missing or undefined).\n\
 3. Fetch data: `GET /api/series/<series>/<index>?start=<inclusive>&end=<exclusive>`.\n\
 4. Fetch one current value with `GET /api/series/<series>/<index>/latest`. For several series, use `GET /api/series/bulk?series=<comma-separated names>&index=<index>`.\n\n\
-## MCP\n\n\
-- Endpoint: {MCP_URL}\n\
-- Transport: Streamable HTTP\n\
-- Authentication: None\n\n\
-The MCP server is stateless and read-only. Its tools are generated from these OpenAPI operations.\n\n\
-## Clients\n\n\
-- [JavaScript](https://www.npmjs.com/package/bitview-client)\n\
-- [Python](https://pypi.org/project/bitview-client/)\n\
-- [Rust](https://crates.io/crates/bitview_client)\n\n\
 ## Source\n\n\
-- [GitHub](https://github.com/bitcoinresearchkit/mono)\n\
+- [GitHub](https://github.com/DebitMyData-PoW/debitmydata-analytics), a fork of [Bitview](https://github.com/bitcoinresearchkit/mono)\n\
 - MIT licensed\n",
         endpoints.len(),
     )
@@ -116,7 +106,6 @@ fn render_llms_full(
     .unwrap();
     writeln!(output, "- Version: `{version}`").unwrap();
     writeln!(output, "- Base URL: {BASE_URL}").unwrap();
-    writeln!(output, "- MCP endpoint: {MCP_URL}").unwrap();
     writeln!(output, "- Metrics: {metric_count}").unwrap();
     writeln!(output, "- Operations: {}\n", endpoints.len()).unwrap();
     writeln!(

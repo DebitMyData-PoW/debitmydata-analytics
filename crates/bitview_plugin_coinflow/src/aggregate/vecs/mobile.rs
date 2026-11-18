@@ -20,12 +20,12 @@ pub struct MobileVecs<M: StorageMode = Rw> {
     pub supply_in_loss_share: LazyPerBlock<Percent, BoundedRatio>,
     /// Sum of creation-date USD value multiplied by mobility across the
     /// cohort's UTXO age ranges: the realized capitalization of the mobile
-    /// supply. Creation-date value is each unspent output's BTC value
-    /// multiplied by Bitcoin's spot price when it was created.
+    /// supply. Creation-date value is each unspent output's DMD value
+    /// multiplied by the reference price when it was created.
     #[traversable(wrap = "capital", rename = "total")]
     #[traversable(lead = "Mobile capital: what holders paid for the mobile supply.")]
     pub capital: LazyFiatPerBlock<Cents>,
-    /// Realized cap: the sum of each unspent output's BTC value times the spot price when it was
+    /// Realized cap: the sum of each unspent output's DMD value times the spot price when it was
     /// created, weighted by its age range's mobility.
     #[traversable(wrap = "capital", rename = "realized_cap")]
     #[traversable(lead = "Mobile realized cap: what holders paid for the mobile supply, each coin at the price it last moved at.")]

@@ -4,16 +4,17 @@
 // section it links to in Studio's sitemap, every series it draws on the server. With --pictures, its pictures made
 // again from the apps as they are now (each from its app's own screen, cut where PICTURES says): after an app's
 // redesign, as well as its words; its share card (assets/home/og.jpg, 1200×630, as links to it show it), the first
-// featured app's banner with Bitview's mark and name; and every app's icon (assets/favicon/apps/). Run it after changing
-// an app, and before a release:
+// featured app's banner with DebitMyData's coin and name. Run it after changing an app, and before a release. Without
+// --pictures, the home page keeps DebitMyData's own pictures (the coin, a motif per app); --pictures puts screenshots of
+// the apps in their place. Every app's icon (assets/favicon/apps/) is DebitMyData's coin with the microscope badge, the
+// same for every app: it is not made here.
 //
 //   bun showcases/home.mjs [server]              writes FROM_APPS, then checks
 //   bun showcases/home.mjs --check [server]      fails if FROM_APPS isn't what it'd be now, or a check fails
 //   bun showcases/home.mjs --pictures [server]   also makes its pictures again (a Chromium: CHROMIUM=path, if not found)
-//   bun showcases/home.mjs --icons [server]      also makes every app's icon again, its pictures left (a colour changed)
 //   ... --page FILE                              another page than showcases/index.html (a draft of it)
-//   ... --pictures --only ID                     that app's pictures and icon alone (a new app's), the share card too if
-//                                                it's its picture
+//   ... --pictures --only ID                     that app's pictures alone (a new app's), the share card too if it's its
+//                                                picture
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -21,7 +22,7 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2), flag = (/** @type {string} */ name) => args.includes(name);
-const check = flag("--check"), pictures = flag("--pictures"), icons = flag("--icons");
+const check = flag("--check"), pictures = flag("--pictures");
 const pageAt = args.indexOf("--page"), PAGE = pageAt >= 0 ? args[pageAt + 1] : join(HERE, "index.html");
 const onlyAt = args.indexOf("--only"), ONLY = onlyAt >= 0 ? args[onlyAt + 1] : null;
 const SERVER = args.find((arg, i) => !arg.startsWith("--") && args[i - 1] !== "--page" && args[i - 1] !== "--only") ?? "http://127.0.0.1:3110";
@@ -52,9 +53,9 @@ function own(/** @type {string} */ href) {
   const page = readFileSync(file, "utf8");
   const title = plain(/<title>([^<]*)<\/title>/i.exec(page)?.[1] ?? "", href);
   const app = tags(page, "script").find((tag) => tag.src?.includes("/launch.js"))?.["data-app"];
-  const name = title.endsWith(" · Bitview") ? title.slice(0, -" · Bitview".length) : app && plain(app, href);
+  const name = title.endsWith(" · DebitMyData Analytics") ? title.slice(0, -" · DebitMyData Analytics".length) : app && plain(app, href);
   const about = tags(page, "meta").find((tag) => tag.name?.toLowerCase() === "description")?.content;
-  if (!name) problems.push(`${href}: no name (neither a title "… · Bitview" nor a data-app on its launch tag)`);
+  if (!name) problems.push(`${href}: no name (neither a title "… · DebitMyData Analytics" nor a data-app on its launch tag)`);
   if (!about) problems.push(`${href}: no meta description, its words on the front page`);
   return { name: name ?? "", about: plain(about ?? "", href) };
 }
@@ -86,9 +87,8 @@ for (const name of folders) if (![...apps, ...dev].includes(`/${name}/`)) proble
 
 // ── Every app's icon ──
 
-// (Each app's, the front page's "bitview": Bitview's cube (assets/favicon/app-icon.svg) in its launch tag's colour
-// (data-color; the SVG's own orange if none), a file (assets/favicon/apps/NAME.png, as launch.js links it): a home
-// screen takes one best. Made with --pictures or --icons.)
+// (Each app's, the front page's "bitview": DebitMyData's coin with the microscope badge, the same file for each
+// (assets/favicon/apps/NAME.png, as launch.js links it): a home screen takes one best. Only checked here.)
 const ICONS = /** @type {Record<string, string | undefined>} */ (Object.fromEntries([
   ["bitview", undefined],
   ...folders.map((name) => [name, tags(readFileSync(join(HERE, name, "index.html"), "utf8"), "script").find((tag) => tag.src?.includes("/launch.js"))?.["data-color"]]),
@@ -122,17 +122,11 @@ else for (const [id, status] of answers) if (status !== 200) problems.push(`seri
  * ("text": a canvas's words, "scene": everything but its canvas, and its tags), and where its cover and its banner are
  * cut, in its screen's points: [x, y, width, height]. A cover 960×600; a banner 1,900 wide and 2,880 (@2x). */
 const PICTURES = {
-  studio: { url: "/studio/presets/bedrock/awake/floors-colored", screen: [2600, 1150], settle: 16000, cover: [677, 120, 1488, 930], banner: [265, 120, 1900, 930] },
-  oracle: { url: "/oracle/", settle: 9000, cover: [0, 228, 928, 580], banner: [0, 244, 1440, 628] },
-  globe: { url: "/globe/", settle: 9000, hide: "text", cover: [166, 44, 720, 450], banner: [43, 64, 966, 450] },
-  trail: { url: "/trail/", settle: 12000, hide: "scene", cover: [230, 130, 960, 600], banner: [60, 80, 1360, 640] },
-  stack: { url: "/stack/", settle: 8000, cover: [192, 336, 640, 400], banner: [192, 341, 648, 300] },
-  compass: { url: "/compass/", settle: 6000, cover: [130, 60, 1088, 680] },
+  studio: { url: "/studio/presets/mining/hashing/hash-rate", screen: [2600, 1150], settle: 16000, cover: [677, 120, 1488, 930], banner: [265, 120, 1900, 930] },
   calendar: { url: "/calendar/", settle: 9000, cover: [105, 100, 384, 240], banner: [105, 100, 863, 400] },
-  series: { url: "/series/?series=hashrate", settle: 8000, cover: [880, 290, 432, 270] },
-  logs: { url: "/logs/", settle: 6000, cover: [280, 228, 400, 250] },
+  series: { url: "/series/?series=hashrate", settle: 8000, cover: [880, 290, 432, 270], banner: [600, 240, 1100, 538] },
 };
-if (onlyAt >= 0 && !(ONLY && (Object.hasOwn(PICTURES, ONLY) || Object.hasOwn(ICONS, ONLY)))) throw new Error(`--only ${ONLY ?? ""}: not an app (${[...new Set([...Object.keys(PICTURES), ...Object.keys(ICONS)])].join(", ")})`);
+if (onlyAt >= 0 && !(ONLY && Object.hasOwn(PICTURES, ONLY))) throw new Error(`--only ${ONLY ?? ""}: not an app with pictures (${Object.keys(PICTURES).join(", ")})`);
 const featured = [...(/const FEATURED = \[([^\]]*)\]/.exec(html)?.[1] ?? "").matchAll(/"([a-z]+)"/g)].map(([, id]) => id);
 const appIds = [...(/const APPS = [^\[]*\[([\s\S]*?)\n      \]/.exec(html)?.[1] ?? "").matchAll(/id: "([a-z]+)"/g)].map(([, id]) => id);
 for (const id of appIds) if (!(id in PICTURES)) problems.push(`${id}: no cover's making in PICTURES`);
@@ -154,7 +148,7 @@ else {
   for (const [key, value] of Object.entries(want)) if (shown[/** @type {keyof typeof shown} */ (key)] !== value) problems.push(`The billboard's first title in the page: its ${key} is ${JSON.stringify(shown[/** @type {keyof typeof shown} */ (key)])}, not ${JSON.stringify(value)} (${first}'s)`);
 }
 
-/** The share card's page: the app's banner full bleed, darkened left, where Bitview's mark, name and line sit. */
+/** The share card's page: the app's banner full bleed, darkened left, where DebitMyData's coin, name and line sit. */
 const SHARE_CARD = (/** @type {string} */ id) => `<!doctype html><meta charset="utf-8"><style>
   @font-face { font-family: Inter; src: url("/assets/fonts/InterVariable.woff2") format("woff2"); font-weight: 100 900; }
   html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #0d0c0b; }
@@ -163,19 +157,19 @@ const SHARE_CARD = (/** @type {string} */ id) => `<!doctype html><meta charset="
   .shade { position: absolute; inset: 0; background: linear-gradient(to right, #0d0c0b 0, rgb(13 12 11 / 0.92) 34%, rgb(13 12 11 / 0.35) 62%, transparent 82%), linear-gradient(to top, rgb(13 12 11 / 0.7), transparent 40%); }
   .words { position: absolute; left: 72px; bottom: 76px; width: 560px; }
   .brand { display: flex; align-items: center; gap: 22px; font-size: 76px; font-weight: 750; letter-spacing: -0.04em; }
-  .brand img { width: 68px; height: 79px; }
+  .brand img { width: 96px; height: 96px; }
   p { margin: 22px 0 0; color: #d6cfc4; font-size: 28px; line-height: 1.35; letter-spacing: -0.01em; }
 </style><img class="art" src="/assets/home/banners/${id}@2x.jpg"><div class="shade"></div>
-<div class="words"><div class="brand"><img src="/assets/logo/logo.svg">Bitview</div><p>Bitcoin's chain, read and measured: live apps, thousands of charts, and every series as data.</p></div>`;
+<div class="words"><div class="brand"><img src="/assets/favicon/web-app-manifest-512x512.png">DebitMyData Analytics</div><p>The DebitMyData chain, read and measured: thousands of charts, live blocks and pools, and every series as data.</p></div>`;
 
 // ── Its share card, named in its head ──
 
-if (!/<meta property="og:image" content="https:\/\/bitview\.space\/assets\/home\/og\.jpg"/.test(html)) problems.push("The page's og:image isn't its share card, /assets/home/og.jpg");
+if (!/<meta property="og:image" content="https:\/\/analytics\.debitmydata\.io\/assets\/home\/og\.jpg"/.test(html)) problems.push("The page's og:image isn't its share card, /assets/home/og.jpg");
 if (!existsSync(join(HERE, "assets", "home", "og.jpg"))) problems.push("No share card, assets/home/og.jpg: run with --pictures");
 
-if (pictures || icons) await makePictures();
-// (Every app's icon there, once any were made.)
-for (const name of Object.keys(ICONS)) if (!existsSync(join(HERE, "assets", "favicon", "apps", `${name}.png`))) problems.push(`${name}: no icon, assets/favicon/apps/${name}.png: run with --icons`);
+if (pictures) await makePictures();
+// (Every app's icon there.)
+for (const name of Object.keys(ICONS)) if (!existsSync(join(HERE, "assets", "favicon", "apps", `${name}.png`))) problems.push(`${name}: no icon, assets/favicon/apps/${name}.png: copy assets/favicon/web-app-manifest-512x512.png there`);
 
 if (problems.length) {
   console.error(`${problems.length} to see to:\n${problems.map((p) => `  - ${p}`).join("\n")}`);
@@ -187,7 +181,7 @@ console.log(`In step: ${apps.length} apps and ${dev.length} developers' pages, $
  * density its size needs. */
 async function makePictures() {
   const binary = process.env.CHROMIUM ?? ["/Applications/Chromium.app/Contents/MacOS/Chromium", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/usr/bin/chromium", "/usr/bin/google-chrome"].find(existsSync);
-  if (!binary) return void problems.push("No Chromium for --pictures or --icons: set CHROMIUM to one");
+  if (!binary) return void problems.push("No Chromium for --pictures: set CHROMIUM to one");
   const profile = mkdtempSync(join(tmpdir(), "home-pictures-"));
   /** @type {ReturnType<typeof Bun.spawn> | null} */
   let browser = null;
@@ -200,7 +194,7 @@ async function makePictures() {
     }
     if (!port) return void problems.push("The Chromium for --pictures didn't start");
     const out = join(HERE, "assets", "home");
-    for (const [id, recipe] of Object.entries(icons ? {} : PICTURES)) {
+    for (const [id, recipe] of Object.entries(PICTURES)) {
       if (ONLY && id !== ONLY) continue;
       const wanted = /** @type {[string, number[], number, number][]} */ ([
         ...(appIds.includes(id) ? [[`covers/${id}.jpg`, recipe.cover, 960, 80]] : []),
@@ -224,22 +218,8 @@ async function makePictures() {
         await tab.close();
       }
     }
-    // (Each app's icon, at 512 px: a home screen's 180, a manifest's 512.)
-    const svg = readFileSync(join(HERE, "assets", "favicon", "app-icon.svg"), "utf8");
-    for (const [name, color] of Object.entries(ICONS)) {
-      if (ONLY && name !== ONLY) continue;
-      const icon = (color ? svg.replace(/--color: [^;"]+/, `--color: ${color}`) : svg).replace("<svg", '<svg width="512" height="512"');
-      const tab = await screen(port, `${SERVER}/llms.txt`, [512, 512], 1, 300, undefined, `<style>body { margin: 0 } svg { display: block }</style>${icon}`);
-      try {
-        const shot = await tab.send("Page.captureScreenshot", { format: "png", clip: { x: 0, y: 0, width: 512, height: 512, scale: 1 } });
-        writeFileSync(join(HERE, "assets", "favicon", "apps", `${name}.png`), Buffer.from(shot.data, "base64"));
-        console.log(`made apps/${name}.png`);
-      } finally {
-        await tab.close();
-      }
-    }
-    // (The share card: the billboard's first picture, Bitview's mark and name over it, set as the page is.)
-    if (icons || (ONLY && ONLY !== featured[0])) return;
+    // (The share card: the billboard's first picture, DebitMyData's coin and name over it, set as the page is.)
+    if (ONLY && ONLY !== featured[0]) return;
     const card = await screen(port, `${SERVER}/llms.txt`, [1200, 630], 2, 1500, undefined, SHARE_CARD(featured[0]));
     try {
       const shot = await card.send("Page.captureScreenshot", { format: "jpeg", quality: 84, clip: { x: 0, y: 0, width: 1200, height: 630, scale: 0.5 } });

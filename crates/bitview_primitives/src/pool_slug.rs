@@ -319,8 +319,9 @@ pool_slugs! {
     #[serde(skip)] Dummy252 => "dummy252",
     #[serde(skip)] Dummy253 => "dummy253",
     #[serde(skip)] Dummy254 => "dummy254",
-    /// DebitMyData's own pool (pool.debitmydata.io). The Bitcoin pools above are kept for
-    /// Bitview's format: no DebitMyData block is theirs.
+    // DebitMyData's own pool (pool.debitmydata.io). The Bitcoin pools above are kept for
+    // Bitview's format: no DebitMyData block is theirs. (A plain comment: a doc comment would
+    // make the API's schema of slugs a `oneOf`.)
     DebitMyData => "debitmydata",
 }
 

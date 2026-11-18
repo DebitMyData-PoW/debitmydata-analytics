@@ -10,7 +10,7 @@ macro_rules! with_transaction_features {
                 #[traversable(lead = "Transactions with pay-to-public-key-hash (P2PKH) outputs, made or spent.")]
                 p2pkh: has_p2pkh, P2PKH = 2;
                 /// Transactions that create or, outside coinbase, spend at least one bare multisig output recognized
-                /// by Bitcoin script parsing.
+                /// by script parsing.
                 #[traversable(lead = "Transactions with bare multisig (P2MS) outputs, made or spent.")]
                 p2ms: has_p2ms, P2MS = 1;
                 /// Transactions that create or, outside coinbase, spend at least one pay-to-script-hash output.
@@ -69,7 +69,7 @@ macro_rules! with_transaction_features {
                 sighash_none: has_sighash_none, SIGHASH_NONE = 16;
                 /// Transactions containing at least one detected ECDSA or Schnorr signature using the
                 /// `SIGHASH_SINGLE` base type, which normally commits only to the output at the signing input's
-                /// position. Legacy signatures without a corresponding output retain Bitcoin's historical
+                /// position. Legacy signatures without a corresponding output retain the historical
                 /// `SIGHASH_SINGLE` bug.
                 #[traversable(lead = "Transactions with SIGHASH_SINGLE signatures: committing, normally, to one output.")]
                 sighash_single: has_sighash_single, SIGHASH_SINGLE = 17;
@@ -92,7 +92,7 @@ macro_rules! with_transaction_features {
                 /// sats for P2PK65, 576 for P2PK33, 546 for P2PKH, 540 for P2SH, 294 for P2WPKH, 330 for P2WSH or
                 /// P2TR, 240 for P2A, and 471 for an empty script. P2MS and unknown scripts use their computed
                 /// minimal non-dust value; OP_RETURN is excluded.
-                #[traversable(lead = "Transactions with dust: outputs below Bitcoin Core's dust threshold.")]
+                #[traversable(lead = "Transactions with dust: outputs below the node's dust threshold.")]
                 dust_output: has_dust_output, DUST_OUTPUT = 21;
                 /// Version-1 transactions tagged as EPOBC colored-coin transfers or issuances: the first
                 /// input's sequence number is below 4,096 (bits 12 to 31 zero) and its low six bits are

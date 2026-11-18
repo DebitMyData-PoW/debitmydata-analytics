@@ -411,231 +411,6 @@ impl SeriesValue for Year10 {
 pub mod tree {
     use super::*;
 
-    shape! { Meter at "series().rarity_meter.cycle" {
-        p0_1: SeriesPattern1<Option<Dollars>> = "*_p0_1",
-        p0_5: SeriesPattern1<Option<Dollars>> = "*_p0_5",
-        p1: SeriesPattern1<Option<Dollars>> = "*_p1",
-        p2: SeriesPattern1<Option<Dollars>> = "*_p2",
-        p5: SeriesPattern1<Option<Dollars>> = "*_p5",
-        p10: SeriesPattern1<Option<Dollars>> = "*_p10",
-        p20: SeriesPattern1<Option<Dollars>> = "*_p20",
-        p30: SeriesPattern1<Option<Dollars>> = "*_p30",
-        p40: SeriesPattern1<Option<Dollars>> = "*_p40",
-        median: SeriesPattern1<Option<Dollars>> = "*_median",
-        p60: SeriesPattern1<Option<Dollars>> = "*_p60",
-        p70: SeriesPattern1<Option<Dollars>> = "*_p70",
-        p80: SeriesPattern1<Option<Dollars>> = "*_p80",
-        p90: SeriesPattern1<Option<Dollars>> = "*_p90",
-        p95: SeriesPattern1<Option<Dollars>> = "*_p95",
-        p98: SeriesPattern1<Option<Dollars>> = "*_p98",
-        p99: SeriesPattern1<Option<Dollars>> = "*_p99",
-        p99_5: SeriesPattern1<Option<Dollars>> = "*_p99_5",
-        p99_9: SeriesPattern1<Option<Dollars>> = "*_p99_9",
-        level: SeriesPattern1<Option<Score>> = "*_level",
-        score: SeriesPattern1<Option<Score>> = "*_score",
-    } }
-    shape! { Extreme<A> at "series().rarity_meter.extremes.realized_loss_sum_24h" {
-        value: SeriesPattern1<A> = "*",
-        p0_1: SeriesPattern1<A> = "*_rarity_p0_1",
-        p0_5: SeriesPattern1<A> = "*_rarity_p0_5",
-        p1: SeriesPattern1<A> = "*_rarity_p1",
-        p2: SeriesPattern1<A> = "*_rarity_p2",
-        p5: SeriesPattern1<A> = "*_rarity_p5",
-        p10: SeriesPattern1<A> = "*_rarity_p10",
-        p20: SeriesPattern1<A> = "*_rarity_p20",
-        p30: SeriesPattern1<A> = "*_rarity_p30",
-        p40: SeriesPattern1<A> = "*_rarity_p40",
-        median: SeriesPattern1<A> = "*_rarity_median",
-        p60: SeriesPattern1<A> = "*_rarity_p60",
-        p70: SeriesPattern1<A> = "*_rarity_p70",
-        p80: SeriesPattern1<A> = "*_rarity_p80",
-        p90: SeriesPattern1<A> = "*_rarity_p90",
-        p95: SeriesPattern1<A> = "*_rarity_p95",
-        p98: SeriesPattern1<A> = "*_rarity_p98",
-        p99: SeriesPattern1<A> = "*_rarity_p99",
-        p99_5: SeriesPattern1<A> = "*_rarity_p99_5",
-        p99_9: SeriesPattern1<A> = "*_rarity_p99_9",
-    } }
-    shape! { Extremes at "series().rarity_meter.extremes" {
-        supply_in_loss: Extreme<Option<Bitcoin>> = "supply_in_loss",
-        realized_profit_sum_24h: Extreme<Option<Dollars>> = "realized_profit_sum_*",
-        realized_loss_sum_24h: Extreme<Option<Dollars>> = "realized_loss_sum_*",
-        realized_peak_regret_sum_24h: Extreme<Option<Dollars>> = "realized_peak_regret_sum_*",
-        sell_side_risk_ratio_24h: Extreme<Option<Ratio>> = "sell_side_risk_ratio_*",
-    } }
-    shape! { MobileMedianCapitalizedPriceMedian at "series().rarity_meter.components.mobile.median_capitalized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "mobile_median_capitalized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "mobile_median_capitalized_price_*",
-    } }
-    shape! { MobileMedianRealizedPriceMedian at "series().rarity_meter.components.mobile.median_realized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "mobile_median_realized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "mobile_median_realized_price_*",
-    } }
-    shape! { MobileRealizedPriceMedian at "series().rarity_meter.components.mobile.realized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "mobile_realized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "mobile_realized_price_*",
-    } }
-    shape! { AwakeRealizedPriceMedian at "series().rarity_meter.components.awake.realized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "awake_realized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "awake_realized_price_*",
-    } }
-    shape! { Under6mCapitalizedPriceMedian at "series().rarity_meter.components.under_6m.capitalized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "age_under_6m_capitalized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "age_under_6m_capitalized_price_*",
-    } }
-    shape! { Under6mRealizedPriceMedian at "series().rarity_meter.components.under_6m.realized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "age_under_6m_realized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "age_under_6m_realized_price_*",
-    } }
-    shape! { SthMedianCapitalizedPriceMedian at "series().rarity_meter.components.sth.median_capitalized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "sth_median_capitalized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "sth_median_capitalized_price_*",
-    } }
-    shape! { SthMedianRealizedPriceMedian at "series().rarity_meter.components.sth.median_realized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "sth_median_realized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "sth_median_realized_price_*",
-    } }
-    shape! { SthCapitalizedPriceMedian at "series().rarity_meter.components.sth.capitalized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "sth_capitalized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "sth_capitalized_price_*",
-    } }
-    shape! { SthRealizedPriceMedian at "series().rarity_meter.components.sth.realized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "sth_realized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "sth_realized_price_*",
-    } }
-    shape! { TrueMarketMeanMedian at "series().rarity_meter.components.all.true_market_mean.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "true_market_mean_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "true_market_mean_*",
-    } }
-    shape! { VaultedPriceMedian at "series().rarity_meter.components.all.vaulted_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "vaulted_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "vaulted_price_*",
-    } }
-    shape! { AllMedianCapitalizedPriceMedian at "series().rarity_meter.components.all.median_capitalized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "median_capitalized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "median_capitalized_price_*",
-    } }
-    shape! { AllMedianRealizedPriceMedian at "series().rarity_meter.components.all.median_realized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "median_realized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "median_realized_price_*",
-    } }
-    shape! { MedianComponent<A> at "series().rarity_meter.components.all.median_capitalized_price" {
-        value: SeriesPattern1<Option<Dollars>> = "*",
-        ratio: SeriesPattern1<Option<Multiple>> = "*_ratio",
-        p0_1: A = "rarity_p0_1",
-        p0_5: A = "rarity_p0_5",
-        p1: A = "rarity_p1",
-        p2: A = "rarity_p2",
-        p5: A = "rarity_p5",
-        p10: A = "rarity_p10",
-        p20: A = "rarity_p20",
-        p30: A = "rarity_p30",
-        p40: A = "rarity_p40",
-        median: A = "rarity_median",
-        p60: A = "rarity_p60",
-        p70: A = "rarity_p70",
-        p80: A = "rarity_p80",
-        p90: A = "rarity_p90",
-        p95: A = "rarity_p95",
-        p98: A = "rarity_p98",
-        p99: A = "rarity_p99",
-        p99_5: A = "rarity_p99_5",
-        p99_9: A = "rarity_p99_9",
-    } }
-    shape! { AllCapitalizedPriceMedian at "series().rarity_meter.components.all.capitalized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "capitalized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "capitalized_price_*",
-    } }
-    shape! { AllRealizedPriceMedian at "series().rarity_meter.components.all.realized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "realized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "realized_price_*",
-    } }
-    shape! { RarityPercentiles<A> at "series().rarity_meter.components.all.capitalized_price" {
-        p0_1: A = "*_p0_1",
-        p0_5: A = "*_p0_5",
-        p1: A = "*_p1",
-        p2: A = "*_p2",
-        p5: A = "*_p5",
-        p10: A = "*_p10",
-        p20: A = "*_p20",
-        p30: A = "*_p30",
-        p40: A = "*_p40",
-        median: A = "*_median",
-        p60: A = "*_p60",
-        p70: A = "*_p70",
-        p80: A = "*_p80",
-        p90: A = "*_p90",
-        p95: A = "*_p95",
-        p98: A = "*_p98",
-        p99: A = "*_p99",
-        p99_5: A = "*_p99_5",
-        p99_9: A = "*_p99_9",
-    } }
-    shape! { MobileComponents at "series().rarity_meter.components.mobile" {
-        realized_price: RarityPercentiles<MobileRealizedPriceMedian> = "rarity",
-        median_realized_price: MedianComponent<MobileMedianRealizedPriceMedian> = "*_realized_price",
-        median_capitalized_price: MedianComponent<MobileMedianCapitalizedPriceMedian> = "*_capitalized_price",
-    } }
-    shape! { AwakeComponents at "series().rarity_meter.components.awake" {
-        realized_price: RarityPercentiles<AwakeRealizedPriceMedian> = "*",
-    } }
-    shape! { MeanComponents at "series().rarity_meter.components.under_6m" {
-        realized_price: RarityPercentiles<Under6mRealizedPriceMedian> = "*",
-        capitalized_price: RarityPercentiles<Under6mCapitalizedPriceMedian> = "*",
-    } }
-    shape! { CohortComponents at "series().rarity_meter.components.sth" {
-        realized_price: RarityPercentiles<SthRealizedPriceMedian> = "*",
-        capitalized_price: RarityPercentiles<SthCapitalizedPriceMedian> = "*",
-        median_realized_price: MedianComponent<SthMedianRealizedPriceMedian> = "sth_median_realized_price",
-        median_capitalized_price: MedianComponent<SthMedianCapitalizedPriceMedian> = "sth_median_capitalized_price",
-    } }
-    shape! { AllComponents at "series().rarity_meter.components.all" {
-        realized_price: RarityPercentiles<AllRealizedPriceMedian> = "*",
-        capitalized_price: RarityPercentiles<AllCapitalizedPriceMedian> = "*",
-        median_realized_price: MedianComponent<AllMedianRealizedPriceMedian> = "median_realized_price",
-        median_capitalized_price: MedianComponent<AllMedianCapitalizedPriceMedian> = "median_capitalized_price",
-        vaulted_price: RarityPercentiles<VaultedPriceMedian> = "*",
-        true_market_mean: RarityPercentiles<TrueMarketMeanMedian> = "*",
-    } }
-    shape! { Components at "series().rarity_meter.components" {
-        all: AllComponents = "*",
-        sth: CohortComponents = "*",
-        under_6m: MeanComponents = "*",
-        awake: AwakeComponents = "*",
-        mobile: MobileComponents = "mobile_median",
-    } }
-    shape! { RarityMeter at "series().rarity_meter" {
-        components: Components = "*",
-        extremes: Extremes = "24h",
-        full: Meter = "*_meter",
-        local: Meter = "local_*_meter",
-        cycle: Meter = "cycle_*_meter",
-    } }
-    shape! { EntryCapital at "series().bedrock.awake.entry_capital" {
-        p95_to_p98: SeriesPattern1<Option<Dollars>> = "*_p95_to_p98",
-        p98_to_p99: SeriesPattern1<Option<Dollars>> = "*_p98_to_p99",
-        p99_to_p99_5: SeriesPattern1<Option<Dollars>> = "*_p99_to_p99_5",
-        p99_5_to_p99_9: SeriesPattern1<Option<Dollars>> = "*_p99_5_to_p99_9",
-        below_p99_9: SeriesPattern1<Option<Dollars>> = "*_below_p99_9",
-    } }
-    shape! { Levels at "series().bedrock.awake.cost_basis_above_p95_floor" {
-        p10: SeriesPattern1<Option<Dollars>> = "*_p10",
-        p20: SeriesPattern1<Option<Dollars>> = "*_p20",
-        p30: SeriesPattern1<Option<Dollars>> = "*_p30",
-        p40: SeriesPattern1<Option<Dollars>> = "*_p40",
-        median: SeriesPattern1<Option<Dollars>> = "*_median",
-        p60: SeriesPattern1<Option<Dollars>> = "*_p60",
-        p70: SeriesPattern1<Option<Dollars>> = "*_p70",
-        p80: SeriesPattern1<Option<Dollars>> = "*_p80",
-        p90: SeriesPattern1<Option<Dollars>> = "*_p90",
-    } }
-    shape! { Percentiles<A> at "series().bedrock.awake.floor" {
-        p95: SeriesPattern1<A> = "*_p95",
-        p98: SeriesPattern1<A> = "*_p98",
-        p99: SeriesPattern1<A> = "*_p99",
-        p99_5: SeriesPattern1<A> = "*_p99_5",
-        p99_9: SeriesPattern1<A> = "*_p99_9",
-    } }
     shape! { CointimePriceWithRatio at "series().cointime.prices.true_market_mean" {
         value: SeriesPattern1<Option<Dollars>> = "*",
         ratio: SeriesPattern1<Option<Multiple>> = "*_ratio",
@@ -906,25 +681,6 @@ pub mod tree {
         btc: SeriesPattern1<Option<Bitcoin>> = "*",
         usd: SeriesPattern1<Option<Dollars>> = "*_usd",
     } }
-    shape! { EntrySupply at "series().bedrock.awake.entry_supply" {
-        p95_to_p98: Value = "*_p95_to_p98",
-        p98_to_p99: Value = "*_p98_to_p99",
-        p99_to_p99_5: Value = "*_p99_to_p99_5",
-        p99_5_to_p99_9: Value = "*_p99_5_to_p99_9",
-        below_p99_9: Value = "*_below_p99_9",
-    } }
-    shape! { Mode at "series().bedrock.awake" {
-        supply_in_loss_share_threshold: Percentiles<Option<Percent>> = "*_supply_in_loss_share_threshold",
-        floor: Percentiles<Option<Dollars>> = "*_floor",
-        cost_basis_above_p95_floor: Levels = "*_cost_basis_above_p95_floor",
-        entry_supply: EntrySupply = "*_entry_supply",
-        entry_capital: EntryCapital = "*_entry_capital",
-    } }
-    shape! { Bedrock at "series().bedrock" {
-        awake: Mode = "*_awake",
-        mobile: Mode = "*_mobile",
-        unweighted: Mode = "*_unweighted",
-    } }
     shape! { CointimeSupply at "series().cointime.supply" {
         vaulted: Value = "vaulted_*",
         hodled_or_lost: Value = "hodled_or_lost_*",
@@ -1012,10 +768,10 @@ pub mod tree {
         _1m: Value = "*_1m",
         _1y: Value = "*_1y",
     } }
-    shape! { PoolFees at "series().pools._175btc.fees" {
+    shape! { PoolFees at "series().pools.debitmydata.fees" {
         avg: OpReturnWindows = "*",
     } }
-    shape! { Coinbase at "series().pools._175btc.coinbase" {
+    shape! { Coinbase at "series().pools.debitmydata.coinbase" {
         cumulative: Value = "*_cumulative",
         sum: OpReturnWindows = "*_sum",
     } }
@@ -1715,7 +1471,7 @@ pub mod tree {
         cumulative: SeriesPattern1<Count> = "*_cumulative",
         sum: Windows<Count> = "*_sum",
     } }
-    shape! { Pool at "series().pools._175btc" {
+    shape! { Pool at "series().pools.debitmydata" {
         block_count: CumulativeFlow = "*_block_count",
         block_share: Share = "*_block_share",
         coinbase: Coinbase = "*_coinbase",
@@ -1725,171 +1481,7 @@ pub mod tree {
     shape! { Pools at "series().pools" {
         block_pool: SeriesPattern18<PoolSlug> = "block_*",
         unknown: Pool = "*_unknown",
-        blockfills: Pool = "*_blockfills",
-        ultimuspool: Pool = "*_ultimuspool",
-        terrapool: Pool = "*_terrapool",
-        luxor: Pool = "*_luxor",
-        _1thash: Pool = "*_1thash",
-        btccom: Pool = "*_btccom",
-        bitfarms: Pool = "*_bitfarms",
-        huobipool: Pool = "*_huobipool",
-        wayicn: Pool = "*_wayicn",
-        canoepool: Pool = "*_canoepool",
-        btctop: Pool = "*_btctop",
-        bitcoincom: Pool = "*_bitcoincom",
-        _175btc: Pool = "*_175btc",
-        gbminers: Pool = "*_gbminers",
-        axbt: Pool = "*_axbt",
-        asicminer: Pool = "*_asicminer",
-        bitminter: Pool = "*_bitminter",
-        bitcoinrussia: Pool = "*_bitcoinrussia",
-        btcserv: Pool = "*_btcserv",
-        simplecoinus: Pool = "*_simplecoinus",
-        btcguild: Pool = "*_btcguild",
-        eligius: Pool = "*_eligius",
-        ozcoin: Pool = "*_ozcoin",
-        eclipsemc: Pool = "*_eclipsemc",
-        maxbtc: Pool = "*_maxbtc",
-        triplemining: Pool = "*_triplemining",
-        coinlab: Pool = "*_coinlab",
-        _50btc: Pool = "*_50btc",
-        ghashio: Pool = "*_ghashio",
-        stminingcorp: Pool = "*_stminingcorp",
-        bitparking: Pool = "*_bitparking",
-        mmpool: Pool = "*_mmpool",
-        polmine: Pool = "*_polmine",
-        kncminer: Pool = "*_kncminer",
-        bitalo: Pool = "*_bitalo",
-        f2pool: Pool = "*_f2pool",
-        hhtt: Pool = "*_hhtt",
-        megabigpower: Pool = "*_megabigpower",
-        mtred: Pool = "*_mtred",
-        nmcbit: Pool = "*_nmcbit",
-        yourbtcnet: Pool = "*_yourbtcnet",
-        givemecoins: Pool = "*_givemecoins",
-        braiinspool: Pool = "*_braiinspool",
-        antpool: Pool = "*_antpool",
-        multicoinco: Pool = "*_multicoinco",
-        bcpoolio: Pool = "*_bcpoolio",
-        cointerra: Pool = "*_cointerra",
-        kanopool: Pool = "*_kanopool",
-        solock: Pool = "*_solock",
-        ckpool: Pool = "*_ckpool",
-        nicehash: Pool = "*_nicehash",
-        bitclub: Pool = "*_bitclub",
-        bitcoinaffiliatenetwork: Pool = "*_bitcoinaffiliatenetwork",
-        btcc: Pool = "*_btcc",
-        bwpool: Pool = "*_bwpool",
-        exxbw: Pool = "*_exxbw",
-        bitsolo: Pool = "*_bitsolo",
-        bitfury: Pool = "*_bitfury",
-        _21inc: Pool = "*_21inc",
-        digitalbtc: Pool = "*_digitalbtc",
-        _8baochi: Pool = "*_8baochi",
-        mybtccoinpool: Pool = "*_mybtccoinpool",
-        tbdice: Pool = "*_tbdice",
-        hashpool: Pool = "*_hashpool",
-        nexious: Pool = "*_nexious",
-        bravomining: Pool = "*_bravomining",
-        hotpool: Pool = "*_hotpool",
-        okexpool: Pool = "*_okexpool",
-        bcmonster: Pool = "*_bcmonster",
-        _1hash: Pool = "*_1hash",
-        bixin: Pool = "*_bixin",
-        tatmaspool: Pool = "*_tatmaspool",
-        viabtc: Pool = "*_viabtc",
-        connectbtc: Pool = "*_connectbtc",
-        batpool: Pool = "*_batpool",
-        waterhole: Pool = "*_waterhole",
-        dcexploration: Pool = "*_dcexploration",
-        dcex: Pool = "*_dcex",
-        btpool: Pool = "*_btpool",
-        _58coin: Pool = "*_58coin",
-        bitcoinindia: Pool = "*_bitcoinindia",
-        shawnp0wers: Pool = "*_shawnp0wers",
-        phashio: Pool = "*_phashio",
-        rigpool: Pool = "*_rigpool",
-        haozhuzhu: Pool = "*_haozhuzhu",
-        _7pool: Pool = "*_7pool",
-        miningkings: Pool = "*_miningkings",
-        hashbx: Pool = "*_hashbx",
-        dpool: Pool = "*_dpool",
-        rawpool: Pool = "*_rawpool",
-        haominer: Pool = "*_haominer",
-        helix: Pool = "*_helix",
-        bitcoinukraine: Pool = "*_bitcoinukraine",
-        poolin: Pool = "*_poolin",
-        secretsuperstar: Pool = "*_secretsuperstar",
-        tigerpoolnet: Pool = "*_tigerpoolnet",
-        sigmapoolcom: Pool = "*_sigmapoolcom",
-        okpooltop: Pool = "*_okpooltop",
-        hummerpool: Pool = "*_hummerpool",
-        tangpool: Pool = "*_tangpool",
-        bytepool: Pool = "*_bytepool",
-        spiderpool: Pool = "*_spiderpool",
-        novablock: Pool = "*_novablock",
-        miningcity: Pool = "*_miningcity",
-        binancepool: Pool = "*_binancepool",
-        minerium: Pool = "*_minerium",
-        lubiancom: Pool = "*_lubiancom",
-        okkong: Pool = "*_okkong",
-        aaopool: Pool = "*_aaopool",
-        emcdpool: Pool = "*_emcdpool",
-        foundryusa: Pool = "*_foundryusa",
-        sbicrypto: Pool = "*_sbicrypto",
-        arkpool: Pool = "*_arkpool",
-        purebtccom: Pool = "*_purebtccom",
-        marapool: Pool = "*_marapool",
-        kucoinpool: Pool = "*_kucoinpool",
-        entrustcharitypool: Pool = "*_entrustcharitypool",
-        okminer: Pool = "*_okminer",
-        titan: Pool = "*_titan",
-        pegapool: Pool = "*_pegapool",
-        btcnuggets: Pool = "*_btcnuggets",
-        cloudhashing: Pool = "*_cloudhashing",
-        digitalxmintsy: Pool = "*_digitalxmintsy",
-        telco214: Pool = "*_telco214",
-        btcpoolparty: Pool = "*_btcpoolparty",
-        multipool: Pool = "*_multipool",
-        transactioncoinmining: Pool = "*_transactioncoinmining",
-        btcdig: Pool = "*_btcdig",
-        trickysbtcpool: Pool = "*_trickysbtcpool",
-        btcmp: Pool = "*_btcmp",
-        eobot: Pool = "*_eobot",
-        unomp: Pool = "*_unomp",
-        patels: Pool = "*_patels",
-        gogreenlight: Pool = "*_gogreenlight",
-        bitcoinindiapool: Pool = "*_bitcoinindiapool",
-        ekanembtc: Pool = "*_ekanembtc",
-        canoe: Pool = "*_canoe",
-        tiger: Pool = "*_tiger",
-        _1m1x: Pool = "*_1m1x",
-        zulupool: Pool = "*_zulupool",
-        secpool: Pool = "*_secpool",
-        ocean: Pool = "*_ocean",
-        whitepool: Pool = "*_whitepool",
-        wiz: Pool = "*_wiz",
-        wk057: Pool = "*_wk057",
-        futurebitapollosolo: Pool = "*_futurebitapollosolo",
-        carbonnegative: Pool = "*_carbonnegative",
-        portlandhodl: Pool = "*_portlandhodl",
-        phoenix: Pool = "*_phoenix",
-        neopool: Pool = "*_neopool",
-        maxipool: Pool = "*_maxipool",
-        bitfufupool: Pool = "*_bitfufupool",
-        gdpool: Pool = "*_gdpool",
-        miningdutch: Pool = "*_miningdutch",
-        publicpool: Pool = "*_publicpool",
-        miningsquared: Pool = "*_miningsquared",
-        innopolistech: Pool = "*_innopolistech",
-        btclab: Pool = "*_btclab",
-        parasite: Pool = "*_parasite",
-        redrockpool: Pool = "*_redrockpool",
-        est3lar: Pool = "*_est3lar",
-        braiinssolo: Pool = "*_braiinssolo",
-        solopoolcom: Pool = "*_solopoolcom",
-        noderunners: Pool = "*_noderunners",
-        dmnd: Pool = "*_dmnd",
+        debitmydata: Pool = "*_debitmydata",
     } }
     shape! { Blocks at "series().blocks" {
         count: CumulativeFlow = "*_count",
@@ -2262,8 +1854,6 @@ pub mod tree {
         supply: Supply = "circulating_supply",
         cointime: Cointime = "age",
         coinflow: Coinflow = "age",
-        bedrock: Bedrock = "bedrock",
-        rarity_meter: RarityMeter = "rarity",
     } }
 }
 pub use tree::SeriesTree;
@@ -2367,7 +1957,7 @@ impl BitviewClient {
 
     /// Sync status
     ///
-    /// Returns a coherent local index snapshot and a separately observed Bitcoin Core tip height. The two heights can differ during indexing or a reorg. Conditional requests refresh these observations before validation.
+    /// Returns a coherent local index snapshot and a separately observed node tip height. The two heights can differ during indexing or a reorg. Conditional requests refresh these observations before validation.
     ///
     /// Endpoint: `GET /api/server/sync`
     pub fn get_sync_status(&self) -> Result<SyncStatus> {
@@ -2395,7 +1985,7 @@ impl BitviewClient {
 
     /// Disk usage
     ///
-    /// Returns allocated file bytes (file lengths on non-Unix platforms) for BRK and Bitcoin data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.
+    /// Returns allocated file bytes (file lengths on non-Unix platforms) for Bitview's and the node's data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.
     ///
     /// Endpoint: `GET /api/server/disk`
     pub fn get_disk_usage(&self) -> Result<DiskUsage> {
@@ -2692,7 +2282,7 @@ impl BitviewClient {
 
     /// URPD at block height or date
     ///
-    /// URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
+    /// URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is DMD. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
     ///
     /// Endpoint: `GET /api/urpd/{cohort}/{point}`
     pub fn get_urpd(
@@ -2725,7 +2315,7 @@ impl BitviewClient {
 
     /// Difficulty adjustment
     ///
-    /// Get current difficulty adjustment progress and estimates.
+    /// Progress through the current 2,016-block period and its estimates, as mempool.space reports a difficulty epoch. DebitMyData's difficulty itself adjusts at every block (LWMA): the period is Bitview's, for comparing.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustment)*
     ///
@@ -2735,9 +2325,9 @@ impl BitviewClient {
             .get_json(&format!("/api/v1/difficulty-adjustment"))
     }
 
-    /// Current BTC price
+    /// Current DMD price
     ///
-    /// Returns bitcoin latest price (on-chain derived, USD only).
+    /// DMD's reference price at the latest block (the cost of mining one DMD, at least $0.001; not a market price), USD only.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-price)*
     ///
@@ -2748,7 +2338,7 @@ impl BitviewClient {
 
     /// Historical price
     ///
-    /// Completed four-hour BTC/USD closes, newest first as mempool.space lists them, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.
+    /// Completed four-hour closes of DMD's reference price (the cost of mining one DMD, at least $0.001; not a market price), newest first as mempool.space lists them, labeled by interval end, from the chain's first block. With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*
     ///
@@ -2935,7 +2525,7 @@ impl BitviewClient {
 
     /// Validate address
     ///
-    /// Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses; a string that isn't 2 to 130 letters and digits answers 400.
+    /// Validate a DebitMyData address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses; a string that isn't 2 to 130 letters and digits answers 400.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-validate)*
     ///
@@ -3411,7 +3001,7 @@ impl BitviewClient {
 
     /// Projected mempool blocks
     ///
-    /// Projected blocks for fee estimation. Block 0 reflects Bitcoin Core's actual next-block selection; blocks 1+ are a fee-tier approximation.
+    /// Projected blocks for fee estimation. Block 0 reflects the node's actual next-block selection; blocks 1+ are a fee-tier approximation.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*
     ///
@@ -3699,7 +3289,7 @@ impl BitviewClient {
 
     /// UTXO set at block height or date
     ///
-    /// The UTXO set after a block (`840000`) or after the last published block of a UTC day (`YYYY-MM-DD`), by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.
+    /// The UTXO set after a block (`840000`) or after the last published block of a UTC day (`YYYY-MM-DD`), by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (DMD) is what remains unspent of block `i`'s outputs.
     ///
     /// Endpoint: `GET /api/utxo-set/{point}`
     pub fn get_utxo_set(&self, point: HeightOrDate) -> Result<UtxoSet> {
@@ -3709,7 +3299,7 @@ impl BitviewClient {
 
     /// UTXO set changes of a block or date
     ///
-    /// What a block (`840000`) or a UTC day's published blocks (`YYYY-MM-DD`) changed in the UTXO set. Returns `{ first, last, hash, date, created, spent }`: `created` has one row per block, `spent` one row per creation height, each as columnar `height`, `count` and `supply` (BTC). The set after block `first - 1` plus `created` minus `spent` is the set after block `last`.
+    /// What a block (`840000`) or a UTC day's published blocks (`YYYY-MM-DD`) changed in the UTXO set. Returns `{ first, last, hash, date, created, spent }`: `created` has one row per block, `spent` one row per creation height, each as columnar `height`, `count` and `supply` (DMD). The set after block `first - 1` plus `created` minus `spent` is the set after block `last`.
     ///
     /// Endpoint: `GET /api/utxo-set/{point}/diff`
     pub fn get_utxo_set_diff(&self, point: HeightOrDate) -> Result<UtxoSetDiff> {
@@ -3717,42 +3307,13 @@ impl BitviewClient {
             .get_json(&format!("/api/utxo-set/{}/diff", path_segment(point)))
     }
 
-    /// Live BTC/USD price
+    /// DMD reference price
     ///
-    /// Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available, to the cent: `price` of `GET /api/oracle/live`. Confirmed per-height history is available at `GET /api/series/price/height`. Not found before the oracle's first prices.
+    /// DMD's reference price in US dollars at the latest block: the cost of the electricity it takes to mine one DMD, never below $0.001 (DebitMyData's minimum rate). Not a market price. Every block's is at `GET /api/series/price/height`.
     ///
-    /// Endpoint: `GET /api/oracle/price`
+    /// Endpoint: `GET /api/price`
     pub fn get_live_price(&self) -> Result<Dollars> {
-        self.base.get_json(&format!("/api/oracle/price"))
-    }
-
-    /// The oracle now
-    ///
-    /// The oracle's reading now, as `GET /api/oracle/blocks/{height}` reads a block: with the mempool's outputs blended in as the next block (`mempool` true, `height` the next block's, `outputs` the mempool's), its search from the tip's answer, `price` the live price; without a mempool at the tip, the tip block's own. One snapshot: its parts never from two moments, `hash` the confirmed tip it was read at. Not found before the oracle's first prices, nor before height 508,000.
-    ///
-    /// Endpoint: `GET /api/oracle/live`
-    pub fn get_oracle_live(&self) -> Result<OracleBlock> {
-        self.base.get_json(&format!("/api/oracle/live"))
-    }
-
-    /// The oracle at a block
-    ///
-    /// How the oracle read a confirmed block, after height 508,000: what it counted (the smoothed histogram of the payments of the block and the 11 before it, by amount on its log scale; the block's outputs as its filter judged them, each skipped one under the first rule that skips it), where it looked (every candidate bin in its window, 12 below the block before's answer to 11 above, with its score) and what it found (the bin it picked and its price). Bins: 200 a decade, a bin `round(log10(sats) * 200)`; as where $100 lands, a bin is the price `10^(10 - bin / 200)` dollars. A settled block's never changes.
-    ///
-    /// Endpoint: `GET /api/oracle/blocks/{height}`
-    pub fn get_oracle_block(&self, height: Height) -> Result<OracleBlock> {
-        self.base
-            .get_json(&format!("/api/oracle/blocks/{}", path_segment(height)))
-    }
-
-    /// The oracle's payments, 144 blocks at a time
-    ///
-    /// For each of the 144 blocks from `start` (a multiple of 144, else a bad request; from 508,032, earlier ones out of range): its payments as the oracle filters them, each read as each of its 19 round-dollar amounts ($1 to $10,000) at its exact amount in sats, counted by the price each reading implies, in buckets a tenth of a bin wide (0.115% of price) over the block's search window: finer than the oracle's bins, the evidence behind its prices. The chunk at the tip holds its blocks so far, `hash` its last block's; a whole, settled chunk never changes.
-    ///
-    /// Endpoint: `GET /api/oracle/payments/{start}`
-    pub fn get_oracle_payments(&self, start: Height) -> Result<OraclePayments> {
-        self.base
-            .get_json(&format!("/api/oracle/payments/{}", path_segment(start)))
+        self.base.get_json(&format!("/api/price"))
     }
 
     /// OpenAPI specification

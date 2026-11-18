@@ -15,7 +15,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 
 #[derive(Traversable)]
 pub struct RangeVecs<M: StorageMode = Rw> {
-    /// Empirical daily spending hazard: cumulative transfer volume in BTC
+    /// Empirical daily spending hazard: cumulative transfer volume in DMD
     /// divided by cumulative coin days created in the range. It estimates the
     /// fraction of the range's supply spent per day; higher values indicate
     /// faster turnover. Undefined (null) when cumulative coin days created is zero.

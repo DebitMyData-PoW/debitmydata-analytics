@@ -50,8 +50,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Transaction outputs by locking-script type, including coinbase outputs
     /// and coinbase transactions.
     types: TypesVecs<M>,
-    /// Total bitcoin value assigned to provably unspendable `OP_RETURN`
+    /// Total DMD value assigned to provably unspendable `OP_RETURN`
     /// outputs.
-    #[traversable(lead = "Bitcoin burned in OP_RETURN outputs.")]
+    #[traversable(lead = "DMD burned in OP_RETURN outputs.")]
     pub op_return_value: ValuePerBlockCumulativeRolling<M>,
 }

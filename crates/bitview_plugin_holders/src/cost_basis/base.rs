@@ -24,12 +24,12 @@ pub struct CostBasis<M: StorageMode = Rw> {
     /// weighted by each output's USD value at creation.
     pub by_dollar: CostBasisByDollar<M>,
     /// The lowest price any of the cohort's unspent outputs was created at (its origin block's
-    /// price), exactly, not on the price grid (a price over $42,949,672.94 held there). Undefined
+    /// price), exactly, not on the price grid (a price over $4,294.97 held there). Undefined
     /// (null) without supply.
     #[traversable(lead = "Lowest cost basis: the lowest price any coin held last moved at.")]
     pub min: Price<LazyPerBlock<Cents>>,
     /// The highest price any of the cohort's unspent outputs was created at (its origin block's
-    /// price), exactly, not on the price grid (a price over $42,949,672.94 held there). Undefined
+    /// price), exactly, not on the price grid (a price over $4,294.97 held there). Undefined
     /// (null) without supply.
     #[traversable(lead = "Highest cost basis: the highest price any coin held last moved at.")]
     pub max: Price<LazyPerBlock<Cents>>,

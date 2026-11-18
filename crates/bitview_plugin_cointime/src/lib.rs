@@ -42,12 +42,12 @@ pub struct Vecs<M: StorageMode = Rw> {
     db: Database,
     urpd_replay: M::WriteOnly<Replay>,
 
-    /// Cointime measures how long bitcoin remains unspent. One coinblock is one
-    /// BTC held for one block interval; spending destroys the coinblocks that
+    /// Cointime measures how long DMD remains unspent. One coinblock is one
+    /// DMD held for one block interval; spending destroys the coinblocks that
     /// the spent outputs accumulated.
     activity: ActivityVecs<M>,
     /// Age-range cointime allocates creation and destruction of coin days to the
-    /// UTXO ages where they occur. One coin day is one BTC held unspent for one
+    /// UTXO ages where they occur. One coin day is one DMD held unspent for one
     /// day. An age range's wakefulness is the share of its cumulatively created
     /// coin days that spending has consumed; one minus wakefulness is the share
     /// still stored.
@@ -62,18 +62,18 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// been destroyed.
     supply: SupplyVecs,
     /// Cointime value metrics assign the represented block's spot price to
-    /// coinblocks created, destroyed, or stored. One coinblock is one BTC held
+    /// coinblocks created, destroyed, or stored. One coinblock is one DMD held
     /// for one block interval; spending destroys the coinblocks accumulated by
     /// the spent outputs.
     value: ValueVecs<M>,
-    /// Cointime capitalizations split Bitcoin's capitalization by economic
+    /// Cointime capitalizations split DMD's capitalization by economic
     /// activity: market capitalization into active and vaulted, and realized
-    /// capitalization (each unspent output's BTC value at Bitcoin's spot price
+    /// capitalization (each unspent output's DMD value at the reference price
     /// when it was created) into investor and thermo. The Cointime
     /// capitalization values the supply from cumulative destroyed value.
     caps: CapVecs<M>,
     /// Cointime reference prices translate activity-adjusted capitalization or
-    /// value into a price per BTC, each beside spot's ratio to it. They are
+    /// value into a price per DMD, each beside spot's ratio to it. They are
     /// model-derived benchmarks, not traded market prices.
     pub prices: PricesVecs<M>,
     /// Cointime-adjusted rates reweight conventional supply rates by

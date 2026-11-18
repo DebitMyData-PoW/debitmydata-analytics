@@ -10,13 +10,13 @@ use vecdb::{Database, Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct CreationActivity<M: StorageMode = Rw> {
-    /// Value of outputs spent in each block. BTC representations use the spent
+    /// Value of outputs spent in each block. DMD representations use the spent
     /// output value; USD representations value it at the spending block's spot
     /// price.
-    #[traversable(lead = "Transfer volume: the bitcoin spent.")]
+    #[traversable(lead = "Transfer volume: the DMD spent.")]
     pub transfer_volume: CumulativeValue<M>,
     /// Coin days destroyed (CDD) by the cohort's outputs: each spent output's
-    /// BTC value multiplied by its age in fractional days.
+    /// DMD value multiplied by its age in fractional days.
     #[traversable(
         lead = "Coin days destroyed (CDD): coins spent, each times the days it was held, so old coins moving count most."
     )]

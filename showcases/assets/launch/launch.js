@@ -21,13 +21,14 @@
 //   script, its foot's room `--safe-bottom`), and its scrolling list softened under the page's top (`data-edge`, the
 //   list's selector; `--edge-ground`, the page's ground). Studio's both, so far: each app's to try on a phone.
 (() => {
-  const ORANGE = "#e65b00";
+  // (DebitMyData's red, its badge's: the launch screen, the icon's ground.)
+  const ORANGE = "#c80815";
   const root = document.documentElement, script = /** @type {HTMLScriptElement | null} */ (document.currentScript);
   const standalone = /** @type {any} */ (navigator).standalone;
   // (A newer version of the page, said: its own file, every showcase's from here.)
   document.head.append(Object.assign(document.createElement("script"), { src: "/assets/version/version.js" }));
   // (Its app: the showcase's folder, wherever in it the page is (a Studio link's chart, a preset's address).)
-  const app = script?.dataset.app, name = app ? `Bitview ${app}` : "Bitview", short = app ?? name;
+  const app = script?.dataset.app, name = app ? `DebitMyData ${app}` : "DebitMyData Analytics", short = app ?? "DMD Analytics";
   const folder = app ? location.pathname.replace(/^(\/[^/]+).*$/, "$1/") : "/", start = `${location.origin}${folder}`;
   for (const [tag, attributes] of /** @type {const} */ ([
     ["meta", { name: "application-name", content: name }],
@@ -35,9 +36,8 @@
     // (iOS uses a launch screen only for a page that says it's an app.)
     ["meta", { name: "apple-mobile-web-app-capable", content: "yes" }],
   ])) document.head.append(Object.assign(document.createElement(tag), attributes));
-  // Its icon: Bitview's cube in the app's colour, a file (assets/favicon/apps/, each made from app-icon.svg in its page's
-  // `data-color` by showcases/home.mjs --icons): one drawn here never came on a phone in Lockdown Mode, its home screen
-  // left with the manifest's orange alone. The manifest made once the page is read, its description the page's own.
+  // Its icon: DebitMyData's coin with the microscope badge, a file (assets/favicon/apps/, the same for every app): one
+  // drawn here never came on a phone in Lockdown Mode, its home screen left with the manifest's red alone. The manifest made once the page is read, its description the page's own.
   const icon = `${location.origin}/assets/favicon/apps/${app ? folder.slice(1, -1) : "bitview"}.png`;
   const link = (/** @type {string} */ rel, /** @type {string} */ href) => document.head.append(Object.assign(document.createElement("link"), { rel, href }));
   link("apple-touch-icon", icon);
@@ -149,7 +149,7 @@
     @layer bitview-launch {
       html[data-launch=""] body, html[data-launch=""] body * { visibility: hidden !important; }
     }
-    html[data-launch="out"]::after { inset: auto; top: 50%; left: 50%; width: 400px; aspect-ratio: 1.26 / 1.4622; translate: -50% -50%; transform-origin: 50% 60.26%; background: var(--bitview-launch-cube) center / 100% 100% no-repeat; animation: none; }
+    html[data-launch="out"]::after { inset: auto; top: 50%; left: 50%; width: 400px; aspect-ratio: 1 / 1; translate: -50% -50%; transform-origin: 50% 50%; background: var(--bitview-launch-cube) center / 100% 100% no-repeat; animation: none; }
     html[data-launch="out"]::before { content: ""; position: fixed; inset: 0; z-index: ${top - 1}; pointer-events: none; }
     .bitview-launch-bar { position: fixed; inset: 0 0 auto; z-index: ${top + 1}; height: calc(env(safe-area-inset-top) + 12px); background: ${ORANGE}; pointer-events: none; }
     @keyframes bitview-launch-out { to { opacity: 0; } }`;

@@ -15,7 +15,6 @@ bitview_urpd = { workspace = true }
 bitview_plugin = { workspace = true }
 bitview_plugin_addresses = { workspace = true }
 bitview_plugin_age = { workspace = true }
-bitview_plugin_bedrock = { workspace = true }
 bitview_plugin_blocks = { workspace = true }
 bitview_plugin_coinflow = { workspace = true }
 bitview_plugin_cointime = { workspace = true }
@@ -31,7 +30,6 @@ bitview_plugin_outputs = { workspace = true }
 bitview_plugin_pools = { workspace = true }
 bitview_plugin_price = { workspace = true }
 bitview_plugin_profitability = { workspace = true }
-bitview_plugin_rarity_meter = { workspace = true }
 bitview_plugin_supply = { workspace = true }
 bitview_plugin_transactions = { workspace = true }
 bitview_plugin_utxo_set = { workspace = true }

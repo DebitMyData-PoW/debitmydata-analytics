@@ -5,8 +5,9 @@ It makes a chain with every address type (D…-style legacy, P2SH-SegWit, dm…1
 and spends between them, and a whole reward cycle (regtest halves the reward every 150 blocks
 and starts again at block 4,800), lets bitviewd index it, then compares what bitviewd says with
 what the node says: the tip, every address's balance (scantxoutset), the coins in existence
-(gettxoutsetinfo), each block's reward (getblockstats), the addresses of the coinbase outputs,
-and the reference price ($0.001 at a test chain's difficulty) with the market cap it gives.
+(gettxoutsetinfo), each block's reward (getblockstats), raw blocks and headers (read from the
+node's block files), the addresses of the coinbase outputs, and the reference price ($0.001 at
+a test chain's difficulty) with the market cap it gives.
 
     scripts/debitmydata-regtest-check.py --node-bin <folder with debitmydatad, debitmydata-cli> \\
         --bitviewd target/debug/bitviewd [--blocks 5000] [--work /tmp/dmd-regtest-check]
@@ -266,6 +267,19 @@ def check(port: int, node: Node, tip: int, addresses: list[str], descriptors: li
             f"reward of block {height}",
             block["extras"]["reward"],
             stats["subsidy"] + stats["totalfee"],
+        )
+
+    # a block's raw bytes and header, as the node has them (read from its block files)
+    for height in (0, tip):
+        block_hash = node.cli("getblockhash", height)
+        with urllib.request.urlopen(
+            f"http://127.0.0.1:{port}/api/block/{block_hash}/raw", timeout=60
+        ) as response:
+            same(f"raw block {height}", response.read().hex(), node.cli("getblock", block_hash, 0))
+        same(
+            f"header of block {height}",
+            get(port, f"/api/block/{block_hash}/header"),
+            node.cli("getblockheader", block_hash, "false"),
         )
 
     # the coinbase output's address, in DebitMyData's format

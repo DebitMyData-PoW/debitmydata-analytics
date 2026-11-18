@@ -52,13 +52,13 @@ impl CentsSats {
         self.0
     }
 
-    /// The amount in cents (divided by one BTC), rounded to the nearest cent.
+    /// The amount in millionths of a dollar (divided by one DMD), rounded to the nearest millionth of a dollar.
     #[inline(always)]
     pub fn to_cents(self) -> Cents {
         Cents::from(div_round(self.0, Sats::ONE_BTC_U128))
     }
 
-    /// The realized price (cents per BTC) given the sats amount, rounded to the nearest cent;
+    /// The realized price (millionths of a dollar per DMD) given the sats amount, rounded to the nearest millionth of a dollar;
     /// undefined (NaN) without sats.
     #[inline(always)]
     pub fn realized_price(self, sats: Sats) -> Cents {

@@ -7,14 +7,12 @@ use super::price_min_max_vecs::PriceMinMaxVecs;
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
-    /// Minimum block-level Bitcoin spot price in a trailing monotonic-time
-    /// window, including the represented block. Windows start no earlier than the
-    /// first exchange price (block 74,641); null before it.
+    /// Minimum block-level reference price in a trailing monotonic-time
+    /// window, including the represented block.
     #[traversable(lead = "Lowest price in the window.")]
     pub min: PriceMinMaxVecs<M>,
-    /// Maximum block-level Bitcoin spot price in a trailing monotonic-time
-    /// window, including the represented block. Windows start no earlier than the
-    /// first exchange price (block 74,641); null before it.
+    /// Maximum block-level reference price in a trailing monotonic-time
+    /// window, including the represented block.
     #[traversable(lead = "Highest price in the window.")]
     pub max: PriceMinMaxVecs<M>,
     pub(super) extrema: M::WriteOnly<[Retained<ExtremaWindow<Cents>>; 3]>,

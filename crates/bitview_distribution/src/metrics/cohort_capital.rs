@@ -17,16 +17,16 @@ use crate::families::import_stored;
 /// (`capital` -> `age_1d_to_1w_capital`).
 #[derive(Clone, Traversable)]
 pub struct CapitalViews {
-    /// Capital: the cohort's unspent outputs valued at Bitcoin's spot price when each was
+    /// Capital: the cohort's unspent outputs valued at the reference price when each was
     /// created.
     #[traversable(
         lead = "Capital: what holders paid for these coins, in all, each at the price it last moved at."
     )]
     total: LazyFiatPerBlock<Cents>,
-    /// Realized cap: the sum of each unspent output's BTC value times the spot price when it was
+    /// Realized cap: the sum of each unspent output's DMD value times the spot price when it was
     /// created.
     #[traversable(
-        lead = "Realized cap: what holders paid for their bitcoin, in all, each coin at the price it last moved at."
+        lead = "Realized cap: what holders paid for their DMD, in all, each coin at the price it last moved at."
     )]
     realized_cap: LazyFiatPerBlock<Cents>,
     /// Change in the cohort's capital over a trailing window.

@@ -22,7 +22,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 op.id("get_mempool_blocks")
                     .tag(tags::FEES)
                     .summary("Projected mempool blocks")
-                    .description("Projected blocks for fee estimation. Block 0 reflects Bitcoin Core's actual next-block selection; blocks 1+ are a fee-tier approximation.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*")
+                    .description("Projected blocks for fee estimation. Block 0 reflects the node's actual next-block selection; blocks 1+ are a fee-tier approximation.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*")
                     .json_response::<Vec<MempoolBlock>>()
                     .not_modified()
             },

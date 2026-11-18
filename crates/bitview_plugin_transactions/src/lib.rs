@@ -58,22 +58,22 @@ pub struct Vecs<M: StorageMode = Rw> {
     inscription: InscriptionVecs<M>,
     patterns: PatternsVecs<M>,
     /// Transactions nonstandard under Bitview's transaction-local approximation of
-    /// default Bitcoin Core relay standardness at the represented block height.
+    /// default node relay standardness at the represented block height.
     /// It checks version, size and weight, scripts and witnesses,
     /// signature-operation limits, dust, and `OP_RETURN` policy. It does not
     /// model node adoption, fee floors, mempool or package topology, conflicts or
     /// replacement, or node-specific settings. Modeled rules change after height
     /// 863,500 and at heights 892,500 and 921,000; coinbase transactions are not
     /// evaluated (never nonstandard).
-    #[traversable(lead = "Nonstandard transactions: ones Bitcoin Core's default policy likely wouldn't relay, as far as one transaction shows.")]
+    #[traversable(lead = "Nonstandard transactions: ones the node's default policy likely wouldn't relay, as far as one transaction shows.")]
     nonstandard: Classified<M>,
     /// Counts every transaction, including coinbase, by its signed 32-bit
-    /// Bitcoin transaction version.
+    /// Transaction version.
     versions: VersionsVecs<M>,
     /// Sum of the input values of non-coinbase transactions. This equals their
     /// total output value plus transaction fees and is not adjusted to estimate
     /// economic payment volume.
-    #[traversable(lead = "Transfer volume: the bitcoin transactions moved, change included.")]
+    #[traversable(lead = "Transfer volume: the DMD transactions moved, change included.")]
     pub transfer_volume: ValuePerBlockCumulativeRolling<M>,
     /// Transaction rate, including coinbase transactions.
     #[traversable(lead = "Transactions per second.")]

@@ -99,7 +99,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         "The UTXO set after a block (`840000`) or after the last published \
                         block of a UTC day (`YYYY-MM-DD`), by creation height. Returns \
                         `{ height, hash, date, count, supply, origins }`; entry `i` of \
-                        `origins.count` and `origins.supply` (BTC) is what remains unspent of \
+                        `origins.count` and `origins.supply` (DMD) is what remains unspent of \
                         block `i`'s outputs.",
                     )
                     .json_response::<UtxoSet>()
@@ -129,7 +129,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         "What a block (`840000`) or a UTC day's published blocks \
                         (`YYYY-MM-DD`) changed in the UTXO set. Returns `{ first, last, hash, date, created, spent }`: \
                         `created` has one row per block, `spent` one row per creation height, \
-                        each as columnar `height`, `count` and `supply` (BTC). The set \
+                        each as columnar `height`, `count` and `supply` (DMD). The set \
                         after block `first - 1` plus `created` minus `spent` is the set after \
                         block `last`.",
                     )

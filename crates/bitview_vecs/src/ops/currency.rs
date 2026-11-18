@@ -1,7 +1,7 @@
 use brk_types::{Cents, Sats};
 use vecdb::UnaryTransform;
 
-/// A price (cents per BTC) to the whole sats one dollar buys.
+/// A price (millionths of a dollar per DMD) to the whole sats one dollar buys.
 pub struct CentsToSatsPerDollar;
 
 impl UnaryTransform<Cents, Sats> for CentsToSatsPerDollar {

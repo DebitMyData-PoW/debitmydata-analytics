@@ -19,12 +19,12 @@ pub struct Vecs<M: StorageMode = Rw> {
 pub struct RangeVecs<M: StorageMode = Rw> {
     /// Coin days created in the range: its supply held for the block's
     /// duration, supply crossing into an older range counted in each range for its time there.
-    #[traversable(lead = "Coin days created: holding time added, one per bitcoin per day.")]
+    #[traversable(lead = "Coin days created: holding time added, one per DMD per day.")]
     pub coindays_created: LazyPerBlockCumulativeRolling<CoinDays>,
     /// Coin days destroyed by spent outputs, allocated across every age range
     /// the outputs traversed. The portion above a spent output's age-range
     /// lower bound remains in that range; each fully traversed younger range
-    /// receives spent BTC multiplied by that range's duration. The allocation
+    /// receives spent DMD multiplied by that range's duration. The allocation
     /// preserves total coin days destroyed. Unlike the age range's coin days
     /// destroyed, which credit a spent output's whole age to the range it was
     /// spent from, this takes coin days from the ranges where they were

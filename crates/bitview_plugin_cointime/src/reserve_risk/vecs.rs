@@ -24,13 +24,13 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub(crate) hodl_bank_sum: PerBlock<Float64, M>,
     /// Supply-adjusted value of coin days destroyed (VOCDD): spot price in USD
     /// multiplied by the block's coin days destroyed and divided by circulating
-    /// supply in BTC. Reported in USD-days per BTC of circulating supply. Returns
+    /// supply in DMD. Reported in USD-days per DMD of circulating supply. Returns
     /// zero when circulating supply is zero.
-    #[traversable(lead = "VOCDD: coin days destroyed, at the price of the day, per bitcoin in circulation.")]
+    #[traversable(lead = "VOCDD: coin days destroyed, at the price of the day, per DMD in circulation.")]
     pub vocdd: PricedPerBlockCumulativeRolling<DollarDaysPerCoin, M>,
     /// Median over the blocks of the trailing 30 days of `vocdd.sum._24h`, in
-    /// USD-days per BTC: the HODL bank's input. None until that sum has a value
-    /// (a day after the first exchange price), its windows starting there.
+    /// USD-days per DMD: the HODL bank's input. None until that sum has a value
+    /// (a day after the first block), its windows starting there.
     #[traversable(hidden)]
     pub(crate) vocdd_median_1m: M::Stored<PcoVec<Height, DollarDaysPerCoin>>,
     pub(crate) vocdd_median_1m_window: M::WriteOnly<Retained<SortedWindow>>,

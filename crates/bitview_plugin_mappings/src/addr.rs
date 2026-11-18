@@ -41,7 +41,7 @@ pub struct Vecs {
 /// Output types without an address: each type-specific output index, as an identity series.
 #[derive(Clone, Traversable)]
 pub struct ScriptVecs {
-    /// Bare multisig outputs recognized by Bitcoin script parsing.
+    /// Bare multisig outputs recognized by script parsing.
     /// Zero-based type-specific output index assigned in canonical chain order.
     pub p2ms: IdentityVecs<P2MSOutputIndex, TxIndex>,
     /// Outputs with an empty locking script.

@@ -95,7 +95,7 @@ impl CentsCompact {
         }
     }
 
-    /// Saturates at the largest finite value ($42,949,672.94): a price above it is held there,
+    /// Saturates at the largest finite value ($4,294.97): a price above it is held there,
     /// never wrapped.
     #[inline]
     fn from_finite_u64(value: u64) -> Self {

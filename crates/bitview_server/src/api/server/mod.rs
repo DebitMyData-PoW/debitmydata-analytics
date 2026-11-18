@@ -89,7 +89,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     .tag(tags::SERVER)
                     .summary("Sync status")
                     .description(
-                        "Returns a coherent local index snapshot and a separately observed Bitcoin Core tip height. \
+                        "Returns a coherent local index snapshot and a separately observed node tip height. \
                         The two heights can differ during indexing or a reorg. Conditional requests refresh these observations before validation.",
                     )
                     .json_response::<SyncStatus>()
@@ -123,7 +123,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     .mcp_ignore()
                     .summary("Disk usage")
                     .description(
-                        "Returns allocated file bytes (file lengths on non-Unix platforms) for BRK and Bitcoin data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.",
+                        "Returns allocated file bytes (file lengths on non-Unix platforms) for Bitview's and the node's data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.",
                     )
                     .json_response::<DiskUsage>()
                     .not_modified()

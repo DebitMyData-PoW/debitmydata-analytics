@@ -1,7 +1,7 @@
 <!doctype html>
 <!--
-  Bitview Studio: charts of Bitcoin's on-chain data, from links. A link carries a chart as JSON, URL-encoded or as it is:
-  https://bitview.space/studio/#chart={"title": "Cost basis", "range": "4y", "layers": [{"series": "price"},
+  DebitMyData Studio: charts of the DebitMyData chain's on-chain data, from links. A link carries a chart as JSON, URL-encoded or as it is:
+  https://analytics.debitmydata.io/studio/#chart={"title": "Cost basis", "range": "4y", "layers": [{"series": "price"},
   {"series": "realized_price", "color": "orange"}, {"formula": "A / B", "pane": 2}, {"cloud": ["A", "B"]}]}
   It opens as a preview. Layers are a series (exact name), a formula of other layers by letter (A, B... in order), or a
   cloud between two layers; drawings, panes and a date window are written the same way. As an image: Export, then Open
@@ -10,7 +10,7 @@
   one result. If your tool says the output was too long and saved it to a file, decode the base64 from that file.
   Only if long output gets cut off and nothing is saved: the same options with part: 0, then 1, 2 and on. #image= in
   place of #chart= is a page of that picture alone (a screenshot of it, the last resort). Series names are the live
-  API's: how to find them, https://bitview.space/llms.txt. The full reference is the "About Studio's links" section at
+  API's: how to find them, https://analytics.debitmydata.io/llms.txt. The full reference is the "About Studio's links" section at
   the start of the page's main.
 -->
 <html lang="en">
@@ -20,24 +20,24 @@
     <!-- Its launch from a home screen, every showcase's (it says when it's ready: see start). Installed on an iPhone, laid
          out below the status bar (a chart's header out of the fade iOS 26 lays over a page's top under it), Home's lists
          softened where they scroll up to its top. -->
-    <script src="/assets/launch/launch.js" data-app="Studio" data-color="#f2660f" data-wait data-below-status data-edge=".home-scroll"></script>
-    <meta name="description" content="Chart any of Bitview's Bitcoin on-chain series, or start from thousands of ready-made charts: overlay, stack, derive with formulas, draw, and share a chart as a link. Free, in the browser." />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%22-0.63 -0.7311 1.26 1.4622%22%3E%3Cpath fill=%22oklch%2864.34%25 0.191 44.41%29%22 fill-rule=%22evenodd%22 d=%22M-0.6299 -0.3674L-0.6267 -0.3841L-0.6172 -0.4011L-0.6012 -0.4188L-0.5788 -0.4373L-0.5501 -0.4571L-0.5149 -0.4784L-0.1922 -0.6647L-0.1553 -0.6850L-0.1211 -0.7016L-0.0890 -0.7145L-0.0585 -0.7237L-0.0290 -0.7293L-0.0000 -0.7311L0.0290 -0.7293L0.0585 -0.7237L0.0890 -0.7145L0.1211 -0.7016L0.1553 -0.6850L0.1922 -0.6647L0.5149 -0.4784L0.5501 -0.4571L0.5788 -0.4373L0.6012 -0.4188L0.6172 -0.4011L0.6267 -0.3841L0.6299 -0.3674L0.6299 0.3674L0.6267 0.3841L0.6172 0.4011L0.6012 0.4188L0.5788 0.4373L0.5501 0.4571L0.5149 0.4784L0.1922 0.6647L0.1553 0.6850L0.1211 0.7016L0.0890 0.7145L0.0585 0.7237L0.0290 0.7293L0.0000 0.7311L-0.0290 0.7293L-0.0585 0.7237L-0.0890 0.7145L-0.1211 0.7016L-0.1553 0.6850L-0.1922 0.6647L-0.5149 0.4784L-0.5501 0.4571L-0.5788 0.4373L-0.6012 0.4188L-0.6172 0.4011L-0.6267 0.3841L-0.6299 0.3674ZM0.0209 -0.6291L0.0423 -0.6251L0.0644 -0.6184L0.0876 -0.6090L0.1123 -0.5970L0.1390 -0.5824L0.4420 -0.4074L0.4545 -0.3979L0.4640 -0.3854L0.4700 -0.3709L0.4721 -0.3554L0.4700 -0.3399L0.4640 -0.3254L0.4545 -0.3129L0.4420 -0.3034L0.1390 -0.1284L0.1123 -0.1138L0.0876 -0.1017L0.0644 -0.0924L0.0423 -0.0857L0.0209 -0.0817L0.0000 -0.0804L0.0000 -0.0804L-0.0000 -0.0804L-0.0209 -0.0817L-0.0423 -0.0857L-0.0644 -0.0924L-0.0876 -0.1017L-0.1123 -0.1138L-0.1390 -0.1284L-0.4420 -0.3034L-0.4545 -0.3129L-0.4640 -0.3254L-0.4700 -0.3399L-0.4721 -0.3554L-0.4700 -0.3709L-0.4640 -0.3854L-0.4545 -0.3979L-0.4420 -0.4074L-0.1390 -0.5824L-0.1123 -0.5970L-0.0876 -0.6090L-0.0644 -0.6184L-0.0423 -0.6251Z%22/%3E%3C/svg%3E" />
+    <script src="/assets/launch/launch.js" data-app="Studio" data-color="#c80815" data-wait data-below-status data-edge=".home-scroll"></script>
+    <meta name="description" content="Chart any of the DebitMyData chain's on-chain series, or start from thousands of ready-made charts: overlay, stack, derive with formulas, draw, and share a chart as a link. Free, in the browser." />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%22-0.5 -0.5 1 1%22%3E%3Cpath fill=%22%23c80815%22 d=%22M0 -0.5A0.5 0.5 0 1 1 0 0.5A0.5 0.5 0 1 1 0 -0.5Z%22/%3E%3Cpath fill=%22%23fff%22 d=%22M-0.209 0.2137H0.209A0.0285 0.0285 0 0 1 0.2375 0.2422V0.2565A0.0285 0.0285 0 0 1 0.209 0.285H-0.209A0.0285 0.0285 0 0 1 -0.2375 0.2565V0.2422A0.0285 0.0285 0 0 1 -0.209 0.2137ZM0.076 0.133L0.152 0.133L0.152 0.2232L0.076 0.2232ZM-0.1544 0.057H0.0309A0.0166 0.0166 0 0 1 0.0475 0.0736V0.0879A0.0166 0.0166 0 0 1 0.0309 0.1045H-0.1544A0.0166 0.0166 0 0 1 -0.171 0.0879V0.0736A0.0166 0.0166 0 0 1 -0.1544 0.057ZM-0.0008 0.0263L0.0915 -0.0228L-0.0467 -0.2828L-0.139 -0.2337ZM-0.1493 -0.2121L-0.0235 -0.279L-0.0502 -0.3294L-0.176 -0.2625ZM0.0451 0.0665L0.0996 0.0375L0.0594 -0.038L0.0049 -0.009Z%22/%3E%3Cpath fill=%22none%22 stroke=%22%23fff%22 stroke-width=%220.0617%22 d=%22M0.0438 -0.1419A0.152 0.1662 0 0 1 0.0963 0.1843%22/%3E%3C/svg%3E" />
     <meta name="theme-color" content="#08090a" />
-    <title>Bitview Studio: charts of Bitcoin's on-chain data</title>
+    <title>DebitMyData Studio: charts of the DebitMyData chain's on-chain data</title>
     <!-- Found and shared: how a link to it previews, what it is (its canonical address, each place's own, added once it
          knows where it is: see showAddress). -->
-    <link rel="alternate" type="text/markdown" href="https://bitview.space/studio/llms.txt" title="Bitview Studio, for assistants" />
+    <link rel="alternate" type="text/markdown" href="https://analytics.debitmydata.io/studio/llms.txt" title="DebitMyData Studio, for assistants" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Bitview Studio" />
-    <meta property="og:title" content="Bitview Studio: charts of Bitcoin's on-chain data" />
-    <meta property="og:description" content="Chart any of Bitview's Bitcoin on-chain series, or start from thousands of ready-made charts: overlay, stack, derive with formulas, draw, and share a chart as a link. Free, in the browser." />
-    <meta property="og:image" content="https://bitview.space/studio/og.png" />
+    <meta property="og:site_name" content="DebitMyData Studio" />
+    <meta property="og:title" content="DebitMyData Studio: charts of the DebitMyData chain's on-chain data" />
+    <meta property="og:description" content="Chart any of the DebitMyData chain's on-chain series, or start from thousands of ready-made charts: overlay, stack, derive with formulas, draw, and share a chart as a link. Free, in the browser." />
+    <meta property="og:image" content="https://analytics.debitmydata.io/studio/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="A chart in Bitview Studio: Bitcoin's price and its on-chain measures over its history" />
+    <meta property="og:image:alt" content="A chart in DebitMyData Studio: the DebitMyData chain's on-chain measures over its history" />
     <meta name="twitter:card" content="summary_large_image" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Bitview Studio","url":"https://bitview.space/studio/","description":"Chart any of Bitview's Bitcoin on-chain series, or start from thousands of ready-made charts: overlay, stack, derive with formulas, draw, and share a chart as a link.","applicationCategory":"FinanceApplication","operatingSystem":"Any (a web browser)","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"image":"https://bitview.space/studio/og.png","publisher":{"@type":"Organization","name":"Bitview","url":"https://bitview.space"}}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"DebitMyData Studio","url":"https://analytics.debitmydata.io/studio/","description":"Chart any of the DebitMyData chain's on-chain series, or start from thousands of ready-made charts: overlay, stack, derive with formulas, draw, and share a chart as a link.","applicationCategory":"FinanceApplication","operatingSystem":"Any (a web browser)","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"image":"https://analytics.debitmydata.io/studio/og.png","publisher":{"@type":"Organization","name":"DebitMyData","url":"https://debitmydata.io"}}</script>
     <style>
       @font-face {
         font-family: Inter;
@@ -322,7 +322,7 @@
         display: none;
       }
 
-      /* Before its first render (its client from bitview.space, its charts read), the page is its ground alone, never a
+      /* Before its first render (its client from analytics.debitmydata.io, its charts read), the page is its ground alone, never a
          page half made; then it settles in at once, whole (body.boot). A first visit's wait, after a moment: that it's
          connecting. */
       .booting {
@@ -1409,7 +1409,7 @@
         width: 2px;
         height: 20px;
         border-radius: 1px;
-        background: oklch(64.34% 0.191 44.41);
+        background: #e0303a;
         translate: 0 -50%;
         pointer-events: none;
       }
@@ -1841,7 +1841,7 @@
         }
       }
 
-      /* Offline, or before bitview.space has answered: the dot stills and greys (the last block stays said). */
+      /* Offline, or before analytics.debitmydata.io has answered: the dot stills and greys (the last block stays said). */
       .live:is(.offline, .waiting) i::before {
         background: var(--faint);
         box-shadow: none;
@@ -5746,7 +5746,7 @@
 
 
       /* Where it's from, as tabs across the editor (the one chosen as every segmented choice shows it), what it shows
-         under them: Bitview's colors, inset; the surface edge to edge, its hex closing the editor; a fading one's own. */
+         under them: the site's colors, inset; the surface edge to edge, its hex closing the editor; a fading one's own. */
       .color-editor .color-source {
         display: flex;
         width: 100%;
@@ -5766,7 +5766,7 @@
       }
 
       .color-pick {
-        /* Bitview's colors, ten to a row across it, a click each (by touch too, taller: see below). */
+        /* the site's colors, ten to a row across it, a click each (by touch too, taller: see below). */
         .swatch-grid {
           grid-template-columns: repeat(10, minmax(0, 1fr));
           gap: 2px;
@@ -7251,7 +7251,7 @@
           width: 2px;
           height: 20px;
           border-radius: 1px;
-          background: oklch(64.34% 0.191 44.41);
+          background: #e0303a;
           translate: 0 -50%;
         }
 
@@ -7788,7 +7788,7 @@
         }
       }
 
-      /* Over Home's search, with it: Bitcoin as it is, live, quietly: the chain at its left, the price at its right, as far
+      /* Over Home's search, with it: DebitMyData as it is, live, quietly: the chain at its left, the price at its right, as far
          in as the field's own words and its doors' (see .home-doors). */
       .home-pulse {
         display: flex;
@@ -10552,7 +10552,7 @@
     <!-- Bitview's client didn't load (it comes from Studio's server): said, plainly. -->
     <div class="booting" role="status"><p>Connecting…</p><a class="btn" href="" onclick="location.reload(); return false">Reload</a></div>
     <div id="offline" class="offline" role="alert">
-      <h1>Bitview can't be reached</h1>
+      <h1>The server can't be reached</h1>
       <p>Studio draws its charts from its server, and couldn't load from it just now. Your Library is kept in this browser.</p>
       <button type="button" class="btn" onclick="location.reload()">Try again</button>
     </div>
@@ -10609,9 +10609,9 @@
     <div class="app">
       <aside class="sidebar" id="sidebar" aria-label="Charts">
         <div class="side-head" style="--i: 0">
-          <a class="brand" href="/" data-tip="Bitview">
-            <span class="logo"><svg viewBox="-0.63 -0.7311 1.26 1.4622" aria-hidden="true"><path fill="oklch(64.34% 0.191 44.41)" fill-rule="evenodd" d="M-0.6299 -0.3674L-0.6267 -0.3841L-0.6172 -0.4011L-0.6012 -0.4188L-0.5788 -0.4373L-0.5501 -0.4571L-0.5149 -0.4784L-0.1922 -0.6647L-0.1553 -0.6850L-0.1211 -0.7016L-0.0890 -0.7145L-0.0585 -0.7237L-0.0290 -0.7293L-0.0000 -0.7311L0.0290 -0.7293L0.0585 -0.7237L0.0890 -0.7145L0.1211 -0.7016L0.1553 -0.6850L0.1922 -0.6647L0.5149 -0.4784L0.5501 -0.4571L0.5788 -0.4373L0.6012 -0.4188L0.6172 -0.4011L0.6267 -0.3841L0.6299 -0.3674L0.6299 0.3674L0.6267 0.3841L0.6172 0.4011L0.6012 0.4188L0.5788 0.4373L0.5501 0.4571L0.5149 0.4784L0.1922 0.6647L0.1553 0.6850L0.1211 0.7016L0.0890 0.7145L0.0585 0.7237L0.0290 0.7293L0.0000 0.7311L-0.0290 0.7293L-0.0585 0.7237L-0.0890 0.7145L-0.1211 0.7016L-0.1553 0.6850L-0.1922 0.6647L-0.5149 0.4784L-0.5501 0.4571L-0.5788 0.4373L-0.6012 0.4188L-0.6172 0.4011L-0.6267 0.3841L-0.6299 0.3674ZM0.0209 -0.6291L0.0423 -0.6251L0.0644 -0.6184L0.0876 -0.6090L0.1123 -0.5970L0.1390 -0.5824L0.4420 -0.4074L0.4545 -0.3979L0.4640 -0.3854L0.4700 -0.3709L0.4721 -0.3554L0.4700 -0.3399L0.4640 -0.3254L0.4545 -0.3129L0.4420 -0.3034L0.1390 -0.1284L0.1123 -0.1138L0.0876 -0.1017L0.0644 -0.0924L0.0423 -0.0857L0.0209 -0.0817L0.0000 -0.0804L0.0000 -0.0804L-0.0000 -0.0804L-0.0209 -0.0817L-0.0423 -0.0857L-0.0644 -0.0924L-0.0876 -0.1017L-0.1123 -0.1138L-0.1390 -0.1284L-0.4420 -0.3034L-0.4545 -0.3129L-0.4640 -0.3254L-0.4700 -0.3399L-0.4721 -0.3554L-0.4700 -0.3709L-0.4640 -0.3854L-0.4545 -0.3979L-0.4420 -0.4074L-0.1390 -0.5824L-0.1123 -0.5970L-0.0876 -0.6090L-0.0644 -0.6184L-0.0423 -0.6251Z"/></svg></span>
-            <span class="brand-name"><b>Bitview</b> Studio</span>
+          <a class="brand" href="/" data-tip="DebitMyData Analytics">
+            <span class="logo"><svg viewBox="-0.5 -0.5 1 1" aria-hidden="true"><path fill="#c80815" d="M0 -0.5A0.5 0.5 0 1 1 0 0.5A0.5 0.5 0 1 1 0 -0.5Z"/><path fill="#fff" d="M-0.209 0.2137H0.209A0.0285 0.0285 0 0 1 0.2375 0.2422V0.2565A0.0285 0.0285 0 0 1 0.209 0.285H-0.209A0.0285 0.0285 0 0 1 -0.2375 0.2565V0.2422A0.0285 0.0285 0 0 1 -0.209 0.2137ZM0.076 0.133L0.152 0.133L0.152 0.2232L0.076 0.2232ZM-0.1544 0.057H0.0309A0.0166 0.0166 0 0 1 0.0475 0.0736V0.0879A0.0166 0.0166 0 0 1 0.0309 0.1045H-0.1544A0.0166 0.0166 0 0 1 -0.171 0.0879V0.0736A0.0166 0.0166 0 0 1 -0.1544 0.057ZM-0.0008 0.0263L0.0915 -0.0228L-0.0467 -0.2828L-0.139 -0.2337ZM-0.1493 -0.2121L-0.0235 -0.279L-0.0502 -0.3294L-0.176 -0.2625ZM0.0451 0.0665L0.0996 0.0375L0.0594 -0.038L0.0049 -0.009Z"/><path fill="none" stroke="#fff" stroke-width="0.0617" d="M0.0438 -0.1419A0.152 0.1662 0 0 1 0.0963 0.1843"/></svg></span>
+            <span class="brand-name"><b>DebitMyData</b> Studio</span>
           </a>
           <span id="live" class="live waiting" role="img" tabindex="0" aria-label="Connecting" data-tip="Connecting"><i></i></span>
         </div>
@@ -10628,17 +10628,17 @@
 
       <main id="main" class="card" style="--i: 2">
         <section id="about" class="about" aria-label="About Studio's links">
-          <h1>Bitview Studio</h1>
-          <p>Charts of Bitcoin's on-chain data from bitview.space, drawn in the browser (with JavaScript on).</p>
+          <h1>DebitMyData Studio</h1>
+          <p>Charts of the DebitMyData chain's on-chain data from analytics.debitmydata.io, drawn in the browser (with JavaScript on).</p>
           <h2>In short</h2>
           <ul>
-            <li>A chart is a link: https://bitview.space/studio/#chart= followed by its JSON (below), such as {"layers": [{"series": "price"}, {"series": "realized_price"}]}.</li>
+            <li>A chart is a link: https://analytics.debitmydata.io/studio/#chart= followed by its JSON (below), such as {"layers": [{"series": "price"}, {"series": "realized_price"}]}.</li>
             <li>Its picture alone: the same link with #image= in place of #chart=, a page that is, once drawn, that picture (with only screenshots to work with, take one of it).</li>
-            <li>Thousands of ready-made charts (presets), each at an address of its own: https://bitview.space/studio/presets/ and its place, such as https://bitview.space/studio/presets/valuation/mvrv; their sections at the same, ending in a slash, such as https://bitview.space/studio/presets/valuation/; every one listed in https://bitview.space/studio/sitemap.xml.</li>
+            <li>Thousands of ready-made charts (presets), each at an address of its own: https://analytics.debitmydata.io/studio/presets/ and its place, such as https://analytics.debitmydata.io/studio/presets/valuation/mvrv; their sections at the same, ending in a slash, such as https://analytics.debitmydata.io/studio/presets/valuation/; every one listed in https://analytics.debitmydata.io/studio/sitemap.xml.</li>
             <li>From a script in the page: await studio.open(chart); await studio.ready(); await studio.png({ width: 1200, height: 760, scale: 2 }), its picture as a PNG data URL, in one result (see "From a script").</li>
           </ul>
           <h2>Opening a chart from a link</h2>
-          <p>A link carries a whole chart: https://bitview.space/studio/#chart= followed by the chart as JSON, URL-encoded or as it is. It opens as a preview: whoever opens it sees the chart, and keeps it or not. All a chart can be is written this way. For example (before encoding):</p>
+          <p>A link carries a whole chart: https://analytics.debitmydata.io/studio/#chart= followed by the chart as JSON, URL-encoded or as it is. It opens as a preview: whoever opens it sees the chart, and keeps it or not. All a chart can be is written this way. For example (before encoding):</p>
           <pre>{"title": "Price and realized price", "range": "4y", "layers": [{"series": "price"}, {"series": "realized_price", "color": "orange"}, {"formula": "A / B", "pane": 2}]}</pre>
           <h2>A chart</h2>
           <ul>
@@ -10647,7 +10647,7 @@
             <li>"index": its interval: minute10, minute30, hour1, hour4, hour12, day1, day3, week1, month1, month3, month6, year1 or year10 (day1 if none).</li>
             <li>"range": what it shows: 3m, 1y, 4y, 8y or max (8y if none; max: all of history at day1 or coarser; at a finer interval, as far back as fits on the screen). Or "view": {"from": "2021-01-01", "to": "2022-06-30"}, a window by dates: from the bar holding its "from" to the one holding its "to" (now if none). Dates and times are UTC: "2026-10-08", or with a time where it needs one, "2026-10-08T14:00:00Z".</li>
             <li>"panes": [{"mode": 1}, {"mode": 0, "stack": "stack"}], top to bottom: "mode" is its scale (0 linear, 1 logarithmic, 2 percent change, 3 indexed to 100), "stack" stacks its layers ("stack", or "percent" for shares), "size" is its height relative to the others' (3 for the first, 1.4 for the others if none: 1 and 1 halves the chart), "reverse": true puts its last layer in front. Without them, the first pane is logarithmic and the others linear.</li>
-            <li>"halvings": true: a line at each halving, and at the next three, estimated (a block each ten minutes).</li>
+            <li>"halvings": true: a line at each halving, and at the next three, estimated (a block each 2.5 minutes).</li>
             <li>"legend": "off": no legend over the panes.</li>
             <li>"drawings" (see below).</li>
           </ul>
@@ -10655,7 +10655,7 @@
           <p>One of:</p>
           <ul>
             <li>{"series": "realized_price"}: a series, by its exact name.</li>
-            <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). when(A, condition) keeps A where the condition holds, none elsewhere; rebase(A) starts each of its stretches at 1×, and rebase(A, halving_epoch) each halving cycle (a stretch also starts where its second changes); halving(A, n) is A over halving cycle n alone from 1× (0 the first, from the genesis block), and halving(A, 0, 2) that cycle moved to start where cycle 2 starts, day for day; year is each point's year (rebase(A, year) starts each year at 1×, when(A, year == 2021) keeps 2021), and year(A, 2021) and year(A, 2021, 2024) are halving()'s for years. shift(A, 30d) is A 30 days later (-30d, earlier), shift(A, 1y) on the same date a year on, shift(A, 1halving) as far into the next halving cycle as into its own: A, shift(A, 1halving) and shift(A, 2halving) show each cycle over the two before it. date is each point's date, compared with one written 2020-05-11: when(A, date >= 2020-05-11 &amp; date &lt; 2024-04-20); == and != compare too. Spans are a number and a unit: h, d, w, mo, y or halving (210,000 blocks); some have a usual one if left out, in points as the interval counts them (rsi's 14: 14 days at day1, 14 weeks at week1).</li>
+            <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). when(A, condition) keeps A where the condition holds, none elsewhere; rebase(A) starts each of its stretches at 1×, and rebase(A, halving_epoch) each halving cycle (a stretch also starts where its second changes); halving(A, n) is A over halving cycle n alone from 1× (0 the first, from the genesis block), and halving(A, 0, 2) that cycle moved to start where cycle 2 starts, day for day; year is each point's year (rebase(A, year) starts each year at 1×, when(A, year == 2021) keeps 2021), and year(A, 2021) and year(A, 2021, 2024) are halving()'s for years. shift(A, 30d) is A 30 days later (-30d, earlier), shift(A, 1y) on the same date a year on, shift(A, 1halving) as far into the next halving cycle as into its own: A, shift(A, 1halving) and shift(A, 2halving) show each cycle over the two before it. date is each point's date, compared with one written 2020-05-11: when(A, date >= 2020-05-11 &amp; date &lt; 2024-04-20); == and != compare too. Spans are a number and a unit: h, d, w, mo, y or halving (300,000 blocks); some have a usual one if left out, in points as the interval counts them (rsi's 14: 14 days at day1, 14 weeks at week1).</li>
             <li>{"formula": "B > 3.5", "type": "signal", "ref": "A"}: a signal: marks on layer A (the first layer if none) where the formula turns up or down: above 0 is up, below 0 down, 0 off (> < >= <= are 1 or 0, joined with &amp; and |: a condition is up where true; (B > 3.5) - (B < 1) is up, down or off). "place", "below" or "on" (above if none): where an up mark goes, a down one mirrored (above and below swapped), in "colorBelow" (red if none); or "shade": its stretches shaded, its layer's pane's height, down ones in "colorBelow". "results": true: on each mark that ends a stretch, what it made by layer A (A's change over it, up; the opposite, down), a dot where one ends off; their total, compounded, in its line.</li>
             <li>{"cloud": ["B", "C"]}: filled between those layers, two or more, at each date, in the color of the one over: B's own where B is over C, C's where C is (following them). Between more, {"cloud": ["B", "C", "D"]}, a cloud between each two next to each other in that order (B and C, C and D), each in the color of whichever of its two is over: several clouds, made by one (where they cross out of order, two overlap). "color" alone, that one all along, from the lowest to the highest; between two alone, "color" and "colorBelow", those two (where B is over, where C is). "top" and "bottom" are its pane's edges: from its first layer up to the pane's top, from its last down to its bottom: {"cloud": ["A", "top"]}.</li>
             <li>{"heatmap": "sth"}: a holder group's URPD day by day behind the price, a column a day, each price's cell as strong as its amount against the open day's largest, on a log scale (zoomed out, a day in so many, the days between not asked for): "all" (all coins), "sth", "lth", "age_under_4m", "age_under_6m", "age_over_4m", "age_over_6m", or an age band ("age_under_1h", "age_1h_to_1d" … "age_over_15y", as GET /api/urpd lists them). "measure": "supply" (if none), "capital", or "pnl" (unrealized, in "color" where in profit, "colorBelow" where in loss); "weight": "wakefulness" or "mobility" (none: every coin as it is); its rows: "rows", 100, 200 (if none) or 500 a ×10 in price, on a log scale or a linear one.</li>
@@ -10665,7 +10665,7 @@
           <p>Then, each if wanted:</p>
           <ul>
             <li>"label": its name.</li>
-            <li>"color": one of Bitview's (gray, red, orange, amber, yellow, avocado, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose, or ink, the page's text color) a six-digit hex such as #ff8800, or oklch as Studio writes it, "oklch(0.7 0.15 45)", each as the dark theme (the default) shows it: the light one turns every color's lightness over, white showing as black; "colorBelow": a baseline's or bars' second color, under their base, a trend's on support, or a cloud's where its second layer is over (its own color if none).</li>
+            <li>"color": one of the site's (gray, red, orange, amber, yellow, avocado, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose, or ink, the page's text color) a six-digit hex such as #ff8800, or oklch as Studio writes it, "oklch(0.7 0.15 45)", each as the dark theme (the default) shows it: the light one turns every color's lightness over, white showing as black; "colorBelow": a baseline's or bars' second color, under their base, a trend's on support, or a cloud's where its second layer is over (its own color if none).</li>
             <li>"colorFrom": "B" on a line, dots, an area, bars, a cloud or a trend: its colors taken from layer B date by date, as B is drawn (a baseline's above or below its base, bars' too, a trend's on resistance or support, by its levels if it's colored by them, else B's one color).</li>
             <li>"gradient": [[0, "blue"], [60, "yellow"], [100, "red"]] on a line, dots, an area, bars, a cloud, a trend or a heatmap: its colors by its value instead, date by date, from its lowest value (0) to its highest (100), 2 to 4 colors, each at its place, mixed between them (past the outer ones, theirs); its lowest and highest of all its history (at an interval under a day, of what's loaded), or with "upToDate": true of its history up to each date (no hindsight); kept but off, "byGradient": false. A heatmap's by its cells' strength (its unrealized P&amp;L's: loss at 0, none at 50, profit at 100).</li>
             <li>"byLevels": true on a line, dots, an area or bars with levels: colored by them, date by date: above each level, that level's color (give each one its "color"); under them all, its own.</li>
@@ -10686,7 +10686,7 @@
           <p>"drawings": [{"kind": "trend", "layer": "A", "points": [["2021-04-14", 64000], ["2021-11-10", 69000]]}]: each on a layer (by its letter, on its scale), its points each a date and a value. Kinds: trend (a line through two points), path (a line through two points or more, in their order, up to 300), hline and vline (a line across, or down, through one point: an hline's date and a vline's value can be any), rect and ellipse (by two corners), ruler (a measure between two points), text (at one point, with its "text": up to 500 characters, centered there, "\n" for a new line) and brush (a free stroke, up to 300 points). Up to 100 drawings.</p>
           <p>Each can have a "color" (yellow if none), "width" (0.5 to 5, by halves; 1.5 if none), "dash" and "opacity", as a layer's; a ruler is drawn in its own colors and lines (no opacity, width or dash), a text without width or dash. A trend line or a path can have a "start" and an "end" (its first point's and its last's): "arrow", an arrowhead there, or "extend", on past that point to the chart's edge (none: it ends at its point). A trend, hline or vline can have a "label" (up to 80 characters) and where along it ("at", 0 to 1: 0.5 for a trend, 1 for an hline, 0 for a vline if none). A text or a line's label can have a "size" (11, 13, 16 or 22) and a "back" (outline, soft, soft-outline or solid).</p>
           <h2>As a picture</h2>
-          <p>A chart shown as an image is its picture, not a screenshot of the page. Three ways to it: from a script in the page, await studio.png() (below), at a size of its own; from a link, https://bitview.space/studio/#image= followed by the chart's JSON, a page that is, once the chart is drawn across the whole window, its picture alone (one image, its alt text the chart's title; a click on it, the chart); by hand, Export (in the chart's ⋯ menu, More, in its header), then Open image (the picture alone, in a tab of its own), Download image (PNG), or Copy image (to the clipboard of whoever uses the browser: an embedded browser may not allow it). The picture is the chart with its title, its legends and a footer (its source, interval and dates).</p>
+          <p>A chart shown as an image is its picture, not a screenshot of the page. Three ways to it: from a script in the page, await studio.png() (below), at a size of its own; from a link, https://analytics.debitmydata.io/studio/#image= followed by the chart's JSON, a page that is, once the chart is drawn across the whole window, its picture alone (one image, its alt text the chart's title; a click on it, the chart); by hand, Export (in the chart's ⋯ menu, More, in its header), then Open image (the picture alone, in a tab of its own), Download image (PNG), or Copy image (to the clipboard of whoever uses the browser: an embedded browser may not allow it). The picture is the chart with its title, its legends and a footer (its source, interval and dates).</p>
           <h2>From a script</h2>
           <p>For a script run in the page (a browser's console, an assistant driving a browser), window.studio:</p>
           <ul>
@@ -10694,8 +10694,8 @@
             <li>await studio.ready(): once the chart open is drawn whole (its data in, its reveal and fades at their end: a screenshot then shows all of it); rejected with why not (no chart, no layers, still loading after a minute).</li>
             <li>await studio.png(options): its picture, as Export makes it (its title, legends and dates), as a data URL ("data:image/png;base64," and its base64), in one result, the same whatever the window. If your tool says the output was too long and saved it to a file, decode the base64 from that file: that's the picture, no need to retype it. Options, each if wanted: width and height, in CSS pixels (1200 and 760 if none); scale, 1 or 2 (pixels for each, 1 if none); type, "image/png" (if none), "image/webp" or "image/jpeg", with quality, 0.01 to 1 (0.9 if none); part, only if long output gets cut off and nothing is saved: 0, 1 and so on, each call with part 0's options, the picture in parts, each {part, parts, mime, base64}, partSize characters of its base64 (45000 if none: each part, all told, under 50,000); part 0 makes the picture of the chart as it is, the others are from that same picture, however long after: join their base64, "data:" + mime + ";base64," before it. Sizes, at 1200 by 760, for a chart of a few lines: a PNG about 130,000 to 160,000 characters (three or four parts), a WebP about 50,000, a JPEG about 100,000; at scale 2, about 330,000, 130,000 and 270,000.</li>
             <li>studio.chart(): the chart open, as a link writes it.</li>
-            <li>await studio.errors(): once it's drawn, its layers that show nothing, and why, as [{"layer": "B", "error": "...", "closest": "..."}]: a series name Bitview doesn't have (with the closest it has), a series it has only by block (with its day's, if it has one), a formula it can't read.</li>
-            <li>await studio.search(words, count): series names for those words (count of them, 10 if not given, 1 to 50), the best first, as Studio's search finds them, only those it can chart (by date; by the words of their names and descriptions: "sma 200d", "transaction count"). No browsing needed: the page knows the catalog, and asks bitview.space only for its first seconds, until its own search is up. It answers within a few seconds, the page shown or not, else it's rejected with why.</li>
+            <li>await studio.errors(): once it's drawn, its layers that show nothing, and why, as [{"layer": "B", "error": "...", "closest": "..."}]: a series name this server doesn't have (with the closest it has), a series it has only by block (with its day's, if it has one), a formula it can't read.</li>
+            <li>await studio.search(words, count): series names for those words (count of them, 10 if not given, 1 to 50), the best first, as Studio's search finds them, only those it can chart (by date; by the words of their names and descriptions: "sma 200d", "transaction count"). No browsing needed: the page knows the catalog, and asks analytics.debitmydata.io only for its first seconds, until its own search is up. It answers within a few seconds, the page shown or not, else it's rejected with why.</li>
           </ul>
           <p>What a chart can't hold is left out, or at its default, without a word: past 40 layers, left out; an interval or a range it doesn't know, day1 or 8y.</p>
           <pre>await studio.open({"title": "Cost basis", "layers": [{"series": "price"}, {"series": "realized_price"}]});
@@ -10707,8 +10707,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           <h2>Changing a chart</h2>
           <p>A link is the whole chart, not a change to one: to change it, write it again, changed. Letters follow the layers' order, so a layer added last leaves the formulas' letters as they were. A link copied from Studio (its Copy link, its Share) is compressed, as short as a link gets: it opens, but can't be read (as a Share QR code's, "#c=", compressed in capitals and digits). To change a chart shared that way, open it and read it with studio.chart() (the chart as a link writes it, its JSON), then write it again, changed; a link written out, as here, opens the same. A chart's "view", if any, is where it was zoomed and scrolled: keep it, change it, or leave it out to show the chart's "range".</p>
           <h2>Series names</h2>
-          <p>Only exact names, as Bitview's API has them now (the names on this page are examples, and can change): one it doesn't have shows as missing, with the closest offered. How to find them is at https://bitview.space/llms.txt, which follows the API as it is. Only series by date can be charted (some are only by block).</p>
-          <p>An assistant without web access can't look names up: whoever uses it can, or can add Bitview's MCP server to it as a connector (https://mcp.bitview.space/, no sign-in), for the search and the data as tools.</p>
+          <p>Only exact names, as this server's API has them now (the names on this page are examples, and can change): one it doesn't have shows as missing, with the closest offered. How to find them is at https://analytics.debitmydata.io/llms.txt, which follows the API as it is. Only series by date can be charted (some are only by block).</p>
+          <p>An assistant without web access can't look names up: whoever uses it can, and hand it the names found.</p>
         </section>
         <!-- A link's picture alone (#image=): the chart made out of sight, then its picture, nothing else. -->
         <div id="picture" class="picture"><p id="picture-note">Drawing the chart…</p><button id="picture-leave" class="btn small" type="button" hidden>Open Studio</button><a id="picture-open" class="picture-open" data-tip="Open the chart" hidden><img id="picture-img" alt="" /></a></div>
@@ -10761,7 +10761,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <div id="empty" class="empty" hidden>
                 <div class="empty-inner">
                   <h1>Start a chart</h1>
-                  <p>Overlay any of Bitview's series, stack them in panes, and derive new ones with formulas.</p>
+                  <p>Overlay any of the DebitMyData chain's series, stack them in panes, and derive new ones with formulas.</p>
                   <button class="search-cta" type="button" data-action="add-series" data-typing>
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" /></svg>
                     <span id="cta-label">Search every series</span><kbd>A</kbd>
@@ -10824,7 +10824,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         <div class="home-scroll">
           <div class="home-inner">
             <!-- (On a phone, the way back to Bitview, as every showcase has it: elsewhere, the sidebar's.) -->
-            <a class="brand home-brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+            <a class="brand home-brand" href="/"><img src="/assets/logo/logo.svg" alt="" />DebitMyData Analytics</a>
             <!-- (Above its name: the way up, each level a step to; the page itself only named once, by its name.) -->
             <nav id="gallery-path" class="crumbs gallery-path" aria-label="Where it is" hidden></nav>
             <div class="home-head">
@@ -10844,7 +10844,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             </label>
             <button id="home-new-folder" class="cap field-cap" type="button" aria-label="New folder" data-tip="New folder" data-icon="folderAdd"></button>
             </div>
-            <!-- (Home: under its question, Bitcoin as it is, live (as a phone's foot says it elsewhere); its search (⌘K's,
+            <!-- (Home: under its question, DebitMyData as it is, live (as a phone's foot says it elsewhere); its search (⌘K's,
                  in ⌘K's words); then its doors, see renderDoors.) -->
             <div id="home-start" class="home-start" hidden>
               <div class="home-over">
@@ -10918,7 +10918,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         <p id="quick-none" class="quick-none" hidden>Not a chart: nothing to look at</p>
       </div>
       <div class="palette-foot">
-        <span id="palette-count" class="count">Bitview</span>
+        <span id="palette-count" class="count">DebitMyData</span>
         <span class="spacer"></span>
         <span id="palette-look" hidden><button id="palette-quick" class="foot-action" type="button">Quick Look<kbd>⌘Y</kbd></button><span class="sep"></span></span>
         <button id="palette-enter" class="foot-action" type="button"><span id="palette-primary">Add to chart</span><kbd>↵</kbd></button>
@@ -11631,7 +11631,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const [l, c, h] = oklchOf(color), back = +onCurve(UNTONE, l - warmLift(c, h)).toFixed(3);
         return c < 0.0005 ? `oklch(${back} 0 0)` : `oklch(${back} ${+c.toFixed(4)} ${+h.toFixed(1)})`;
       }
-      /** Bitview's colors as the color menu lists them: the two neutrals, then the hues around the wheel from red. */
+      /** the site's colors as the color menu lists them: the two neutrals, then the hues around the wheel from red. */
       const SWATCHES = ["ink", "gray", "red", "orange", "amber", "yellow", "avocado", "lime", "green", "emerald", "teal", "cyan", "sky", "blue", "indigo", "violet", "purple", "fuchsia", "pink", "rose"];
       /** New layers take these in turn, far apart on the wheel. */
       const PALETTE = ["ink", "orange", "blue", "green", "purple", "red", "teal", "yellow", "sky", "pink", "lime", "gray"];
@@ -11651,7 +11651,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const dh = 2 * Math.sqrt(c1 * c2) * Math.sin(((h1 - h2) * Math.PI) / 360);
         return (l1 - l2) ** 2 + 2 * (c1 - c2) ** 2 + 3 * dh ** 2;
       }
-      /** Bitview's colors by their own names, as links, files and the guide write them (the page's ink: white or black). */
+      /** the site's colors by their own names, as links, files and the guide write them (the page's ink: white or black). */
       const ownName = (/** @type {string} */ key) => (key === "ink" ? (light ? "Black" : "White") : capitalize(key));
       /** Each color's name as found (by the theme it's shown in: see colorName), a few hundred kept. */
       const colorNames = new Map();
@@ -12018,7 +12018,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The formats a layer can be read in, by hand (Automatic: its unit's), in groups: each group's first starts it. */
       const FORMATS = [
         ["auto", "Automatic"],
-        ["usd", "US dollars"], ["btc", "Bitcoin"], ["sats", "Satoshis"],
+        ["usd", "US dollars"], ["btc", "DMD"], ["sats", "Sats (10⁻⁸ DMD)"],
         ["percent", "Percent"], ["ratio", "Multiple ×"], ["count", "Count"], ["number", "Number"],
         ["days", "Days"], ["seconds", "Seconds"], ["persecond", "Per second"], ["perday", "Per day"],
         ["bytes", "Bytes"], ["vbytes", "Virtual bytes"], ["weight", "Weight units"], ["sigops", "Signature operations"],
@@ -12049,9 +12049,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A layer's format by name: the one chosen, or "Automatic" with its unit's. */
       const formatName = (layer, result) => (layer.format ? FORMATS.find(([format]) => format === layer.format)?.[1] ?? "Number" : `Automatic (${UNIT_NAMES[unitFor({ ...layer, format: undefined }, result)] ?? "Number"})`);
       const UNIT_SIGNS = {
-        usd: "USD", btc: "BTC", sats: "sats", percent: "%", ratio: "×", days: "days", seconds: "s", persecond: "/s", perday: "/day", bytes: "B", vbytes: "vB",
+        usd: "USD", btc: "DMD", sats: "sats", percent: "%", ratio: "×", days: "days", seconds: "s", persecond: "/s", perday: "/day", bytes: "B", vbytes: "vB",
         weight: "WU", sigops: "sigops", hashrate: "H/s", feerate: "sat/vB", hashprice: "$/PH/s/day", hashvalue: "sat/PH/s/day", coindays: "coin days",
-        coinblocks: "coin blocks", dollarblocks: "$ × blocks", dollardays: "$ × days/₿",
+        coinblocks: "coin blocks", dollarblocks: "$ × blocks", dollardays: "$ × days/DMD",
       };
       /**
        * A unit after a field's number: a ratio's left out (a × there reads as a button that clears it), and one longer
@@ -12093,7 +12093,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A window's units in days (a month and a year on average, a halving its 210,000 blocks at ten minutes each), the
        * letters formulas write them with, and each interval in days.
        */
-      const SPAN_DAYS = { hour: 1 / 24, day: 1, week: 7, month: 365.25 / 12, year: 365.25, halving: (210_000 * 600) / 86400 };
+      const SPAN_DAYS = { hour: 1 / 24, day: 1, week: 7, month: 365.25 / 12, year: 365.25, halving: (300_000 * 150) / 86400 };
       const SPAN_LETTERS = { h: "hour", d: "day", w: "week", mo: "month", y: "year", halving: "halving" };
       const INTERVAL_DAYS = { ...Object.fromEntries(Object.entries(FINE_STEP).map(([index, step]) => [index, step / 86400])), day1: 1, day3: 3, week1: 7, month1: SPAN_DAYS.month, month3: 3 * SPAN_DAYS.month, month6: 6 * SPAN_DAYS.month, year1: SPAN_DAYS.year, year10: 10 * SPAN_DAYS.year };
       /** A window of `days` in an interval's points, one at least: shorter than the interval, a moving average is the series as it is. */
@@ -12187,7 +12187,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           case "usd":
             return `${sign}$${text}`;
           case "btc":
-            return `${sign}₿${text}`;
+            return `${sign}${text} DMD`;
           case "sats":
             return `${sign}${text} sat`;
           case "percent":
@@ -12225,7 +12225,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           case "dollarblocks":
             return `${sign}$${text} × blocks`;
           case "dollardays":
-            return `${sign}$${text} × days/₿`;
+            return `${sign}$${text} × days/DMD`;
           default:
             return `${sign}${text}`;
         }
@@ -13181,7 +13181,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /**
        * Formula source as colored HTML: letters in their layer's color, functions, series by name, numbers, operators; a
-       * letter with no layer, an unknown function or a series Bitview doesn't have (`missing`) marked.
+       * letter with no layer, an unknown function or a series this server doesn't have (`missing`) marked.
        */
       function highlightFormula(source, colorOf, missing = (_name) => false) {
         const pattern = /(\d{4}-\d{1,2}-\d{1,2}(?![\w.])|(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?(?<unit>[a-z]\w*)?)|([A-Z]{1,2})(?![A-Za-z0-9_])|([a-z_][a-z0-9_]*)|([<>≥≤]=?|[=!]=|[-+*/^(),×·÷−–&|≠])/g;
@@ -13292,14 +13292,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A label as kept: one line, 80 characters at most. */
       const LABEL_MAX = 80, labelText = (/** @type {string} */ text) => text.replace(/\s+/g, " ").trim().slice(0, LABEL_MAX);
       /**
-       * The halvings: each block a multiple of 210,000 cut the reward in half; these, as they were mined (210,000 to
-       * 840,000). The next, a block every ten minutes from the tip's: an estimate, drawn as one.
+       * The halvings: each block a multiple of 300,000 cuts DebitMyData's reward in half (none mined yet when this was
+       * written). The next, a block every 2.5 minutes from the tip's: an estimate, drawn as one.
        */
-      const KNOWN_HALVINGS = [1354116278, 1468082773, 1589225023, 1713571767], HALVING_BLOCKS = 210_000;
-      /** The halvings mined so far: those known, and any since, placed from the tip's time back (a block each ten minutes). */
-      const minedHalvings = () => [...KNOWN_HALVINGS, ...Array.from({ length: Math.max(0, Math.floor(liveHeight / HALVING_BLOCKS) - KNOWN_HALVINGS.length) }, (_, k) => (liveAt || Date.now() / 1000) - (liveHeight - (KNOWN_HALVINGS.length + k + 1) * HALVING_BLOCKS) * 600)];
-      /** The halvings to come, the next `count`, estimated (a block each ten minutes from the tip): each its number and time. */
-      const nextHalvings = (count = 3) => (liveHeight ? Array.from({ length: count }, (_, k) => ((n) => ({ n, time: Date.now() / 1000 + (n * HALVING_BLOCKS - liveHeight) * 600 }))(Math.floor(liveHeight / HALVING_BLOCKS) + 1 + k)) : []);
+      const KNOWN_HALVINGS = /** @type {number[]} */ ([]), HALVING_BLOCKS = 300_000, BLOCK_SECONDS = 150;
+      /** The halvings mined so far: those known, and any since, placed from the tip's time back (a block each 2.5 minutes). */
+      const minedHalvings = () => [...KNOWN_HALVINGS, ...Array.from({ length: Math.max(0, Math.floor(liveHeight / HALVING_BLOCKS) - KNOWN_HALVINGS.length) }, (_, k) => (liveAt || Date.now() / 1000) - (liveHeight - (KNOWN_HALVINGS.length + k + 1) * HALVING_BLOCKS) * BLOCK_SECONDS)];
+      /** The halvings to come, the next `count`, estimated (a block each 2.5 minutes from the tip): each its number and time. */
+      const nextHalvings = (count = 3) => (liveHeight ? Array.from({ length: count }, (_, k) => ((n) => ({ n, time: Date.now() / 1000 + (n * HALVING_BLOCKS - liveHeight) * BLOCK_SECONDS }))(Math.floor(liveHeight / HALVING_BLOCKS) + 1 + k)) : []);
       /** At most this many drawings, a stroke at most this many points: all of it still fits in a link (two megabytes at most). */
       const MAX_DRAWINGS = 100, MAX_STROKE = 300;
       /** A drawing's point as kept: its time to the second, its value as it is (any rounding moves it on a scale zoomed in far enough). */
@@ -13351,7 +13351,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A series' first look: as the presets draw it most (its color, its type: see looksOf); else
        * by what Bitview says it is (its type, from what's known of it: an added one's, asked for; a link's, if it's been
        * asked for already): candles where its type is open-high-low-close; the price itself (under its catalog's price,
-       * in any unit) in ink; a value in dollars green, in bitcoin (BTC, sats) orange. A color taken on the chart (`used`)
+       * in any unit) in ink; a value in dollars green, in DMD (DMD, sats) orange. A color taken on the chart (`used`)
        * isn't asked for: the next free one is had instead. `asked`, a type given (a link's): the presets' color and base
        * only where it's theirs.
        * @param {string} name @param {Set<string>} used @param {string} [asked] @returns {Partial<Layer>}
@@ -15608,7 +15608,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         reduced.addEventListener("change", wake);
         wake();
       }
-      animateMark();
+      // (Bitview's mark spins as a cube; DebitMyData's badge stays still: animateMark isn't called.)
 
       // ── Data ──────────────────────────────────────────────────────────────────
 
@@ -15842,9 +15842,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       const failure = (error, index) =>
         error?.unavailable ? `No ${INTERVAL_LABEL[index] ?? index} data`
-        : error?.status === 404 ? "Not on Bitview"
+        : error?.status === 404 ? "Not on this server"
         : error?.name === "TimeoutError" || error?.name === "AbortError" ? "Timed out"
-        : error?.recomputing ? "Bitview is recomputing it"
+        : error?.recomputing ? "The server is recomputing it"
         : "Couldn't load";
       /** The date intervals a series has, in order. */
       const datedIntervals = (meta) => INTERVAL_ORDER.filter((id) => meta?.indexes?.includes(id));
@@ -15895,7 +15895,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (fresh) for (const name of seriesIn(doc)) retryInfo(name);
         /** A series with its data at the chart's interval, or why there is none. @param {string} name @returns {Promise<any>} */
         const fetchSeries = async (name) => {
-          // Not in the client's catalog (it holds every series): not on Bitview, said here (a name half typed in a
+          // Not in the client's catalog (it holds every series): not on this server, said here (a name half typed in a
           // formula is never asked for). Until the catalog is indexed (just after load), Bitview is asked.
           if (catalogIndex && !catalogIndex.has(name)) return { error: { status: 404 } };
           // Known to lack this interval (any by date, by block only): say so without asking for its data.
@@ -15993,8 +15993,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A heatmap's: no values a date (its days, many each, are drawn apart: see drawHeat), its measure's unit; the
         // price's closes, its scale's (see heatView).)
         const closes = ((price) => (price?.data && !isText(price.data) ? align(price.data).values : undefined))(fetched.get("price"));
-        // (Of a holder group Bitview doesn't have (a link's typo, one renamed): said, as a series' is, and never asked for.)
-        for (const layer of doc.layers) if (heatLike(layer)) results.set(layer.id, { unit: (layer.measure ?? "supply") === "supply" ? "btc" : "usd", heat: true, closes, ...(heatKnown(layer) ? {} : { error: "Not on Bitview", detail: "Bitview has no holder group by this name: renamed, removed, or mistyped" }) });
+        // (Of a holder group this server doesn't have (a link's typo, one renamed): said, as a series' is, and never asked for.)
+        for (const layer of doc.layers) if (heatLike(layer)) results.set(layer.id, { unit: (layer.measure ?? "supply") === "supply" ? "btc" : "usd", heat: true, closes, ...(heatKnown(layer) ? {} : { error: "Not on this server", detail: "This server has no holder group by this name: renamed, removed, or mistyped" }) });
         /** The series formulas name, as they are (no transform: a formula applies its own). @type {Map<string, Result>} */
         const bySeries = new Map();
         for (const name of named) {
@@ -16007,7 +16007,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
         }
         /** Lowercased, to follow a name in a sentence (a layer's letter, or Bitview, kept as written). */
-        const quiet = (text) => (/^([A-Z]{1,2}\b|Bitview)/.test(text) ? text : `${text.charAt(0).toLowerCase()}${text.slice(1)}`);
+        const quiet = (text) => (/^([A-Z]{1,2}\b|DebitMyData|DMD)/.test(text) ? text : `${text.charAt(0).toLowerCase()}${text.slice(1)}`);
         // Formulas, in dependency order; a loop is an error, not a hang.
         const byLetter = new Map(doc.layers.map((layer) => [layer.letter, layer]));
         const visiting = new Set(), LOOP = "Formulas refer to each other in a loop";
@@ -16864,7 +16864,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // Only the switch's own, kept at the one before: none (a range asked for shows instead), or one kept at the new
         // interval (a date gone to), stays as it is.)
         if (drawnChart === doc.id && drawnIndex !== doc.index && openView(doc)?.index === drawnIndex) storeView(true);
-        // (Nothing at all, bitview.space not answering: one word of it over the plot, not a red line per layer.)
+        // (Nothing at all, analytics.debitmydata.io not answering: one word of it over the plot, not a red line per layer.)
         const unreached = result.failed.length > 0 && ![...result.results.values()].some((item) => item?.values);
         if (unreached) sayUnreached();
         $("unreached").hidden = !unreached;
@@ -17198,7 +17198,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (was && was.cohort === look.cohort && was.weight === look.weight && was.grid?.agg === look.grid?.agg && was.measure === look.measure) look.reference = was.reference;
             // (A profile's days last shown kept while they're read the same way: a group added draws the others at once.)
             if (was?.kind === "profile" && look.kind === "profile" && was.weight === look.weight && was.grid?.agg === look.grid?.agg) look.last = was.last;
-            // (Of a holder group Bitview doesn't have (as drawn: a valid one highlighted in ⌘K previews): nothing drawn,
+            // (Of a holder group this server doesn't have (as drawn: a valid one highlighted in ⌘K previews): nothing drawn,
             // nothing asked for, no rows.)
             if (known) heatLooks.set(layer.id, look);
             else heatLooks.delete(layer.id), heatWants.delete(layer.id);
@@ -19001,7 +19001,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * A layer's value at a point, as its legend writes it, or why it has none (as its legend says it, set apart: its
-       * words as written, a name's capital kept, "(Not on Bitview)", "(A has no data)").
+       * words as written, a name's capital kept, "(Not on this server)", "(A has no data)").
        */
       function sayValue(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ point) {
         const result = resolved?.results.get(layer.id);
@@ -21893,7 +21893,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A heatmap's latest day, as the API's path (its weight and density as it asks for them). @param {Chart} doc @param {Layer} layer */
       const heatPath = (doc, layer) => `/api/urpd/${encodeURIComponent(layer.heatmap ?? "all")}?agg=${heatGrid(doc, layer)?.agg ?? "log200"}${layer.weight ? `&weight=${layer.weight}` : ""}`;
       /** What each measure and weight is, said beside it. */
-      const HEAT_SAYS = /** @type {Record<string, string>} */ ({ supply: "Bitcoin held, by the price it last moved at", capital: "What it cost, by that price", pnl: "Its gain or loss now, by that price", "": "Each coin counted as it is", wakefulness: "Each age band by how much of its coin days are spent (Cointime)", mobility: "Each age band by how likely its coins are to move (Coinflow)" });
+      const HEAT_SAYS = /** @type {Record<string, string>} */ ({ supply: "DMD held, by the price it last moved at", capital: "What it cost, by that price", pnl: "Its gain or loss now, by that price", "": "Each coin counted as it is", wakefulness: "Each age band by how much of its coin days are spent (Cointime)", mobility: "Each age band by how likely its coins are to move (Coinflow)" });
       /**
        * A profile's holder group in or out (in, after the others: further from the edge; out, its last too, none drawn till
        * one's picked). Its chip, or its row in ⌘K, keeps the focus. @param {string} id @param {string} cohort
@@ -21922,8 +21922,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** ⌘K's page of a profile's holder groups: each pressed in or out, as a trend's layers are (see fromPage). @param {string} id @returns {Page} */
       const cohortsPage = (id) => ({ title: "Holders", placeholder: "Search the holder groups", rows: () => {
         const layer = layerById(id), groups = layer?.profile ?? [];
-        // (Its groups Bitview doesn't have (a link's typo) last, to take out.)
-        return [...HEAT_COHORTS, ...groups.filter((cohort) => !HEAT_COHORTS.some(([one]) => one === cohort)).map((cohort) => /** @type {[string, string]} */ ([cohort, `${cohort}: not on Bitview`]))].map(([cohort, name], i) => ((on) => ({ kind: "row", key: cohort, icon: `<i class="swatch" style="--c: ${escape(cssColor(layer ? profileColor(layer, cohort) : cohortColor(cohort)))}"></i>`, label: name, aside: on ? "In it" : "", current: on, verb: on ? "Deselect" : "Select", stay: true, group: i < 7 ? "Holder groups" : i < HEAT_COHORTS.length ? "Age bands" : "Not on Bitview", run: () => toggleCohort(id, cohort) }))(groups.includes(cohort)));
+        // (Its groups this server doesn't have (a link's typo) last, to take out.)
+        return [...HEAT_COHORTS, ...groups.filter((cohort) => !HEAT_COHORTS.some(([one]) => one === cohort)).map((cohort) => /** @type {[string, string]} */ ([cohort, `${cohort}: not on this server`]))].map(([cohort, name], i) => ((on) => ({ kind: "row", key: cohort, icon: `<i class="swatch" style="--c: ${escape(cssColor(layer ? profileColor(layer, cohort) : cohortColor(cohort)))}"></i>`, label: name, aside: on ? "In it" : "", current: on, verb: on ? "Deselect" : "Select", stay: true, group: i < 7 ? "Holder groups" : i < HEAT_COHORTS.length ? "Age bands" : "Not on this server", run: () => toggleCohort(id, cohort) }))(groups.includes(cohort)));
       } });
       /**
        * A heatmap's rows in its page (see layerPage) and its inspector's menus: its holders, measure, weight and density,
@@ -21952,13 +21952,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const rows = heatRows(layer.id);
         const menu = (/** @type {string} */ key) => ((row) => `<div class="field"><span>${escape(row.label)}</span><button type="button" class="preset" data-action="heat-menu" data-heat="${key}" aria-haspopup="menu" aria-label="${escape(`${row.label}: ${row.aside ?? ""}`)}"${row.disabled ? ` aria-disabled="true" data-tip="${escape(row.disabled)}"` : ""}><span class="name">${escape(row.aside ?? "")}</span>${CHEVRON}</button></div>`)(/** @type {any} */ (rows.find((row) => row.key === key)));
         const tabs = (/** @type {string} */ key, /** @type {string} */ label, /** @type {string[][]} */ list, /** @type {string} */ now) => `<div class="field"><span>${label}</span><div class="tabs" role="group" aria-label="${label}">${list.map(([value, text]) => `<button type="button" data-heat-set="${key}" data-value="${value}" aria-pressed="${now === value}" data-tip="${escape(HEAT_SAYS[value])}">${escape(text)}</button>`).join("")}</div></div>`;
-        // (Of a holder group Bitview doesn't have: said under it, another one to pick there.)
-        const gone = !heatKnown(layer) ? '<div class="error-box gone"><p>Bitview has no holder group by this name: renamed, removed, or mistyped. Pick another above.</p></div>' : "";
+        // (Of a holder group this server doesn't have: said under it, another one to pick there.)
+        const gone = !heatKnown(layer) ? '<div class="error-box gone"><p>This server has no holder group by this name: renamed, removed, or mistyped. Pick another above.</p></div>' : "";
         // (A profile's: its holder groups and age bands, each pressed in or out, as a trend's layers are (see
         // betweenField), each in its color; the first pressed at the edge.)
         // (Each list in a grid, each by its short name (its whole one its tip), all of it in or out at once: All, None.)
         const groups = layer.profile ?? [], lists = profileLists(layer);
-        const chips = (/** @type {"holders" | "ages"} */ list, /** @type {string} */ label) => `<div class="from-of ${list}" role="group" aria-label="${label}">${lists[list].map((id) => ((known) => `<button type="button" data-cohort-of="${escape(id)}" aria-pressed="${groups.includes(id)}"${known ? ` aria-label="${escape(cohortName(id))}" data-tip="${escape(cohortName(id))}"` : ""}><i class="swatch" style="--c: ${escape(cssColor(profileColor(layer, id)))}"></i><span class="name">${escape(known ? cohortShort(id) : `${id}: not on Bitview`)}</span></button>`)(HEAT_COHORTS.some(([one]) => one === id))).join("")}</div>`;
+        const chips = (/** @type {"holders" | "ages"} */ list, /** @type {string} */ label) => `<div class="from-of ${list}" role="group" aria-label="${label}">${lists[list].map((id) => ((known) => `<button type="button" data-cohort-of="${escape(id)}" aria-pressed="${groups.includes(id)}"${known ? ` aria-label="${escape(cohortName(id))}" data-tip="${escape(cohortName(id))}"` : ""}><i class="swatch" style="--c: ${escape(cssColor(profileColor(layer, id)))}"></i><span class="name">${escape(known ? cohortShort(id) : `${id}: not on this server`)}</span></button>`)(HEAT_COHORTS.some(([one]) => one === id))).join("")}</div>`;
         const both = (/** @type {"holders" | "ages"} */ list, /** @type {string} */ name) => ((ids) => `<span class="list-actions"><button type="button" class="cap small words" data-cohorts-in="${list}" aria-label="All ${name}"${ids.every((id) => groups.includes(id) || !HEAT_COHORTS.some(([one]) => one === id)) ? ' aria-disabled="true"' : ""}>All</button><button type="button" class="cap small words" data-cohorts-out="${list}" aria-label="No ${name}"${ids.some((id) => groups.includes(id)) ? "" : ' aria-disabled="true"'}>None</button></span>`)(lists[list]);
         // (A profile's holder groups and age bands, a heatmap's holder group; then their measure, weight and density alike.)
         return `<section>
@@ -24110,7 +24110,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * reference, see heatPicture); each profile's, its groups' days on the last it shows (`days`, in its groups' order,
        * as the chart's, see profilePoint); asked for as the chart's are (a want
        * of its own, see heatExtras, after the chart's), waited for (20 s at most: those not in then, none). None shown
-       * (hidden, a holder group Bitview doesn't have, a scale it can't be drawn on), none.
+       * (hidden, a holder group this server doesn't have, a scale it can't be drawn on), none.
        * Each layer's, and whether all its days came (`whole`: failed for good, as they are).
        * @typedef {Map<string, { days: (any)[], open: any, fine: any }> & { whole?: boolean }} HeatSamples
        * @param {Chart} doc @param {{ times: number[] }} data @param {number} most @param {number} columns @returns {Promise<HeatSamples>}
@@ -28808,7 +28808,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const [{ studioPresets, chainFacts }, { BitviewClient }] = await Promise.all([import(presetsUrl), import(clientUrl)]);
           /** @type {{ pools: Set<string>, height: number, year: number } | undefined} */
           const facts = await chainFacts(origin).catch(() => undefined);
-          const said = facts ? JSON.stringify([[...facts.pools].sort(), Math.floor(facts.height / 210_000), facts.year]) : "";
+          const said = facts ? JSON.stringify([[...facts.pools].sort(), Math.floor(facts.height / 300_000), facts.year]) : "";
           postMessage(known !== null && said === known ? { facts: said } : { facts: said, text: JSON.stringify(studioPresets(new BitviewClient({ baseUrl: origin }), facts)) });
         } catch (error) {
           postMessage({ error: String(error) });
@@ -29090,7 +29090,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return i >= 0 ? book.presets[i] : "/";
       }
       /** The address the page is known by: the live one's (next's, any other, point there). */
-      const ORIGIN = "https://bitview.space/studio";
+      const ORIGIN = "https://analytics.debitmydata.io/studio";
       /**
        * The page as it's found, as it is now: its title, its description and its canonical address (each place's own): a
        * preset's, named by what it charts and where it's kept; a section's, by what's in it; the presets' page; your own,
@@ -29111,12 +29111,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const address = addressNow(), i = !home && chart.preset !== undefined ? presetIndex(chart) : -1, path = home && "path" in homeAt ? homeAt.path : null;
         const shown = (/** @type {Chart} */ doc) => doc.layers.filter((layer) => !layer.hidden).map(labelOf);
         const list = (/** @type {string[]} */ names) => (names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0] ?? "");
-        document.title = home ? ("top" in homeAt ? "Bitview Studio: charts of Bitcoin's on-chain data" : `${homeName()} · Bitview Studio`) : `${titleOf(chart)}${i >= 0 ? " chart" : ""} · Bitview Studio`;
+        document.title = home ? ("top" in homeAt ? "DebitMyData Studio: charts of the DebitMyData chain's on-chain data" : `${homeName()} · DebitMyData Studio`) : `${titleOf(chart)}${i >= 0 ? " chart" : ""} · DebitMyData Studio`;
         const as = `${address}|${home}|${i >= 0 ? chart.updated : ""}|${presets?.length ?? 0}`;
         const said = as === saidFor ? saidThen : i >= 0 && presets
-          ? `${titleOf(chart)}: ${list(shown(chart))}, a chart of Bitcoin's on-chain data (${presets[i].p.slice(0, -1).join(" › ")}), live from bitview.space. Open it, change it and share it in Bitview Studio, free in the browser.`
-          : path && !path.length ? "Thousands of ready-made charts of Bitcoin's on-chain data: market, network, mining, distribution, investing and more. Open one, change it and share it in Bitview Studio, free in the browser."
-          : path && presets ? ((inside) => `Charts of Bitcoin's on-chain data in ${path.join(" › ")}: ${inside.length > 4 ? `${inside.slice(0, 4).join(", ")} and more` : list(inside)}. Open one, change it and share it in Bitview Studio, free in the browser.`)(((at) => [...at.groups.keys(), ...at.own.map((k) => /** @type {Preset[]} */ (presets)[k].t)])(sectionAt(path)))
+          ? `${titleOf(chart)}: ${list(shown(chart))}, a chart of the DebitMyData chain's on-chain data (${presets[i].p.slice(0, -1).join(" › ")}), live from analytics.debitmydata.io. Open it, change it and share it in DebitMyData Studio, free in the browser.`
+          : path && !path.length ? "Thousands of ready-made charts of the DebitMyData chain's on-chain data: market, network, mining, distribution, investing and more. Open one, change it and share it in DebitMyData Studio, free in the browser."
+          : path && presets ? ((inside) => `Charts of the DebitMyData chain's on-chain data in ${path.join(" › ")}: ${inside.length > 4 ? `${inside.slice(0, 4).join(", ")} and more` : list(inside)}. Open one, change it and share it in DebitMyData Studio, free in the browser.`)(((at) => [...at.groups.keys(), ...at.own.map((k) => /** @type {Preset[]} */ (presets)[k].t)])(sectionAt(path)))
           : DESCRIPTION;
         saidFor = as;
         saidThen = said;
@@ -29787,7 +29787,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function markersHtml() {
         // (The past ones on the chart; the next, what it can't say otherwise.)
-        const on = Boolean(chart.halvings), [next] = nextHalvings(1), years = next ? `Next ≈ ${monthYear(next.time)}` : "Every 210,000 blocks";
+        const on = Boolean(chart.halvings), [next] = nextHalvings(1), years = next ? `Next ≈ ${monthYear(next.time)}` : "Every 300,000 blocks";
         const count = chart.drawings?.length ?? 0, drawn = !drawingsHidden;
         return `<section class="markers"><div class="markers-head"><span>Markers</span></div>
           <div class="layer-row marker-row ${on ? "" : "hidden"}">
@@ -31047,13 +31047,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The surface's chroma, across every hue: OKLCH's even saturation, less only where sRGB can't hold it. */
       const CHROMA = 0.18;
 
-      /** Bitview's colors, a dot each (its name on hover), the one in use ringed. */
+      /** the site's colors, a dot each (its name on hover), the one in use ringed. */
       /**
        * A custom color's hex, typed or followed (`target`: what it sets), its name after it in the field (none: an empty
        * field, a color another's); joined under its surface, the two one control. @param {string} target @param {string} color
        */
       const hexField = (target, color) => `<label class="hex-field"><span class="hex-box"><input class="hex" data-hex="${escape(target)}" value="${color ? escape(ink(color)) : ""}" maxlength="40" spellcheck="false" autocomplete="off" aria-label="Hex color" /><span class="color-now">${color ? escape(colorName(color)) : ""}</span></span></label>`;
-      const swatchGrid = (/** @type {string} */ current) => `<div class="swatch-grid" role="radiogroup" aria-label="Bitview's colors">${SWATCHES.map((color) => `<button type="button" role="radio" data-pick-color="${escape(color)}" aria-checked="${current === color}" aria-label="${escape(colorName(color))}" data-tip="${escape(colorName(color))}"><i class="swatch" style="--c:${escape(cssColor(color))}"></i></button>`).join("")}</div>`;
+      const swatchGrid = (/** @type {string} */ current) => `<div class="swatch-grid" role="radiogroup" aria-label="the site's colors">${SWATCHES.map((color) => `<button type="button" role="radio" data-pick-color="${escape(color)}" aria-checked="${current === color}" aria-label="${escape(colorName(color))}" data-tip="${escape(colorName(color))}"><i class="swatch" style="--c:${escape(cssColor(color))}"></i></button>`).join("")}</div>`;
       /** The surface: every hue across, lightness down, the color's place ringed (`target`: what it picks for, see planeTarget). */
       function planeHtml(/** @type {string} */ color, /** @type {string} */ target, name = "Color") {
         const { u, t } = placeOf(color), said = planeSays(color, u);
@@ -31137,7 +31137,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const which = mode === "gradient" ? gradientEditor(layer, key) : layer.type === "profile" ? (places.length > 1 ? `<div class="color-slots cohorts" role="group" aria-label="Which color">${places.map(([slot, name]) => `<span class="cohort-slot"><span class="head">${escape(name)}</span>${chip(slot, name)}</span>`).join("")}</div>` : "") : places.length > 2
           ? `<div class="color-slots four" role="group" aria-label="Which color"><span></span><span class="head">Growing</span><span class="head">Fading</span><span>Above</span>${chip("color", "Above, growing")}${chip("colorFading", "Above, fading")}<span>Below</span>${chip("colorBelow", "Below, growing")}${chip("colorBelowFading", "Below, fading")}</div>`
           : places.length > 1 ? `<div class="color-slots" role="group" aria-label="Which color">${places.map(([, name]) => `<span class="head">${escape(name)}</span>`).join("")}${places.map(([slot, name]) => chip(slot, name)).join("")}</div>` : "";
-        // Where it's from: Bitview's colors; any other (the surface, its hex); a fading one's own, its growing one fainter.
+        // Where it's from: the site's colors; any other (the surface, its hex); a fading one's own, its growing one fainter.
         const sources = /** @type {[string, string][]} */ ([["presets", "Palette"], ["custom", "Custom"], ...(fadingSlot(key) ? [["auto", "Auto"]] : [])]);
         const tabs = colorSourceTabs(label, sources, from);
         const target = `layer:${key}`, side = key === "colorFading" ? layer.color : belowOf(layer);
@@ -31396,7 +31396,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const gives = { one: "Its color", sides: "Its two colors", momentum: "Its four colors", levels: "Its levels' colors", layers: "Its layers' colors", from: "The colors it takes" };
         return colorSources(layer).map((other) => ({ key: `from:${other.id}`, icon: letterChip(other), label: labelOf(other), aside: /** @type {Record<string, string>} */ (gives)[colorModeOf(other)], current: layer.colorFrom === other.id, run: () => editById(id, (item) => setColorMode(item, "from", other.id)), look: (/** @type {Chart} */ doc) => ((item) => item && setColorMode(item, "from", other.id))(doc.layers.find((one) => one.id === id)) }));
       }
-      /** The color under a layer's levels, from its select: Bitview's colors, Custom. */
+      /** The color under a layer's levels, from its select: the site's colors, Custom. */
       function underColorMenu(/** @type {HTMLElement} */ button) {
         const layer = layerById(selected);
         if (!layer) return;
@@ -31407,14 +31407,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }, () => ((now) => now && underColorMenu(now))($("color-select-under")), "Under its levels");
       }
       /**
-       * A color from a select, its dropdown: Bitview's colors (a grid, at a glance), then Custom (any other: the surface, a
+       * A color from a select, its dropdown: the site's colors (a grid, at a glance), then Custom (any other: the surface, a
        * page of its own), the one it is ticked. Back from Custom, `again` opens it as things are then (a pick there redraws
        * it).
        */
       function colorMenu(/** @type {HTMLElement} */ anchor, /** @type {string} */ current, /** @type {string} */ target, /** @type {(color: string) => void} */ apply, again = () => colorMenu(anchor, current, target, apply), title = "") {
         const own = !SWATCHES.includes(current);
         vividAhead();
-        // (A dropdown as wide as its select, under it: Bitview's colors at a glance, each named on hover.)
+        // (A dropdown as wide as its select, under it: the site's colors at a glance, each named on hover.)
         // (A phone's sheet, its width: the swatches across it.)
         const colors = `<div class="color-drop"${phone.matches ? "" : ` style="width: ${Math.max(232, Math.round(anchor.getBoundingClientRect().width) - 8)}px"`}>${swatchGrid(current)}</div><div class="menu-rule"></div>`;
         const custom = `<button type="button" data-pick-custom="1" aria-checked="${own}" aria-haspopup="menu">${tick(own)}<i class="swatch" style="${own ? `--c:${escape(cssColor(current))}` : "background: conic-gradient(from 90deg, #f43f5e, #f59e0b, #84cc16, #10b981, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #f43f5e)"}"></i>Custom${own ? `<span>${escape(ink(current))}</span>` : ""}</button>`;
@@ -31424,9 +31424,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           else if (hit.pickColor && hit.pickColor !== current) apply(hit.pickColor);
         }, null, anchor.closest("#belt") ? beltSide() : "");
       }
-      /** Custom: the surface alone, its color picked live (the page stays open), Bitview's colors a step back. */
+      /** Custom: the surface alone, its color picked live (the page stays open), the site's colors a step back. */
       function colorPane(/** @type {HTMLElement} */ anchor, /** @type {string} */ color, /** @type {string} */ target, /** @type {() => void} */ back) {
-        showMenu(anchor, `<div class="field belt-pop color-pop color-pane"><span><button type="button" class="cap small" data-pane-back="1" aria-label="Bitview's colors" data-tip="Bitview's colors">${ICONS.back}</button>Custom</span><div class="color-box">${planeHtml(color, target)}${hexField(target, color)}</div></div>`, ({ paneBack }) => paneBack && back(), null, anchor.closest("#belt") ? beltSide() : "");
+        showMenu(anchor, `<div class="field belt-pop color-pop color-pane"><span><button type="button" class="cap small" data-pane-back="1" aria-label="the site's colors" data-tip="the site's colors">${ICONS.back}</button>Custom</span><div class="color-box">${planeHtml(color, target)}${hexField(target, color)}</div></div>`, ({ paneBack }) => paneBack && back(), null, anchor.closest("#belt") ? beltSide() : "");
         menuBack = back;
         drawPlanes();
         planeOf(target)?.focus({ preventScroll: true });
@@ -31650,7 +31650,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const said = planeSays(color, place.u);
         plane?.setAttribute("aria-valuenow", String(said.now));
         plane?.setAttribute("aria-valuetext", said.text);
-        // (Its name, and Bitview's colors, none of them ringed now, follow too.)
+        // (Its name, and the site's colors, none of them ringed now, follow too.)
         const field = plane?.closest(".field, .color-editor"), named = field?.querySelector(".color-now"), hex = /** @type {HTMLInputElement | null | undefined} */ (field?.querySelector(".hex"));
         /** @type {HTMLElement | null | undefined} */ (field?.querySelector('.slot-chip[aria-pressed="true"]'))?.style.setProperty("--c", cssColor(color));
         if (named) named.textContent = colorName(color);
@@ -31751,7 +31751,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return `<div class="error-box gone"><p>${BY_BLOCK}.</p><div class="replacement">${day ? `<span class="closest">By day: <code>${escape(day)}</code></span><button type="button" class="btn small" data-replace="${escape(day)}">Replace</button>` : ""}<button type="button" class="btn ${day ? "ghost " : ""}small" data-action="replace">${day ? "Find another" : "Find one"}</button></div></div>`;
         }
         // Renamed or removed in a newer Bitview: the closest series is offered, or another one to pick.
-        if (result.missing) return `<div class="error-box gone"><p>Bitview has no series by this name: renamed, removed, or mistyped.</p>
+        if (result.missing) return `<div class="error-box gone"><p>This server has no series by this name: renamed, removed, or mistyped.</p>
           <div id="replacement" class="replacement"><span class="shimmer">Looking for the closest one…</span></div></div>`;
         return `<div class="error-box">${escape(result.error)}.<button type="button" class="btn small" data-action="retry">Retry</button></div>`;
       }
@@ -33258,7 +33258,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         refocus('[data-action="change-series"]');
       }
 
-      // ── Series search: bitview.space's, on this machine ───────────────────────
+      // ── Series search: analytics.debitmydata.io's, on this machine ───────────────────────
 
       /**
        * A query's words as the server normalizes them (crates/bitview_query/src/vecs/normalize.rs): words of letters, digits
@@ -33269,7 +33269,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return (text.match(/(?:[A-Za-z0-9<>=+%]|(?<=[0-9])\.(?=[0-9]))+/g) ?? []).join(" ").toLowerCase();
       }
       /**
-       * The series search as bitview.space runs it (crates/bitview_query/src/vecs/search.rs, on the same quickmatch): the
+       * The series search as analytics.debitmydata.io runs it (crates/bitview_query/src/vecs/search.rs, on the same quickmatch): the
        * query normalized, then whole name words, names matching every word (starts, joined words, plurals), whole
        * description words, names a typo matches, description starts and typos; a description several series share ranks
        * them by how few other words their names carry. Series only by block (none of `dated`, the intervals Studio charts) come last, their day's (a 24h sum, an
@@ -33403,7 +33403,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       /**
-       * The search's worker, started once the chart's asked for its data: it answers once its index is built; bitview.space until then.
+       * The search's worker, started once the chart's asked for its data: it answers once its index is built; analytics.debitmydata.io until then.
        * One question is with it at a time, the others wait their turn, and one given up (typing went on) leaves the line:
        * the latest is never stuck behind stale ones.
        */
@@ -33435,14 +33435,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (typeof Worker !== "function") return;
         const quickmatch = new URL("/modules/quickmatch-js/src/index.js", location.origin).href;
         const source = URL.createObjectURL(new Blob([`(${seriesSearch})(${JSON.stringify(quickmatch)}, ${JSON.stringify(`${client.baseUrl}/api/series`)}, ${JSON.stringify(INTERVAL_ORDER)}, ${normalizeQuery});`], { type: "text/javascript" }));
-        // (Workers turned off for the page: none, and bitview.space answers; never the page's start failing with it.)
+        // (Workers turned off for the page: none, and analytics.debitmydata.io answers; never the page's start failing with it.)
         let worker;
         try {
           worker = finder.worker = new Worker(source, { type: "module" });
         } catch {
           return void URL.revokeObjectURL(source);
         }
-        // A worker that fails leaves the search to bitview.space, the questions it had included.
+        // A worker that fails leaves the search to analytics.debitmydata.io, the questions it had included.
         const stop = () => {
           worker.terminate();
           URL.revokeObjectURL(source);
@@ -33467,7 +33467,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const searched = new Map();
       /**
        * Series by date first, one by block after them, its day's in its place (if Bitview has one): as this machine's
-       * search answers, for bitview.space's too. @param {string[]} names
+       * search answers, for analytics.debitmydata.io's too. @param {string[]} names
        */
       function byDate(names) {
         indexCatalog();
@@ -33485,10 +33485,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return [...first, ...last].slice(0, names.length);
       }
       /**
-       * Series for a query, best first, as bitview.space ranks them: one asked before at once, else from this machine
-       * once its index is built, else from bitview.space (more typing aborts it; its answers aren't kept: this machine's
+       * Series for a query, best first, as analytics.debitmydata.io ranks them: one asked before at once, else from this machine
+       * once its index is built, else from analytics.debitmydata.io (more typing aborts it; its answers aren't kept: this machine's
        * come soon).
-       * (`remote`: told as it asks bitview.space.)
+       * (`remote`: told as it asks analytics.debitmydata.io.)
        * @param {string} query @param {number} limit @param {AbortSignal} [signal] @param {() => void} [remote] @returns {Promise<string[]>}
        */
       function findSeries(query, limit, signal, remote = () => {}) {
@@ -33755,7 +33755,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else input.removeAttribute("maxlength");
         input.setAttribute("aria-label", replacing ? "Replace series" : palette.formula ? "Formula" : palette.adding ? "Search series" : "Search series, charts and commands");
         input.placeholder = replacing ? "A series to use instead" : palette.signal ? "When it's true, like A > sma(A, 200d)" : palette.formula ? `A formula, like A / B or ${EXAMPLE}` : palette.adding ? (seriesCount ? `Search ${grouped.format(seriesCount)} series` : "Search every series") : "Search series, charts and commands";
-        $("palette-count").textContent = seriesCount ? `${grouped.format(seriesCount)} series on Bitview` : "Bitview";
+        $("palette-count").textContent = seriesCount ? `${grouped.format(seriesCount)} series on this server` : "DebitMyData";
       }
       /**
        * Up the catalog to `depth`, landing on the folder you came out of (as a tree does), not at the top of the list.
@@ -33907,7 +33907,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           { title: prefs.linkView ? "Unlink the view" : "Link the view", text: prefs.linkView ? "Each chart goes back to its own dates; this one stays where it is." : "Every chart on the same dates, in every tab: moving the view moves it for all.", icon: "chain", kbd: "V", run: () => linkView(!prefs.linkView) },
           ...(empty ? [] : [{ title: panelShown() ? "Hide the layers panel" : "Show the layers panel", text: "The chart's layers and their settings.", icon: "panel", kbd: "P", run: () => togglePanel() }]),
           ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your Library and the presets, beside the chart.", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
-          { title: "Studio's version", text: studioVersion ? `${studioVersion}, the same as Bitview's.` : "The server hasn't reported its version yet.", icon: "recent", run: () => notice(studioVersion ? `Bitview Studio ${studioVersion}` : "The server hasn't reported its version yet"), anywhere: true },
+          { title: "Studio's version", text: studioVersion ? `${studioVersion}, the same as the server's.` : "The server hasn't reported its version yet.", icon: "recent", run: () => notice(studioVersion ? `DebitMyData Studio ${studioVersion}` : "The server hasn't reported its version yet"), anywhere: true },
           ...(!keyboard() ? [] : [{ title: "Shortcuts", text: "Every keyboard shortcut in Studio.", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
           ...(!keyboard() ? [] : [true, false].map((on) => ({ title: `Single-key shortcuts: ${on ? "On" : "Off"}`, text: on ? "A letter, a digit or a sign alone acts (A adds a series, P the panel…)." : `Only shortcuts with ${keyText("⌘")} or ${keyText("⌥")} act: typing a letter by mistake does nothing.`, icon: "keyboard", anywhere: true, ...(prefs.keys === on ? { current: true } : { run: () => setSingleKeys(on) }) }))),
           { title: "How links work", text: "What a chart link holds, and how to write one or have an assistant write it.", icon: "link", run: showGuide, anywhere: true },
@@ -34058,7 +34058,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return;
         }
         // Charts and commands match here; series too, on this machine once the search's index is built, else on
-        // bitview.space.
+        // analytics.debitmydata.io.
         const words = query.toLowerCase().split(/\s+/).filter(Boolean);
         // Adding or replacing a series, only series are found: nothing else is built, to be dropped later.
         const everything = !palette.adding && !palette.replacing;
@@ -34110,7 +34110,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const leading = others.filter((row) => row.label.toLowerCase().startsWith(words[0])), trailing = others.filter((row) => !leading.includes(row));
         const local = [...leading, ...asFormula, ...dated, ...strong, ...own, ...charts, ...presetRows, ...trailing], more = weak.map((item) => ({ ...item, group: "More commands" }));
         palette.moved = false;
-        // What matched here, while the series are looked for: at once when bitview.space answers; on this machine with
+        // What matched here, while the series are looked for: at once when analytics.debitmydata.io answers; on this machine with
         // the series, a frame or two on (or first, for a key on the list: see above).
         // Back from a page to this search, on the row that led there.
         const landOn = palette.landOn;
@@ -34126,7 +34126,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
         // (This machine's search answering within a frame or two: drawn once, with its series, then; meanwhile a key on the
         // list (↵ too) draws these first and goes on with them, a click or a hover on the last query's rows only draws
-        // them: nothing's done to a list no longer typed. bitview.space's: these now, its series after.)
+        // them: nothing's done to a list no longer typed. analytics.debitmydata.io's: these now, its series after.)
         if (finder.ready) palette.pending = searching;
         else searching();
         // ("add price" is a search for price: ↵ adds it. The top result leads, or the row come back to.)
@@ -34162,7 +34162,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           $("palette-glow").hidden = true;
           renderPalette(false, note);
         };
-        // (Gone to bitview.space, this machine's failing: the rows waiting drawn meanwhile, its series after.)
+        // (Gone to analytics.debitmydata.io, this machine's failing: the rows waiting drawn meanwhile, its series after.)
         findSeries(query, 80, controller.signal, () => !controller.signal.aborted && palette.pending?.()).then((names) => settle(names), () => settle(null, "Series search is unavailable right now."));
       }
 
@@ -34290,7 +34290,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const missing = [...refsOf(parse(text))].find((letter) => !chart.layers.some((layer) => layer.letter === letter));
         if (missing) return goneLayer(chart, missing) ?? `There is no layer ${missing}`;
         const index = catalogIndex, unknown = index ? [...refsOf(parse(text), "series")].find((name) => !index.has(name)) : undefined;
-        return unknown ? `${unknown}: not on Bitview` : "";
+        return unknown ? `${unknown}: not on this server` : "";
       }
       /** A row of the formula page: the formula to add, or a piece of one (a layer by its color). */
       /** The last formula found not to compute, what's wrong with it, and the layer it was for (its row says so while it's the one typed). */
@@ -34651,7 +34651,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Said for a screen reader as the search answers: once a search, not again as the highlight moves.)
           const said = `${palette.query}|${$("palette-count").textContent}`;
           if (said !== countSaidFor && isOpen($("palette")) && !$("palette-count").hidden) (countSaidFor = said), say($("palette-count").textContent);
-        } else $("palette-count").textContent = seriesCount ? `${grouped.format(seriesCount)} series on Bitview` : "Bitview";
+        } else $("palette-count").textContent = seriesCount ? `${grouped.format(seriesCount)} series on this server` : "DebitMyData";
       }
 
       /** The highlight, one row on (round past the ends), or several (⇧: five, stopping at the ends). */
@@ -35556,7 +35556,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const item = doc.layers.find((one) => one.id === id);
             return item ? previewLayer(panel, id, item.color, colorsAt(doc, item, resolved)) : previewLayer(panel, id);
           };
-          // A color of it, its page: Bitview's colors, another; a fading one of four, its side's fainter too.
+          // A color of it, its page: the site's colors, another; a fading one of four, its side's fainter too.
           const ROW_KEYS = /** @type {Record<string, string>} */ ({ color: "color", colorBelow: "color-below", colorFading: "color-fading", colorBelowFading: "color-below-fading" });
           const color = (/** @type {string} */ key, /** @type {string} */ label) => ({ key: ROW_KEYS[key] ?? key, icon: swatchOf(colorOf(layer, key)), label, aside: slotName(layer, key), group: "Style", page: () => choicePage(label, () => [
             ...colorRows(key === "colorFading" ? now().colorFading ?? "" : key === "colorBelowFading" ? now().colorBelowFading ?? "" : colorOf(now(), key), (name) => set((item) => setColor(item, key, name))(), (doc, name) => {
@@ -37507,7 +37507,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             renderCharts();
           } });
         } catch {
-          notice("That file isn't a Bitview Studio chart");
+          notice("That file isn't a DebitMyData Studio chart");
         }
       });
 
@@ -38029,7 +38029,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function openImage() {
         const tab = window.open("", "_blank");
         if (!tab) return void notice("Couldn't open a tab: allow pop-ups here, or download the image");
-        tab.document.title = `${titleOf(chart)} · Bitview Studio`;
+        tab.document.title = `${titleOf(chart)} · DebitMyData Studio`;
         chartImage(pictureSize()).then((canvas) => pngOf(canvas).then((blob) => /** @type {const} */ ([canvas, blob]))).then(([canvas, blob]) => {
           if (tab.closed) return;
           const url = URL.createObjectURL(new File([blob], fileName("png"), { type: "image/png" })), page = tab.document, image = page.createElement("img");
@@ -38285,8 +38285,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const baseline = head + shot.height + px(28);
         context.font = font(590, 12);
         context.fillStyle = inkColor;
-        context.fillText("Bitview", pad, baseline);
-        let at = pad + context.measureText("Bitview ").width;
+        context.fillText("DebitMyData", pad, baseline);
+        let at = pad + context.measureText("DebitMyData ").width;
         context.font = font(510, 12);
         context.fillStyle = softColor;
         context.fillText("Studio", at, baseline);
@@ -38861,7 +38861,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** The block the server's series are computed up to, when it was indexed (unix seconds), and the live price, as last seen. */
       let liveHeight = 0, liveAt = 0, livePrice = 0;
-      /** When bitview.space last answered (its health): a minute without, or the device itself offline, and the live element says it's offline. */
+      /** When analytics.debitmydata.io last answered (its health): a minute without, or the device itself offline, and the live element says it's offline. */
       let answeredAt = Date.now();
       const offline = () => !navigator.onLine || Date.now() - answeredAt > 60_000;
       /** Live, with the last block the server's series include and when it came. */
@@ -39581,7 +39581,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         answeredAt = Date.now();
         retryPlots();
-        // (A layer that couldn't load (bitview.space away a while): asked for again as it answers, not at the next block,
+        // (A layer that couldn't load (analytics.debitmydata.io away a while): asked for again as it answers, not at the next block,
         // ten minutes on; drawn once, a new block's draw if one came. Not while it's still being drawn (a slow answer
         // never overtaken), nor under a menu (its button kept). Under the Charts page, once it's back: see leaveHome.)
         const retry = Boolean(chart && !home && settled() && resolved?.failed.length && $("menu").hidden) && retryFailed(/** @type {Resolved} */ (resolved), chart.index);
@@ -39618,7 +39618,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       checkLive();
 
       // ── Live price: between blocks, the price's own layers follow it ──────────
-      // bitview.space's live price (round-dollar outputs of the last blocks and the mempool), read each second while the
+      // analytics.debitmydata.io's live price (round-dollar outputs of the last blocks and the mempool), read each second while the
       // page is seen, as its own chart does: the live element says it, and each layer drawing the price itself (its candles, its close or its spot,
       // in dollars, or sats per dollar; no stack) has its point for the interval the clock is in moved there, a
       // candle's high or low pushed out. Between blocks, the server's latest interval (its latest block's) can be over:
@@ -39963,7 +39963,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (The chart as the window lays it out: a link's picture, across it; its legends' marks its own lines, not the
           // faint ones they show till its mini chart's drawn.)
           await studio.ready();
-          document.title = `${titleOf(chart)} · Bitview Studio`;
+          document.title = `${titleOf(chart)} · DebitMyData Studio`;
           const at = navigations;
           if (await freshThumb(chart)) saveThumbsSoon();
           const url = (await chartImage()).toDataURL("image/png");
@@ -40020,7 +40020,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       $("picture-leave").addEventListener("click", () => {
         leavePicture();
-        document.title = "Bitview Studio";
+        document.title = "DebitMyData Studio";
         refresh();
       });
       $("picture-open").addEventListener("click", (event) => {
@@ -40148,7 +40148,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }));
         },
         /**
-         * Series names for words, as Studio's search finds them (this machine's index once it's built, bitview.space's
+         * Series names for words, as Studio's search finds them (this machine's index once it's built, analytics.debitmydata.io's
          * until then, said and ranked alike): the best first, only those it can chart (by date). Nothing it waits on waits for the
          * page to be shown (a hidden tab's frames and idle moments may never come); no answer in 5 s, rejected with why.
          */
@@ -40157,7 +40157,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           startFinder();
           indexCatalog();
           let timer = 0;
-          const late = new Promise((_, fail) => (timer = window.setTimeout(() => fail(new Error("studio.search: no answer in 5 s (bitview.space didn't answer, and this page's own search isn't up yet)")), 5000)));
+          const late = new Promise((_, fail) => (timer = window.setTimeout(() => fail(new Error("studio.search: no answer in 5 s (analytics.debitmydata.io didn't answer, and this page's own search isn't up yet)")), 5000)));
           try {
             return (await Promise.race([findSeries(String(text), most + 20), late])).filter((name) => !gone.has(name) && !byBlock.has(name)).slice(0, most);
           } finally {

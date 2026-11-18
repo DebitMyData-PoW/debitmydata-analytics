@@ -3,7 +3,6 @@
 use bitview_plugin::PluginSet;
 use bitview_plugin_addresses::Vecs as Addresses;
 use bitview_plugin_age::Vecs as Age;
-use bitview_plugin_bedrock::Vecs as Bedrock;
 use bitview_plugin_blocks::Vecs as Blocks;
 use bitview_plugin_coinflow::Vecs as Coinflow;
 use bitview_plugin_cointime::Vecs as Cointime;
@@ -19,7 +18,6 @@ use bitview_plugin_outputs::Vecs as Outputs;
 use bitview_plugin_pools::Vecs as Pools;
 use bitview_plugin_price::Vecs as Price;
 use bitview_plugin_profitability::Vecs as Profitability;
-use bitview_plugin_rarity_meter::Vecs as RarityMeter;
 use bitview_plugin_supply::Vecs as Supply;
 use bitview_plugin_transactions::Vecs as Transactions;
 use bitview_plugin_utxo_set::Vecs as UtxoSet;
@@ -69,6 +67,4 @@ pub struct DefaultPlugins<M: StorageMode = Rw> {
     cointime: Box<Cointime<M>>,
     #[plugin_set(has = bitview_plugin_coinflow::HasCoinflow<M>)]
     coinflow: Box<Coinflow<M>>,
-    bedrock: Box<Bedrock<M>>,
-    rarity_meter: Box<RarityMeter<M>>,
 }

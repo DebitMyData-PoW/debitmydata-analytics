@@ -26,7 +26,7 @@ impl HeldOrigins for () {
 }
 
 /// The lowest and highest price among the origin heights still holding coins, over any run of
-/// heights (prices over `CentsCompact`'s ceiling, $42,949,672.94, held there, as the index's are). A coin's cost basis is its origin block's price and an age cohort is one run of
+/// heights (prices over `CentsCompact`'s ceiling, $4,294.97, held there, as the index's are). A coin's cost basis is its origin block's price and an age cohort is one run of
 /// origin heights (its youngest or its oldest), so a run's extremes are a cohort's, exactly. An
 /// origin empties once at most (coins are created only at their own height): its updates over
 /// all history are as many as the heights.

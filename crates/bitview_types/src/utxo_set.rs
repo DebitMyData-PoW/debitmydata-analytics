@@ -18,7 +18,7 @@ pub struct UtxoSet {
     pub date: Date,
     /// Number of unspent outputs.
     pub count: u64,
-    /// BTC held by the unspent outputs.
+    /// DMD held by the unspent outputs.
     pub supply: Bitcoin,
     /// Unspent outputs by creation height: entry `i` is what remains of block `i`'s outputs.
     pub origins: UtxoOrigins,
@@ -29,7 +29,7 @@ pub struct UtxoSet {
 pub struct UtxoOrigins {
     /// Number of unspent outputs per creation height.
     pub count: Vec<u64>,
-    /// BTC held by the unspent outputs per creation height.
+    /// DMD held by the unspent outputs per creation height.
     pub supply: Vec<Bitcoin>,
 }
 
@@ -60,6 +60,6 @@ pub struct UtxoChanges {
     pub height: Vec<Height>,
     /// Number of outputs in each row.
     pub count: Vec<u64>,
-    /// BTC held by the outputs in each row.
+    /// DMD held by the outputs in each row.
     pub supply: Vec<Bitcoin>,
 }

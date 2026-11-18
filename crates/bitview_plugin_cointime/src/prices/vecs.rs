@@ -20,7 +20,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub active: PriceWithMvrv<M>,
     /// Investor capitalization, equal to realized capitalization minus the
     /// cumulative issuance-date USD value of the derived block-subsidy
-    /// component, divided by active supply in BTC. Active supply is circulating
+    /// component, divided by active supply in DMD. Active supply is circulating
     /// supply multiplied by liveliness. Undefined (null) unless both investor
     /// capitalization and active supply are positive.
     #[traversable(lead = "True market mean: what active investors paid on average, leaving out what miners received.")]
@@ -40,7 +40,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(lead = "AVIV NUPL: active investors' paper gains, as a share of the active supply's market value.")]
     pub(super) aviv_nupl: LazyRatioPerBlock<PartsPerMillionSigned32>,
     /// Cumulative cointime value destroyed divided by cumulative coinblocks
-    /// stored, expressed as a price per BTC. It represents the average value
+    /// stored, expressed as a price per DMD. It represents the average value
     /// destroyed for each unit of holding time that remains stored.
     #[traversable(lead = "Cointime price: the value of the holding time spent, for each unit stored.")]
     pub cointime: PriceWithMvrv<M>,

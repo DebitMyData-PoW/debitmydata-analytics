@@ -41,7 +41,7 @@ pub struct BlockTemplateTransaction {
 /// `getmempoolinfo`.
 #[derive(Deserialize)]
 pub struct GetMempoolInfo {
-    /// In BTC per kvB.
+    /// In DMD per kvB.
     #[serde(rename = "mempoolminfee")]
     pub mempool_min_fee: f64,
 }

@@ -38,11 +38,11 @@ pub struct Metrics<M: StorageMode = Rw> {
 
 #[derive(Clone, Traversable)]
 struct Band {
-    /// Outputs are placed by their creation price rounded to four significant digits of cents
+    /// Outputs are placed by their creation price rounded to four significant digits of millionths of a dollar
     /// (exact under $100, then steps of at most 0.1%); a band's edge rounds up to that grid, and
     /// the spot's own grid price counts as profit.
     supply: BandSupply,
-    /// Outputs are placed by their creation price rounded to four significant digits of cents
+    /// Outputs are placed by their creation price rounded to four significant digits of millionths of a dollar
     /// (exact under $100, then steps of at most 0.1%); a band's edge rounds up to that grid, and
     /// the spot's own grid price counts as profit.
     capital: BandCapital,
@@ -50,8 +50,8 @@ struct Band {
 
 #[derive(Clone, Traversable)]
 struct BandSupply {
-    /// Supply: amount of bitcoin held in the band's unspent transaction outputs.
-    #[traversable(lead = "Supply: the bitcoin held.")]
+    /// Supply: amount of DMD held in the band's unspent transaction outputs.
+    #[traversable(lead = "Supply: the DMD held.")]
     total: LazySpotValuePerBlock,
     /// The band's share of its age filter's supply; undefined (null) when that supply is zero.
     #[traversable(
@@ -62,15 +62,15 @@ struct BandSupply {
 
 #[derive(Clone, Traversable)]
 struct BandCapital {
-    /// Capital: the band's unspent outputs valued at Bitcoin's spot price when each was created.
+    /// Capital: the band's unspent outputs valued at the reference price when each was created.
     #[traversable(
         lead = "Capital: what holders paid for these coins, in all, each at the price it last moved at."
     )]
     total: LazyFiatPerBlock<Cents>,
-    /// Realized cap: the sum of each unspent output's BTC value times the spot price when it was
+    /// Realized cap: the sum of each unspent output's DMD value times the spot price when it was
     /// created.
     #[traversable(
-        lead = "Realized cap: what holders paid for their bitcoin, in all, each coin at the price it last moved at."
+        lead = "Realized cap: what holders paid for their DMD, in all, each coin at the price it last moved at."
     )]
     realized_cap: LazyFiatPerBlock<Cents>,
     /// The band's share of its age filter's capital; undefined (null) when that capital is zero.

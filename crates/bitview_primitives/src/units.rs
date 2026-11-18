@@ -39,8 +39,8 @@ scalar! {
 }
 
 scalar! {
-    /// US dollars multiplied by days, per bitcoin: coin days valued at the spot price, per
-    /// bitcoin of supply.
+    /// US dollars multiplied by days, per DMD: coin days valued at the spot price, per
+    /// DMD of supply.
     float DollarDaysPerCoin(f64)
 }
 

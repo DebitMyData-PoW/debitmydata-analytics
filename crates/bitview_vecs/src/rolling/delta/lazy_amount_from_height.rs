@@ -11,7 +11,7 @@ where
     S: VecValue,
     C: AmountType,
 {
-    /// Reported in BTC; one BTC equals 100,000,000 satoshis.
+    /// Reported in DMD; one DMD equals 100,000,000 satoshis.
     pub(crate) btc: LazyPerBlock<Bitcoin, C>,
     /// Reported in satoshis.
     #[traversable(hidden)]

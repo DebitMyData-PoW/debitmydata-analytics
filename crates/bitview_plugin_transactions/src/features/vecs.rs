@@ -27,7 +27,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// P2PK65, 576 for P2PK33, 546 for P2PKH, 540 for P2SH, 294 for P2WPKH, 330 for P2WSH or P2TR, 240 for P2A, and
     /// 471 for an empty script. P2MS and unknown scripts use their computed minimal non-dust value; OP_RETURN is
     /// excluded.
-    #[traversable(lead = "Transactions with dust: outputs below Bitcoin Core's dust threshold.")]
+    #[traversable(lead = "Transactions with dust: outputs below the node's dust threshold.")]
     pub dust_output: Flagged<FlagView, Windowed<M>>,
     /// Version-1 transactions tagged as EPOBC colored-coin transfers or issuances: the first
     /// input's sequence number is below 4,096 (bits 12 to 31 zero) and its low six bits are 51
@@ -55,7 +55,7 @@ pub struct Scripts<M: StorageMode = Rw> {
     /// Transactions that create or, outside coinbase, spend at least one pay-to-public-key-hash output.
     #[traversable(lead = "Transactions with pay-to-public-key-hash (P2PKH) outputs, made or spent.")]
     pub p2pkh: Flagged<FlagView, Windowed<M>>,
-    /// Transactions that create or, outside coinbase, spend at least one bare multisig output recognized by Bitcoin
+    /// Transactions that create or, outside coinbase, spend at least one bare multisig output recognized by
     /// script parsing.
     #[traversable(lead = "Transactions with bare multisig (P2MS) outputs, made or spent.")]
     pub p2ms: Flagged<FlagView, Windowed<M>>,
@@ -110,7 +110,7 @@ pub struct Signatures<M: StorageMode = Rw> {
     pub sighash_none: Flagged<FlagView, Windowed<M>>,
     /// Transactions containing at least one detected ECDSA or Schnorr signature using the `SIGHASH_SINGLE` base type,
     /// which normally commits only to the output at the signing input's position. Legacy signatures without a
-    /// corresponding output retain Bitcoin's historical `SIGHASH_SINGLE` bug.
+    /// corresponding output retain the historical `SIGHASH_SINGLE` bug.
     #[traversable(lead = "Transactions with SIGHASH_SINGLE signatures: committing, normally, to one output.")]
     pub sighash_single: Flagged<FlagView, Windowed<M>>,
     /// Transactions containing at least one detected Taproot `SIGHASH_DEFAULT` signature. Taproot's omitted hash-type

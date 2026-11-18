@@ -17,15 +17,15 @@ use super::transactions::features::{BlockCount, block_count};
 
 #[derive(Traversable)]
 pub struct BlocksVecs<M: StorageMode = Rw> {
-    /// Double-SHA256 hash of the block header, displayed in Bitcoin's
+    /// Double-SHA256 hash of the block header, displayed in the
     /// conventional hexadecimal byte order.
     pub blockhash: M::Stored<BytesVec<Height, BlockHash>>,
     /// First 100 bytes of the coinbase transaction's first-input `scriptSig`,
     /// exposed as a string by mapping each byte to the same-valued Unicode code
     /// point. This is raw coinbase data, not a normalized mining-pool label.
     pub coinbase_tag: M::Stored<BytesVec<Height, CoinbaseTag>>,
-    /// Mining difficulty encoded by the block header, calculated as Bitcoin's
-    /// maximum target divided by this block's proof-of-work target.
+    /// Mining difficulty encoded by the block header, calculated as the node does: the
+    /// difficulty-1 target (0xffff × 2^208) divided by this block's proof-of-work target.
     /// Public through the blocks plugin (`blocks.difficulty.value`, every index).
     #[traversable(hidden)]
     pub difficulty: M::Stored<PcoVec<Height, Difficulty, Budgeted>>,

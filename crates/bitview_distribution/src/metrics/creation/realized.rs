@@ -22,7 +22,7 @@ pub struct CreationRealized<M: StorageMode = Rw> {
     #[traversable(lead = "Net realized profit and loss: realized profit minus realized loss.")]
     pub net_pnl: CumulativeFiat<CentsSigned, M>,
     /// Creation-date value destroyed by the cohort's spent outputs: the sum of
-    /// each spent output's creation price multiplied by its BTC value.
+    /// each spent output's creation price multiplied by its DMD value.
     #[traversable(lead = "Value destroyed: what the coins spent had cost their holders.")]
     pub value_destroyed: CumulativeFiat<Cents, M>,
 }

@@ -10,11 +10,11 @@ use super::DerivedVecs;
 
 #[derive(Deref, DerefMut, Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
-    /// Coinblocks created by each block, equal to the circulating supply in BTC
+    /// Coinblocks created by each block, equal to the circulating supply in DMD
     /// at that height.
-    #[traversable(lead = "Coinblocks created: holding time added, one per bitcoin per block.")]
+    #[traversable(lead = "Coinblocks created: holding time added, one per DMD per block.")]
     pub coinblocks_created: PerBlockCumulativeRolling<CoinBlocks, M>,
-    /// Coinblocks destroyed by each block: each spent output's BTC value
+    /// Coinblocks destroyed by each block: each spent output's DMD value
     /// multiplied by the blocks it stayed unspent.
     #[traversable(lead = "Coinblocks destroyed: holding time spent as coins move.")]
     pub coinblocks_destroyed: LazyPerBlockCumulativeRolling<CoinBlocks>,

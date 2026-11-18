@@ -30,7 +30,7 @@ impl Vecs {
     ) -> Result<()> {
         let starting_height = indexer.compute_start().height;
 
-        // Each block's share of a day's work at the ten-minute target, summed over 24 hours.
+        // Each block's share of a day's work at the 2.5-minute target, summed over 24 hours.
         let daily_share = LazyVec::new(
             "difficulty_hashrate_daily_share",
             difficulty_vecs.hashrate.height.version(),

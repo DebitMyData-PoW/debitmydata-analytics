@@ -15,7 +15,7 @@ pub struct BlockFeesEntry {
     /// Mean fees per block in this bucket, rounded half up (sats)
     #[schemars(example = 3215861)]
     pub avg_fees: Sats,
-    /// Mean BTC/USD spot price over the bucket's blocks (the price, not the fees in USD)
+    /// Mean DMD/USD reference price over the bucket's blocks (the price, not the fees in USD)
     #[serde(rename = "USD")]
     #[schemars(example = 84342.12)]
     pub usd: Dollars,

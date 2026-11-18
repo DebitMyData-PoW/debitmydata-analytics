@@ -15,20 +15,20 @@ use crate::columns::Columns;
 
 #[derive(Traversable)]
 pub struct Activity<M: StorageMode = Rw> {
-    /// Value of the cohort's outputs spent in each block. BTC representations use
+    /// Value of the cohort's outputs spent in each block. DMD representations use
     /// the spent output value; USD representations value it at the spending
     /// block's spot price.
-    #[traversable(lead = "Transfer volume: the bitcoin spent.")]
+    #[traversable(lead = "Transfer volume: the DMD spent.")]
     pub transfer_volume: LazyValuePerBlockCumulativeRolling,
     /// Value of the outputs spent in each block whose spending price is greater than or equal to
     /// their creation price; USD at the spending block's spot price.
     #[traversable(wrap = "transfer_volume", rename = "in_profit")]
-    #[traversable(lead = "Transfer volume in profit: the bitcoin spent at or above its cost.")]
+    #[traversable(lead = "Transfer volume in profit: the DMD spent at or above its cost.")]
     pub transfer_volume_in_profit: LazyValuePerBlockCumulativeRolling,
     /// Value of the outputs spent in each block whose spending price is below their creation
     /// price; USD at the spending block's spot price.
     #[traversable(wrap = "transfer_volume", rename = "in_loss")]
-    #[traversable(lead = "Transfer volume in loss: the bitcoin spent below its cost.")]
+    #[traversable(lead = "Transfer volume in loss: the DMD spent below its cost.")]
     pub transfer_volume_in_loss: LazyValuePerBlockCumulativeRolling,
     /// Coin days destroyed (CDD): spent coin amounts multiplied by their age in fractional days.
     #[traversable(

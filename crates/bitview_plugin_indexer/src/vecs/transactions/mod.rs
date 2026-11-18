@@ -21,11 +21,11 @@ pub struct TransactionsVecs<M: StorageMode = Rw> {
     /// equal to the number of transactions in all preceding blocks.
     pub first_tx_index: M::Stored<PcoVec<Height, TxIndex, Budgeted>>,
     /// Transaction ID: the double-SHA256 hash of the transaction's non-witness
-    /// serialization, displayed in Bitcoin's conventional hexadecimal byte
+    /// serialization, displayed in the conventional hexadecimal byte
     /// order.
     pub txid: M::Stored<BytesVec<TxIndex, Txid>>,
     /// Compact transaction-version category for the indexed transaction. Values
-    /// 1, 2, and 3 preserve those exact signed 32-bit Bitcoin transaction
+    /// 1, 2, and 3 preserve those exact signed 32-bit transaction
     /// versions; 255 represents every other version. The series includes
     /// coinbase transactions. Use individual raw transaction data to inspect
     /// the original version when this value is 255.
@@ -64,7 +64,7 @@ pub struct TransactionsVecs<M: StorageMode = Rw> {
     pub first_txout_index: Compact<BytesVec<TxIndex, Index40<TxOutIndex>>, TxOutIndex, M>,
     pub features: TransactionFeaturesVecs<M>,
     /// Counts every transaction, including coinbase, by its signed 32-bit
-    /// Bitcoin transaction version.
+    /// Transaction version.
     pub versions: VersionCountVecs<M>,
     #[traversable(hidden)]
     pub position: M::Stored<PcoVec<TxIndex, BlkPosition>>,

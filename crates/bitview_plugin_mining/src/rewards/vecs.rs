@@ -16,7 +16,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// at zero. This is a derived subsidy component, not the scheduled
     /// consensus subsidy, and can be lower when the miner leaves some available
     /// reward unclaimed.
-    #[traversable(lead = "Block subsidy: the new bitcoin miners claimed, besides fees.")]
+    #[traversable(lead = "Block subsidy: the new DMD miners claimed, besides fees.")]
     pub subsidy: ValuePerBlockCumulativeRolling<M>,
     /// Sum of input value minus output value across the block's non-coinbase
     /// transactions.

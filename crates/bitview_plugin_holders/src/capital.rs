@@ -18,16 +18,16 @@ use crate::{
 /// The mirror of the supply: its outputs valued at their creation price.
 #[derive(Traversable)]
 pub struct Capital<M: StorageMode = Rw> {
-    /// Total capital: the cohort's unspent outputs valued at Bitcoin's spot price when each was
+    /// Total capital: the cohort's unspent outputs valued at the reference price when each was
     /// created.
     #[traversable(
         lead = "Capital: what holders paid for these coins, in all, each at the price it last moved at."
     )]
     pub total: LazyFiatPerBlock<Cents>,
-    /// Realized cap: the sum of each unspent output's BTC value times the spot price when it was
+    /// Realized cap: the sum of each unspent output's DMD value times the spot price when it was
     /// created.
     #[traversable(
-        lead = "Realized cap: what holders paid for their bitcoin, in all, each coin at the price it last moved at."
+        lead = "Realized cap: what holders paid for their DMD, in all, each coin at the price it last moved at."
     )]
     pub realized_cap: LazyFiatPerBlock<Cents>,
     /// Capital in profit: creation-date USD value of the outputs whose creation price is at or

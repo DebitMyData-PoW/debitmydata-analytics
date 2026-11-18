@@ -1,32 +1,30 @@
 use bitview_traversable::Traversable;
 
-/// A Bitcoin amount and its fiat value, with independently chosen representations.
-/// Series expose BTC and USD over their sats and cents.
+/// A DMD amount and its fiat value, with independently chosen representations.
+/// Series expose DMD and USD over their sats and cents.
 #[derive(Clone, Traversable)]
 pub struct Value<S, C, B, U> {
-    /// Reported in BTC; one BTC equals 100,000,000 satoshis.
+    /// Reported in DMD; one DMD equals 100,000,000 satoshis.
     pub btc: B,
     /// Reported in satoshis.
     #[traversable(hidden)]
     pub sats: S,
-    /// Reported in US dollars, each block's amount valued at that block's spot price (zero before
-    /// the first exchange price, block 74,641).
+    /// Reported in US dollars, each block's amount valued at that block's spot price.
     pub usd: U,
-    /// Reported in US cents; 100 cents equal one US dollar.
+    /// Reported in millionths of a US dollar (Bitview's cents); 1,000,000 make one US dollar.
     #[traversable(hidden)]
     pub cents: C,
 }
 
-/// A Bitcoin amount at the spot price, in BTC, USD and satoshis.
+/// A DMD amount at the spot price, in DMD, USD and satoshis.
 #[derive(Clone, Traversable)]
 pub struct SpotValue<S, B, U> {
-    /// Reported in BTC; one BTC equals 100,000,000 satoshis.
+    /// Reported in DMD; one DMD equals 100,000,000 satoshis.
     pub btc: B,
     /// Reported in satoshis.
     #[traversable(hidden)]
     pub sats: S,
-    /// Reported in US dollars: the amount at the spot price (its market cap), zero before the
-    /// first exchange price (block 74,641, August 2010).
+    /// Reported in US dollars: the amount at the spot price (its market cap).
     #[traversable(lead = "Its market value: valued at the price of the day.")]
     pub usd: U,
 }

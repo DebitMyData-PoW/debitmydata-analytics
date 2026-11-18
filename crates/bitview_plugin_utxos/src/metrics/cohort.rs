@@ -65,10 +65,10 @@ impl ZeroVecs {
 
 #[derive(Traversable)]
 pub struct ActivityVecs<M: StorageMode = Rw> {
-    /// Value of the cohort's outputs spent in each block. BTC representations use
+    /// Value of the cohort's outputs spent in each block. DMD representations use
     /// the spent output value; USD representations value it at the spending
     /// block's spot price.
-    #[traversable(lead = "Transfer volume: the bitcoin spent.")]
+    #[traversable(lead = "Transfer volume: the DMD spent.")]
     pub transfer_volume: CumulativeValue<M>,
 }
 

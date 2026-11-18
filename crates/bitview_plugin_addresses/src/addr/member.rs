@@ -30,7 +30,7 @@ pub struct ImportContext<'a> {
 #[derive(Traversable)]
 pub struct AddressVecs<M: StorageMode = Rw> {
     /// Addresses that hold at least one unspent output at the represented block.
-    #[traversable(lead = "Funded addresses: how many hold bitcoin.")]
+    #[traversable(lead = "Funded addresses: how many hold DMD.")]
     pub funded: CountWithDeltas<M>,
     /// Previously seen addresses that hold no unspent outputs at the represented
     /// block.
@@ -115,9 +115,9 @@ pub struct ActivityVecs<M: StorageMode = Rw> {
 
 #[derive(Clone, Traversable)]
 pub struct AvgBalance {
-    /// Reported in BTC.
+    /// Reported in DMD.
     pub btc: LazyPerBlock<Bitcoin>,
-    /// Reported in US dollars: the BTC mean at the spot price.
+    /// Reported in US dollars: the DMD mean at the spot price.
     pub usd: LazyPerBlock<Dollars>,
 }
 
@@ -128,7 +128,7 @@ pub struct ReuseVecs<M: StorageMode = Rw> {
     pub count: FundedTotal<M>,
     /// Balance held at the represented block by funded addresses meeting the
     /// predicate.
-    #[traversable(lead = "The bitcoin these addresses hold.")]
+    #[traversable(lead = "The DMD these addresses hold.")]
     pub supply: PredicateSupply<M>,
     pub events: ReuseEvents<M>,
 }
@@ -137,7 +137,7 @@ pub struct ReuseVecs<M: StorageMode = Rw> {
 pub struct ExposedVecs<M: StorageMode = Rw> {
     pub count: FundedTotal<M>,
     /// Balance held at the represented block by funded exposed addresses.
-    #[traversable(lead = "The bitcoin exposed addresses hold.")]
+    #[traversable(lead = "The DMD exposed addresses hold.")]
     pub supply: PredicateSupply<M>,
 }
 

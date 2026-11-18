@@ -59,10 +59,9 @@ pub struct PoolFees {
 
 #[derive(Clone, Traversable)]
 pub struct FeesAvg {
-    /// In BTC.
+    /// In DMD.
     pub btc: LazyPerBlock<Bitcoin>,
-    /// In US dollars, each block's fees valued at its spot price: over the window's blocks from
-    /// the first exchange price (block 74,641) on, undefined (null) before it.
+    /// In US dollars, each block's fees valued at its spot price.
     pub usd: LazyPerBlock<Dollars>,
 }
 

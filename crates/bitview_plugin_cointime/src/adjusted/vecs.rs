@@ -19,7 +19,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 
 #[derive(Traversable)]
 pub struct Velocity<M: StorageMode = Rw> {
-    /// Trailing 365-day transfer volume in BTC over the active supply.
+    /// Trailing 365-day transfer volume in DMD over the active supply.
     pub btc: PerBlock<Ratio, M>,
     /// Trailing 365-day transfer volume in USD over the active capitalization.
     pub usd: PerBlock<Ratio, M>,

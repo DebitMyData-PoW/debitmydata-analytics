@@ -119,7 +119,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry \
                         per bucket in ascending price: the same block header and columnar layout as \
                         `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and \
-                        `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. \
+                        `unrealized_pnl` are USD; `supply` is DMD. `unrealized_pnl` can be negative. \
                         Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation \
                         price on the price grid (four significant digits of the price in cents, \
                         within 0.05% of the exact price), rounded to the cent per bucket, so the \

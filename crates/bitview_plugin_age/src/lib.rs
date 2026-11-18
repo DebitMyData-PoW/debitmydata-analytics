@@ -45,7 +45,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Years are UTC calendar years of the creation block's monotonic time, the running maximum of
     /// block-header times.
     vintages: Box<Vintage<CreationCohort<M>>>,
-    /// Coinblocks destroyed by each block: each spent output's BTC value
+    /// Coinblocks destroyed by each block: each spent output's DMD value
     /// multiplied by the blocks it stayed unspent. Published by cointime, beside the coinblocks
     /// created and stored.
     #[traversable(hidden)]

@@ -35,13 +35,13 @@ pub const AMOUNT_RANGE_NAMES: AmountRange<CohortName> = AmountRange {
     _10k_to_100k_sats: CohortName::new("10k_to_100k_sats", "10k-100k sats", "10K-100K Sats"),
     _100k_to_1m_sats: CohortName::new("100k_to_1m_sats", "100k-1M sats", "100K-1M Sats"),
     _1m_to_10m_sats: CohortName::new("1m_to_10m_sats", "1M-10M sats", "1M-10M Sats"),
-    _10m_to_100m_sats: CohortName::new("10m_to_100m_sats", "0.1-1 BTC", "0.1-1 BTC"),
-    _1_to_10_btc: CohortName::new("1_to_10_btc", "1-10 BTC", "1-10 BTC"),
-    _10_to_100_btc: CohortName::new("10_to_100_btc", "10-100 BTC", "10-100 BTC"),
-    _100_to_1k_btc: CohortName::new("100_to_1k_btc", "100-1k BTC", "100-1K BTC"),
-    _1k_to_10k_btc: CohortName::new("1k_to_10k_btc", "1k-10k BTC", "1K-10K BTC"),
-    _10k_to_100k_btc: CohortName::new("10k_to_100k_btc", "10k-100k BTC", "10K-100K BTC"),
-    over_100k_btc: CohortName::new("over_100k_btc", "100k+ BTC", "100K+ BTC"),
+    _10m_to_100m_sats: CohortName::new("10m_to_100m_sats", "0.1-1 DMD", "0.1-1 DMD"),
+    _1_to_10_btc: CohortName::new("1_to_10_btc", "1-10 DMD", "1-10 DMD"),
+    _10_to_100_btc: CohortName::new("10_to_100_btc", "10-100 DMD", "10-100 DMD"),
+    _100_to_1k_btc: CohortName::new("100_to_1k_btc", "100-1k DMD", "100-1K DMD"),
+    _1k_to_10k_btc: CohortName::new("1k_to_10k_btc", "1k-10k DMD", "1K-10K DMD"),
+    _10k_to_100k_btc: CohortName::new("10k_to_100k_btc", "10k-100k DMD", "10K-100K DMD"),
+    over_100k_btc: CohortName::new("over_100k_btc", "100k+ DMD", "100K+ DMD"),
 };
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
@@ -68,31 +68,31 @@ pub struct AmountRange<T, Z = T> {
     #[cfg_attr(feature = "storage", traversable(lead = "10,000 to 100,000 sats."))]
     _10k_to_100k_sats: T,
     /// Uses values of at least 100,000 and less than 1,000,000 satoshis.
-    #[cfg_attr(feature = "storage", traversable(lead = "100,000 sats to 0.01 BTC."))]
+    #[cfg_attr(feature = "storage", traversable(lead = "100,000 sats to 0.01 DMD."))]
     _100k_to_1m_sats: T,
     /// Uses values of at least 1,000,000 and less than 10,000,000 satoshis.
-    #[cfg_attr(feature = "storage", traversable(lead = "0.01 to 0.1 BTC."))]
+    #[cfg_attr(feature = "storage", traversable(lead = "0.01 to 0.1 DMD."))]
     _1m_to_10m_sats: T,
-    /// Uses values of at least 10,000,000 satoshis and less than 1 BTC.
-    #[cfg_attr(feature = "storage", traversable(lead = "0.1 to 1 BTC."))]
+    /// Uses values of at least 10,000,000 satoshis and less than 1 DMD.
+    #[cfg_attr(feature = "storage", traversable(lead = "0.1 to 1 DMD."))]
     _10m_to_100m_sats: T,
-    /// Uses values of at least 1 and less than 10 BTC.
-    #[cfg_attr(feature = "storage", traversable(lead = "1 to 10 BTC."))]
+    /// Uses values of at least 1 and less than 10 DMD.
+    #[cfg_attr(feature = "storage", traversable(lead = "1 to 10 DMD."))]
     _1_to_10_btc: T,
-    /// Uses values of at least 10 and less than 100 BTC.
-    #[cfg_attr(feature = "storage", traversable(lead = "10 to 100 BTC."))]
+    /// Uses values of at least 10 and less than 100 DMD.
+    #[cfg_attr(feature = "storage", traversable(lead = "10 to 100 DMD."))]
     _10_to_100_btc: T,
-    /// Uses values of at least 100 and less than 1,000 BTC.
-    #[cfg_attr(feature = "storage", traversable(lead = "100 to 1,000 BTC."))]
+    /// Uses values of at least 100 and less than 1,000 DMD.
+    #[cfg_attr(feature = "storage", traversable(lead = "100 to 1,000 DMD."))]
     _100_to_1k_btc: T,
-    /// Uses values of at least 1,000 and less than 10,000 BTC.
-    #[cfg_attr(feature = "storage", traversable(lead = "1,000 to 10,000 BTC."))]
+    /// Uses values of at least 1,000 and less than 10,000 DMD.
+    #[cfg_attr(feature = "storage", traversable(lead = "1,000 to 10,000 DMD."))]
     _1k_to_10k_btc: T,
-    /// Uses values of at least 10,000 and less than 100,000 BTC.
-    #[cfg_attr(feature = "storage", traversable(lead = "10,000 to 100,000 BTC."))]
+    /// Uses values of at least 10,000 and less than 100,000 DMD.
+    #[cfg_attr(feature = "storage", traversable(lead = "10,000 to 100,000 DMD."))]
     _10k_to_100k_btc: T,
-    /// Uses values of at least 100,000 BTC.
-    #[cfg_attr(feature = "storage", traversable(lead = "100,000 BTC or more."))]
+    /// Uses values of at least 100,000 DMD.
+    #[cfg_attr(feature = "storage", traversable(lead = "100,000 DMD or more."))]
     over_100k_btc: T,
 }
 

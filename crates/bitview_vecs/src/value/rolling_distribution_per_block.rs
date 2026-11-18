@@ -12,8 +12,7 @@ use vecdb::{Database, ReadableVec, Rw, StorageMode};
 use crate::{IndexSources, ValuePerBlock, WindowStarts, shapes::Windows};
 
 /// Stored rolling distribution statistics with statistic-before-window ids, such as
-/// `{name}_max_24h`; in dollars, over the window's blocks from the first exchange price (block
-/// 74,641) on, none before it.
+/// `{name}_max_24h`; in dollars, over the window's blocks.
 #[derive(Deref, DerefMut, Traversable)]
 pub struct RollingDistributionValuePerBlock<M: StorageMode = Rw> {
     #[deref]

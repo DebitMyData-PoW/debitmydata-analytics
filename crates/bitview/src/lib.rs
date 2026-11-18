@@ -39,7 +39,7 @@ use update::update;
 /// Fully resolved settings for one Bitview runner.
 pub struct RunConfig {
     pub client: Client,
-    /// Directory containing Bitcoin Core's block files.
+    /// Directory containing the DebitMyData node's block files.
     pub blocks_path: PathBuf,
     /// HTTP server and data-directory settings.
     pub server: ServerConfig,

@@ -8,7 +8,7 @@ use crate::{
     PRICED_VERSION, PricedAvgUsd, PricedRollingAvgFromHeight, shapes::Windows,
 };
 
-/// Lazy rolling averages for all 4 windows, as mean sats/cents with BTC/USD views.
+/// Lazy rolling averages for all 4 windows, as mean sats/cents with DMD/USD views.
 #[derive(Clone, Deref, DerefMut, Traversable)]
 pub struct LazyRollingAvgsAmountFromHeight(
     /// Arithmetic mean of the per-block values over the trailing window ending

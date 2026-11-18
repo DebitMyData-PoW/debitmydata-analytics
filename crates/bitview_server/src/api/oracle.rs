@@ -20,7 +20,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
     router.api_route(
         "/api/price",
         get_with(serve_price, |op| {
-            op.id("get_price")
+            op.id("get_live_price")
                 .tag(tags::ORACLE)
                 .summary("DMD reference price")
                 .description(

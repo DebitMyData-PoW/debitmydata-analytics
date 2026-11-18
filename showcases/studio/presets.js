@@ -147,7 +147,7 @@ function notYet(t, facts) {
   const nodes = new Set();
   if (!facts) return nodes;
   for (const [key, node] of entries(t.pools)) if (node.blockCount && !facts.pools.has(key.replace(/^_/, ""))) nodes.add(node);
-  for (const [key, node] of entries(t.age.halvingEpochs)) if (Number(key.slice(1)) * 210_000 > facts.height) nodes.add(node);
+  for (const [key, node] of entries(t.age.halvingEpochs)) if (Number(key.slice(1)) * 300_000 > facts.height) nodes.add(node);
   for (const [key, node] of entries(t.age.vintages)) if (Number(key.slice(1)) > facts.year) nodes.add(node);
   return nodes;
 }
@@ -174,7 +174,7 @@ export function studioPresets(client, facts) {
   // (Past Z, AA on, as Studio names layers.)
   const letter = (/** @type {number} */ i) => (i < 26 ? String.fromCharCode(65 + i) : String.fromCharCode(64 + Math.floor(i / 26)) + String.fromCharCode(65 + (i % 26)));
   /** The price, as its candles: in one color, the page's ink (rising hollow, falling filled say which). @returns {Layer} */
-  const price = () => ({ series: t.price.ohlc.name, label: "Price", type: "candles", color: "ink", colors: 1, priceLine: true });
+  const price = () => ({ series: t.price.ohlc.name, label: "Reference price", type: "candles", color: "ink", colors: 1, priceLine: true });
   /**
    * A chart: its layers, each with its pane (1 if none), and its panes' scales (a pane with the price, or `log` said,
    * logarithmic; else linear) and stacks.
@@ -259,8 +259,8 @@ export function studioPresets(client, facts) {
       const layers = windows(sums, "");
       return [...(layers.length ? [chart(name, titled(""), layers)] : []), ...(byDate(node.cumulative) ? [chart(`${name}, all time`, titled(", all time"), [series(node.cumulative, "All time", { color: "gray" })])] : [])];
     }
-    const charts = [chart(name, titled(""), [...windows(sums, "Bitcoin", { pick: btc }), ...windows(sums, "Dollars", { pick: usd, pane: 2 })])];
-    if (node.cumulative && byDate(btc(node.cumulative))) charts.push(chart(`${name}, all time`, titled(", all time"), [series(btc(node.cumulative), "Bitcoin", { color: "orange" }), ...(byDate(usd(node.cumulative)) ? [series(usd(node.cumulative), "Dollars", { color: "green", pane: 2 })] : [])]));
+    const charts = [chart(name, titled(""), [...windows(sums, "DMD", { pick: btc }), ...windows(sums, "Dollars", { pick: usd, pane: 2 })])];
+    if (node.cumulative && byDate(btc(node.cumulative))) charts.push(chart(`${name}, all time`, titled(", all time"), [series(btc(node.cumulative), "DMD", { color: "orange" }), ...(byDate(usd(node.cumulative)) ? [series(usd(node.cumulative), "Dollars", { color: "green", pane: 2 })] : [])]));
     return charts;
   };
   /**
@@ -603,10 +603,10 @@ export function studioPresets(client, facts) {
   };
 
   // (The halving epoch and the year now, by the chain's facts: without them, the fourth and this year.)
-  const epoch = Math.floor((facts?.height ?? 840_000) / 210_000), year = facts?.year ?? new Date().getUTCFullYear();
+  const epoch = Math.floor((facts?.height ?? 0) / 300_000), year = facts?.year ?? new Date().getUTCFullYear();
   const tree = [
     section("Price", [
-      chart("In dollars", "Bitcoin price", [price()]),
+      chart("In dollars", "DMD reference price", [price()]),
       chart("Sats per dollar", "Sats per dollar", [series(t.price.satsPerDollar, "Sats per dollar", { color: "orange" })], { log: [1] }),
       section("All-time high", [
         chart("Drawdown", "Price drawdown from its all-time high", [price(), series(m.ath.high, "All-time high", { color: "green" }), series(m.ath.drawdown, "Drawdown", { pane: 2, color: "red", type: "area" })]),
@@ -678,7 +678,8 @@ export function studioPresets(client, facts) {
         timeAboveChart(),
         chart("True market mean", "True market mean and AVIV", [price(), series(ct.prices.trueMarketMean.value, "True market mean", { color: "sky" }), series(ct.prices.trueMarketMean.aviv, "AVIV", { pane: 2, ...around(1) }), series(ct.prices.trueMarketMean.avivNupl, "AVIV NUPL", { pane: 3, ...baseline })], { log: [2] }),
       ]),
-      section("Rarity meter", [
+      // (Bitview's Rarity Meter: left out of DebitMyData's composition, calibrated on Bitcoin's history.)
+      ...(t.rarityMeter ? [section("Rarity meter", [
         ...entries(t.rarityMeter).filter(([key]) => ["full", "local", "cycle"].includes(key)).map(([key, node]) => section(`${key[0].toUpperCase()}${key.slice(1)}`, [
           chart("Bands", `Rarity meter bands, ${key}`, [price(), ...entries(node).filter(([k]) => Number.isFinite(percentile(k))).map(([k, value], i, all) => series(value, percentileLabel(percentile(k)), { color: ramp(all.length, 140, 360)[i], width: k === "median" ? 2 : 1 }))]),
           chart("Level and score", `Rarity meter level and score, ${key}`, [series(node.level, "Level", { ...baseline, type: "histogram" }), series(node.score, "Score", { pane: 2, ...baseline })]),
@@ -690,13 +691,13 @@ export function studioPresets(client, facts) {
           const label = EXTREMES[key]?.label ?? words(key), low = EXTREMES[key]?.low;
           return chart(label, `Rarity meter extremes: ${label}`, [series(own(node), label, { color: "orange", width: 2 }), ...bandLines(node, (v) => v, (p) => p === 50 || (low ? p <= 1 : p >= 99))], { log: [1] });
         })]),
-      ]),
+      ])] : []),
     ], { icon: "scale" }),
     section("Supply", [
       chart("Circulating", "Circulating supply", [series(sup.circulating, "Supply", { color: "orange" }), series(sup.marketCap.value, "Market cap", { color: "green", pane: 2 })], { log: [2] }),
       chart("Inflation", "Inflation rate", [series(sup.inflationRate, "Inflation rate", { color: "orange" }), series(ct.adjusted.inflationRate, "Cointime-adjusted", { color: "violet" })], { log: [1] }),
-      ...flow(sup.burned, "Burned", "Bitcoin burned"),
-      chart("Velocity", "Velocity", [series(sup.velocity.btc, "In bitcoin", { color: "orange" }), series(sup.velocity.usd, "In dollars", { color: "green" }), series(ct.adjusted.velocity.btc, "Cointime-adjusted, in bitcoin", { color: "violet", hidden: true }), series(ct.adjusted.velocity.usd, "Cointime-adjusted, in dollars", { color: "sky", hidden: true })]),
+      ...flow(sup.burned, "Burned", "DMD burned"),
+      chart("Velocity", "Velocity", [series(sup.velocity.btc, "In DMD", { color: "orange" }), series(sup.velocity.usd, "In dollars", { color: "green" }), series(ct.adjusted.velocity.btc, "Cointime-adjusted, in DMD", { color: "violet", hidden: true }), series(ct.adjusted.velocity.usd, "Cointime-adjusted, in dollars", { color: "sky", hidden: true })]),
     ], { icon: "coins" }),
     section("Holders", [
       ...holderSets(entries(t.holders), (members, by) => family(members, holderName, { by, urpd: (key) => URPD_HOLDERS[key], profile: by === "holder group" })),
@@ -748,7 +749,7 @@ export function studioPresets(client, facts) {
       ]),
       section("Difficulty", [
         chart("History", "Difficulty", [series(blocks.difficulty.value, "Difficulty", { color: "orange", shape: "steps" }), series(blocks.difficulty.adjustment, "Adjustment", { pane: 2, type: "histogram", color: "green", colorBelow: "red" })], { log: [1] }),
-        chart("Next adjustment", "Until the next difficulty adjustment", [series(blocks.difficulty.blocksToRetarget, "Blocks", { color: "sky" }), series(blocks.difficulty.daysToRetarget, "Days", { color: "orange", pane: 2 })]),
+        chart("Next period", "Until the next 2,016-block period (the difficulty itself adjusts at every block)", [series(blocks.difficulty.blocksToRetarget, "Blocks", { color: "sky" }), series(blocks.difficulty.daysToRetarget, "Days", { color: "orange", pane: 2 })]),
         chart("Epoch", "Difficulty epoch", [series(blocks.difficulty.epoch, "Epoch", { color: "gray" })]),
       ]),
       // (The subsidy's schedule, as Difficulty is the work's.)
@@ -851,7 +852,8 @@ export function studioPresets(client, facts) {
       section("Age bands", coinflowBands(cf.ageRanges)),
       section(holderName("mobile").name, weightedSets(cf.cohorts, "mobile", "immobile", "Mobile", "Immobile")),
     ], { icon: "swap" }),
-    section("Bedrock", [
+    // (Bitview's Bedrock: left out of DebitMyData's composition, calibrated on Bitcoin's history.)
+    ...(t.bedrock ? [section("Bedrock", [
       // (Each floor, its modes' over the price: how far weighting moves it.)
       section("Compare", entries(entries(t.bedrock)[0][1].floor).map(([key]) => chart(`${percentileLabel(percentile(key))} floor`, `Bedrock ${percentileLabel(percentile(key))} floor by mode`, [price(), ...entries(t.bedrock).map(([mode, node], i, all) => series(node.floor[key], modeName(mode), { color: ramp(all.length)[i] }))]))),
       ...entries(t.bedrock).map(([mode, node]) => {
@@ -881,7 +883,7 @@ export function studioPresets(client, facts) {
           chart("Supply-in-loss thresholds", `Bedrock's supply-in-loss thresholds, ${mode}`, entries(node.supplyInLossShareThreshold).map(([key, value], i, all) => series(value, percentileLabel(percentile(key)), { color: ramp(all.length, 25, 100)[i] }))),
         ]);
       }),
-    ], { icon: "layers" }),
+    ], { icon: "layers" })] : []),
   ];
 
   // ── Pieces the tree above uses ────────────────────────────────────────────
@@ -964,7 +966,7 @@ export function studioPresets(client, facts) {
    * cloud from the lowest to the highest. */
   function cloudsChart() {
     const groups = /** @type {[string, string[], string][]} */ ([["Short-term holders", ["under4m", "sth", "under6m"], HOLDER_COLORS.sth], ["All holders", ["all"], HOLDER_COLORS.all], ["Long-term holders", ["over4m", "lth", "over6m"], HOLDER_COLORS.lth]]);
-    return chart("Cost basis clouds", "Holder groups' cost basis ranges (Bitcoin clouds)", [
+    return chart("Cost basis clouds", "Holder groups' cost basis ranges (DMD clouds)", [
       price(),
       ...groups.flatMap(([label, keys, color]) => {
         const names = keys.flatMap((key) => [ct.cohorts[key].awake, cf.cohorts[key].mobile]).flatMap((cohort) => [cohort.costBasis.byCoin.realizedPrice.name, cohort.costBasis.byDollar.capitalizedPrice.name]);
@@ -1128,7 +1130,7 @@ export function studioPresets(client, facts) {
     const pool = ([, node, name]) => section(name, [
       ...counted(node.blockCount, "Blocks mined", `Blocks mined: ${name}`, node.blockShare),
       ...flow(node.coinbase, "Coinbase", `Coinbase rewards: ${name}`),
-      chart("Fees per block", `Fees per block: ${name}`, [...windows(node.fees.avg, "Bitcoin", { pick: btc }), ...windows(node.fees.avg, "Dollars", { pick: usd, pane: 2 })], { log: [1, 2] }),
+      chart("Fees per block", `Fees per block: ${name}`, [...windows(node.fees.avg, "DMD", { pick: btc }), ...windows(node.fees.avg, "Dollars", { pick: usd, pane: 2 })], { log: [1, 2] }),
       chart("Hash rate", `Hash rate: ${name}`, windows(node.hashrate, ""), { log: [1] }),
     ]);
     return [

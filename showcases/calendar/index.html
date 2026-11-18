@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <!-- Its launch from a home screen, every showcase's. -->
-    <script src="/assets/launch/launch.js" data-app="Calendar" data-color="#b3261e"></script>
+    <script src="/assets/launch/launch.js" data-app="Calendar" data-color="#c80815"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f3f2ec" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0c0b" />
-    <title>Calendar · Bitview</title>
-    <meta name="description" content="Every day of every year since 2009, the mining pool that found the most Bitcoin blocks, and every block of any day." />
+    <title>Calendar · DebitMyData Analytics</title>
+    <meta name="description" content="Every day since the first DebitMyData block, the mining pool that found the most blocks, and every block of any day." />
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
     <style>
       @font-face {
@@ -836,7 +836,7 @@
   <body>
     <div class="page">
       <header class="top">
-        <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+        <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />DebitMyData Analytics</a>
         <h1 class="sr">Calendar</h1>
         <button type="button" id="up" class="up" hidden></button>
         <nav class="stepper" aria-label="Year or day">
@@ -872,7 +872,10 @@
       // order. All from the server that serves the page: the blocks' times and pools by height, the pools' names, and,
       // for a day, each pool's count so far (its nth block ever).
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
-      const DAY = 86_400_000, GENESIS = "2009-01-03";
+      // (The DebitMyData chain's first block, 20 February 2026.)
+      const DAY = 86_400_000, GENESIS = "2026-02-20", FIRST_YEAR = 2026;
+      // (A halving every 300,000 blocks; after 32 of them the reward starts again at 35 DMD.)
+      const HALVING = 300_000, reward = (/** @type {number} */ n) => 35 / 2 ** (n % 32);
       const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
       const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
       // (Logos drawn for one ground: these have their own for the light.)
@@ -1209,11 +1212,11 @@
         $("up").setAttribute("aria-label", `Back to ${y}`);
         $("back").setAttribute("aria-label", day ? "The day before" : `${y - 1}`);
         $("forward").setAttribute("aria-label", day ? "The day after" : `${y + 1}`);
-        /** @type {HTMLButtonElement} */ ($("back")).disabled = day ? at.date <= GENESIS : y <= 2009;
+        /** @type {HTMLButtonElement} */ ($("back")).disabled = day ? at.date <= GENESIS : y <= FIRST_YEAR;
         /** @type {HTMLButtonElement} */ ($("forward")).disabled = day ? at.date >= today() : y >= Number(today().slice(0, 4));
         $("lede").textContent = day ? `${longDate(at.date)}: every block, where it fell in its 24 hours` : "Each day, the pool that found the most blocks; the stronger its tile, the more of the day's it found";
         $("leaders-title").textContent = day ? "Pools, by blocks" : "Pools, by days led";
-        document.title = `${day ? at.date : y} · Calendar · Bitview`;
+        document.title = `${day ? at.date : y} · Calendar · DebitMyData Analytics`;
       }
       function totals(/** @type {[string, string][]} */ pairs) {
         $("totals").replaceChildren(...pairs.map(([label, value]) => {
@@ -1353,9 +1356,9 @@
       function yearNotes(blocks, byDay, leaderOf, leads) {
         const notes = [], y = year();
         for (const block of blocks) {
-          if (!block.height || block.height % 210_000) continue;
-          const n = block.height / 210_000;
-          notes.push({ key: `halving-${n}`, date: block.day, text: `The ${ordinal(n)} halving, at block ${grouped(block.height)}: the reward falls to ₿${50 / 2 ** n}` });
+          if (!block.height || block.height % HALVING) continue;
+          const n = block.height / HALVING;
+          notes.push({ key: `halving-${n}`, date: block.day, text: `The ${ordinal(n)} halving, at block ${grouped(block.height)}: the reward falls to ${reward(n)} DMD` });
         }
         // (The whole days so far, an empty one too: from the year's first, or the chain's, to yesterday.)
         const whole = [];
@@ -1380,7 +1383,7 @@
         }
         // (A run at the year's edge may go on beyond it, unseen: said as the year's first or last days.)
         if (best && best.days > 1) {
-          const first = best.start === `${y}-01-01` && y > 2009, last = best.end === `${y}-12-31`;
+          const first = best.start === `${y}-01-01` && y > FIRST_YEAR, last = best.end === `${y}-12-31`;
           const text = first && last ? "led every day of the year" : first ? `led the year's first ${best.days} days, to ${shortDate(best.end)}` : last ? `led the year's last ${best.days} days` : `led ${best.days} days in a row, to ${shortDate(best.end)}`;
           notes.push({ key: "run", date: best.start, text: `${name(best.pool)} ${text}` });
         }
@@ -1464,7 +1467,7 @@
         for (const block of blocks) hours[Math.floor((block.at % 86_400) / 3600)]++;
         const busiest = hours.indexOf(Math.max(...hours));
         drawNotes([
-          ...blocks.filter((block) => block.height && block.height % 210_000 === 0).map((block) => ({ when: clock(block.at), text: `The ${ordinal(block.height / 210_000)} halving, at block ${grouped(block.height)}: the reward falls to ₿${50 / 2 ** (block.height / 210_000)}` })),
+          ...blocks.filter((block) => block.height && block.height % HALVING === 0).map((block) => ({ when: clock(block.at), text: `The ${ordinal(block.height / HALVING)} halving, at block ${grouped(block.height)}: the reward falls to ${reward(block.height / HALVING)} DMD` })),
           ...(longest ? [{ when: clock(longest.after.at), text: `The longest wait: ${span(longest.gap)}, after block ${grouped(longest.after.height)}` }] : []),
           ...(quickest ? [{ when: clock(quickest.after.at), text: `The quickest: ${span(quickest.gap)} between blocks ${grouped(quickest.after.height)} and ${grouped(quickest.block.height)}` }] : []),
           { when: `${String(busiest).padStart(2, "0")}:00`, text: `The busiest hour: ${hours[busiest]} ${hours[busiest] === 1 ? "block" : "blocks"}` },

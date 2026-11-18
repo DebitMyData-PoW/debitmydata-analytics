@@ -50,8 +50,7 @@ pub struct Realized<M: StorageMode = Rw> {
     )]
     pub sopr: RollingWindows<Multiple, M>,
     /// Gross realized profit and loss over the window divided by the realized cap; undefined
-    /// (null) when the realized cap is zero or the window reaches before the first exchange price
-    /// (block 74,641).
+    /// (null) when the realized cap is zero.
     #[traversable(
         lead = "Sell-side risk: realized profit and loss together, against the realized cap: how much value sellers move."
     )]

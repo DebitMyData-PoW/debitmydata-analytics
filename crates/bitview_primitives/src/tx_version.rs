@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use vecdb::Pco;
 
 /// Compact indexed transaction-version category. Values 1, 2, and 3 preserve
-/// those exact signed 32-bit Bitcoin transaction versions; 255 represents every
+/// those exact signed 32-bit transaction versions; 255 represents every
 /// other version.
 #[derive(
     Debug, Deref, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,

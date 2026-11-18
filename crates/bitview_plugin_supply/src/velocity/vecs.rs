@@ -4,7 +4,7 @@ use bitview_vecs::LazyPerBlock;
 
 #[derive(Clone, Traversable)]
 pub struct Vecs {
-    /// Trailing 365-day transfer volume in BTC divided by the all-chain supply
+    /// Trailing 365-day transfer volume in DMD divided by the all-chain supply
     /// at the represented block; undefined (null) when supply is zero.
     #[traversable(lead = "Velocity: how many times the supply changed hands over the past year.")]
     pub btc: LazyPerBlock<Ratio>,

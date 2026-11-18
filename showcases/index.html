@@ -10,18 +10,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#0d0c0b" />
-    <title>Bitview</title>
-    <meta name="description" content="Bitcoin's chain, read and measured: live apps, thousands of ready-made charts, and every series as data through an open API, on this server or your own." />
-    <!-- (Its share card, the billboard's first picture with Bitview's name: made by showcases/home.mjs --pictures.) -->
+    <title>DebitMyData Analytics</title>
+    <meta name="description" content="The DebitMyData (DMD) chain, read and measured: thousands of ready-made charts, live blocks and pools, and every series as data through an open API." />
+    <!-- (Its share card, the billboard's first picture with the site's name: made by showcases/home.mjs --pictures.) -->
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Bitview" />
-    <meta property="og:title" content="Bitview" />
-    <meta property="og:description" content="Bitcoin's chain, read and measured: live apps, thousands of charts, and every series as data." />
-    <meta property="og:url" content="https://bitview.space/" />
-    <meta property="og:image" content="https://bitview.space/assets/home/og.jpg" />
+    <meta property="og:site_name" content="DebitMyData Analytics" />
+    <meta property="og:title" content="DebitMyData Analytics" />
+    <meta property="og:description" content="The DebitMyData (DMD) chain, read and measured: thousands of charts, live blocks and pools, and every series as data." />
+    <meta property="og:url" content="https://analytics.debitmydata.io/" />
+    <meta property="og:image" content="https://analytics.debitmydata.io/assets/home/og.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Bitview: Bitcoin's price through the layers of what its holders paid, as Studio draws it" />
+    <meta property="og:image:alt" content="DebitMyData Analytics: charts of the DebitMyData chain" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
     <style>
@@ -70,8 +70,8 @@
         --live: light-dark(#0c7642, #3ccf7c);
         /* (Live's red: white words on it at 4.7:1.) */
         --red: #d93036;
-        --brand: oklch(64.34% 0.191 44.41);
-        --brand-text: light-dark(oklch(52% 0.16 44.41), var(--brand));
+        --brand: #e0303a;
+        --brand-text: light-dark(#b30d18, var(--brand));
         --sans: Inter, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
         --mono: Lilex, ui-monospace, "SF Mono", Menlo, monospace;
         --gutter: 16px;
@@ -471,10 +471,6 @@
             --art-top: 0.57;
           }
 
-          /* (Oracle's chart sits across its picture's middle: lowered, it sinks into the words' fade; kept at the top.) */
-          &[src$="/oracle.jpg"] {
-            --art-drop: 0px;
-          }
         }
 
         /* (Its words' ground: the picture darkened to the left and the foot, where they sit.) */
@@ -2156,7 +2152,7 @@
 
     <div class="edge" aria-hidden="true"></div>
     <header class="top">
-      <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+      <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />DebitMyData Analytics</a>
       <nav aria-label="Sections">
         <a href="#apps-title">Apps</a>
         <a href="#blocks-title">Blocks</a>
@@ -2167,12 +2163,12 @@
       </nav>
       <p class="status" id="status-bar" hidden>
         <span class="tip" id="tip"><span class="vh" id="tip-state"></span><b id="tip-height"></b></span>
-        <span id="price-panel" hidden><b class="num" id="price"></b><span class="vh" data-said></span></span>
+        <span id="price-panel" hidden title="DMD's reference price: the cost of mining one DMD, at least $0.001. Not a market price."><b class="num" id="price"></b><span class="vh" data-said></span></span>
         <span class="fee" id="fees-panel" hidden><b class="num" id="fee"></b> sat/vB<span class="vh" data-said></span></span>
       </p>
     </header>
 
-    <h1 class="vh">Bitview</h1>
+    <h1 class="vh">DebitMyData Analytics</h1>
 
     <section class="billboard" id="billboard" aria-roledescription="carousel" aria-label="Featured">
       <!-- (The first title, in the page itself: there from the first frame, its picture and its words; the script adds the
@@ -2201,7 +2197,7 @@
     <main id="shelves">
       <section class="shelf" aria-labelledby="apps-title"><h2 id="apps-title">Apps</h2></section>
       <section class="shelf" aria-labelledby="blocks-title"><h2 id="blocks-title">Latest blocks <span class="live">Live</span> <a href="/calendar/">Calendar<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
-      <section class="shelf" aria-labelledby="pools-title"><h2 id="pools-title">Top 10 pools this week <a href="/globe/">Globe<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
+      <section class="shelf" aria-labelledby="pools-title"><h2 id="pools-title">Top 10 pools this week <a href="/calendar/">Calendar<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
       <section class="shelf" aria-labelledby="charts-title"><h2 id="charts-title">Popular charts <a href="/studio/presets/">All charts<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
       <section class="shelf" aria-labelledby="topics-title"><h2 id="topics-title">Browse charts by topic <small id="topics-count"></small></h2></section>
       <section class="shelf" aria-labelledby="dev-title"><h2 id="dev-title">For developers</h2></section>
@@ -2211,20 +2207,20 @@
     <footer>
       <div class="columns">
         <div class="home">
-          <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+          <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />DebitMyData Analytics</a>
           <p class="server" id="server">This server: <span id="server-state">–</span><span id="server-more"></span></p>
-          <p class="fine"><a href="https://bitview.space/" id="public">bitview.space<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><span>Open source, MIT license</span></p>
+          <p class="fine"><a href="https://analytics.debitmydata.io/" id="public">analytics.debitmydata.io<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><span>Open source, MIT license. Built on <a href="https://github.com/bitcoinresearchkit/mono">Bitview</a></span></p>
         </div>
         <div id="footer-apps">
           <h3>Apps</h3>
         </div>
         <div>
           <h3>Developers</h3>
-          <a href="/api/">API</a><a href="/changes/">Changes</a><a href="/openapi.json">OpenAPI</a><a href="https://www.npmjs.com/package/bitview-client">JavaScript client<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="https://pypi.org/project/bitview-client/">Python client<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="https://crates.io/crates/bitview_client">Rust client<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="/llms.txt">llms.txt</a><a href="https://mcp.bitview.space/">MCP server<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a>
+          <a href="/api/">API</a><a href="/openapi.json">OpenAPI</a><a href="/llms.txt">llms.txt</a>
         </div>
         <div>
-          <h3>Run your own</h3>
-          <a href="/dev/">Guide</a><a href="/brk/">Bitcoin Research Kit</a><a href="https://perf.bitview.dev">Benchmarks<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="https://github.com/bitcoinresearchkit/mono">Source<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a>
+          <h3>DebitMyData</h3>
+          <a href="https://github.com/DebitMyData-PoW/debitmydata-analytics">Source<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="https://stats.debitmydata.io/">DMD Stats<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="https://pool.debitmydata.io/">DebitMyData pool<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a>
         </div>
       </div>
     </footer>
@@ -2264,7 +2260,8 @@
         const tier = Math.min(SI.length - 1, Math.floor(Math.log10(a) / 3));
         return `${Number((v / 1000 ** tier).toPrecision(4))}${SI[tier]}`;
       };
-      const dollars = (/** @type {number} */ v) => (v >= 1e6 ? `$${short(v)}` : `$${grouped(v)}`);
+      // (DMD's reference price is a fraction of a cent: under $100, its significant digits, $0.001.)
+      const dollars = (/** @type {number} */ v) => (v >= 1e6 ? `$${short(v)}` : v >= 100 ? `$${grouped(v)}` : `$${short(v)}`);
       const ago = (/** @type {number} */ seconds) => {
         const s = Math.max(0, Date.now() / 1000 - seconds);
         return s < 60 ? "just now" : s < 3600 ? `${Math.floor(s / 60)} min ago` : s < 86_400 ? `${Math.floor(s / 3600)} h ago` : `${Math.floor(s / 86_400)} d ago`;
@@ -2287,51 +2284,33 @@
       /** @typedef {{ id: string, name: string, kind?: string, line: string, about: string, href: string, live?: boolean, made?: string, copy?: string, face?: string }} Title */
       /** @type {Title[]} */
       const APPS = /** @type {any[]} */ ([
-        { id: "studio", kind: "Charts", line: "Chart any series: overlay, stack, derive, share.", href: "/studio/", made: "Every series Bitview computes from the chain" },
-        { id: "oracle", kind: "Price", line: "Bitcoin's price, read from the chain alone.", href: "/oracle/", live: true, made: "Round-dollar payments in each block" },
-        { id: "globe", kind: "Mining", line: "Where blocks are mined, live and since 2011.", href: "/globe/", live: true, made: "Each block's mining pool and its home country" },
-        { id: "trail", kind: "Supply", line: "Every coin by the price it last moved at, in 3D.", href: "/trail/", made: "Every unspent coin, by the price it last moved at" },
-        { id: "stack", kind: "Savings", line: "Bitcoin on a schedule, more when it's cheap.", href: "/stack/", made: "The daily price, Bedrock's floors, what young coins paid" },
-        { id: "compass", kind: "Market", line: "Where the market stands, and which way it's heading.", href: "/compass/", made: "The price, and what long- and short-term holders paid" },
+        { id: "studio", kind: "Charts", line: "Chart any series: overlay, stack, derive, share.", href: "/studio/", made: "Every series computed from the DebitMyData chain" },
         { id: "calendar", kind: "Mining", line: "Every day's leading pool, every block of any day.", href: "/calendar/", live: true, made: "Each block's mining pool" },
-        { id: "series", kind: "Catalogue", line: "Every series, what it is and how to fetch it.", href: "/series/", made: "Bitview's catalogue of every series it computes" },
-        { id: "logs", kind: "Server", line: "This server at work, live.", href: "/logs/", live: true, made: "This server's own log" },
+        { id: "series", kind: "Catalogue", line: "Every series, what it is and how to fetch it.", href: "/series/", made: "The catalogue of every series computed from the chain" },
       ]);
       // (The developers' named by what they're for, here; their words their pages'.)
       /** @type {Title[]} */
       const DEV = /** @type {any[]} */ ([
-        { id: "api", name: "API", line: "Every series, block and address, over plain HTTP.", href: "/api/", made: "Bitview's series, blocks, addresses and mempool" },
-        { id: "changes", name: "Changes", line: "Every release's notes, and every id it renamed or removed.", href: "/changes/", made: "Bitview's changelog, and each release's API against the one before it" },
-        { id: "run", name: "Run your own", line: "Bitview on your own node.", href: "/dev/", made: "Your own Bitcoin Core node", copy: "cargo install --locked bitviewd" },
-        { id: "brk", name: "Bitcoin Research Kit", line: "Rust crates for Bitcoin Core data.", href: "/brk/", made: "Bitcoin Core's RPC and block files" },
-        { id: "mcp", name: "For assistants", line: "Bitview for Claude, ChatGPT and any MCP client.", about: "Add Bitview's MCP server to Claude, ChatGPT or any MCP client, or hand one this server's llms.txt.", href: "/llms.txt", made: "Bitview's API, for an assistant", copy: "https://mcp.bitview.space/" },
+        { id: "api", name: "API", line: "Every series, block and address, over plain HTTP.", href: "/api/", made: "The DebitMyData chain's series, blocks, addresses and mempool" },
+        { id: "mcp", name: "For assistants", line: "This API, explained for Claude, ChatGPT and other assistants.", about: "Hand an assistant this server's llms.txt: what the API offers and how to find any series, in plain text.", href: "/llms.txt", made: "This server's API, for an assistant" },
       ]);
       /* from the apps */
       const FROM_APPS = {
-        "/studio/": { "name": "Studio", "about": "Chart any of Bitview's Bitcoin on-chain series, or start from thousands of ready-made charts: overlay, stack, derive with formulas, draw, and share a chart as a link. Free, in the browser." },
-        "/oracle/": { "name": "Oracle", "about": "Bitcoin's price, read from the chain alone: no exchange, no feed. Block by block, with the evidence it was read from, and how it works, simply." },
-        "/globe/": { "name": "Globe", "about": "Where Bitcoin's blocks are mined: every block by its mining pool's home country, live on a globe, and how that map has moved since 2011." },
-        "/trail/": { "name": "The Satoshi Trail", "about": "A moving 2.5D terrain view of Bitcoin's UTXO realized price distribution." },
-        "/stack/": { "name": "Stack", "about": "Dollar-cost averaging that saves from each all-time high and buys bitcoin from the cycle's floor: what any plan since 2010 would be worth, beside the plain plan buying the same each time, and how every start and length turned out." },
-        "/compass/": { "name": "Compass", "about": "Where Bitcoin's market stands, day by day since 2011: price against what its long-term and short-term holders paid, and which way their trends point: nine moods, from Fear to Optimism, and how long each has lasted." },
-        "/calendar/": { "name": "Calendar", "about": "Every day of every year since 2009, the mining pool that found the most Bitcoin blocks, and every block of any day." },
-        "/series/": { "name": "Series", "about": "Every series Bitview computes from the chain, browsed like files: what each one is, its intervals, its history drawn, and how to fetch it." },
-        "/logs/": { "name": "Logs", "about": "This Bitview server, live: requests a minute, response times, refusals and failures, each route, the last block, and every line it logs." },
-        "/api/": { "about": "Free Bitcoin on-chain analytics API: thousands of time series, blocks, transactions, addresses, the mempool and mining. No key, no account." },
-        "/changes/": { "about": "What each release of Bitview changed: its notes, and of its API, endpoints and parameters gone or changed and every series id renamed or removed, with where it went." },
-        "/dev/": { "about": "Bitview is an open-source Bitcoin data server that runs beside Bitcoin Core: about 1½ hours to a full index on a 16 GB Mac mini, 21,154 series, Studio, an HTTP API, generated clients and MCP." },
-        "/brk/": { "about": "Bitcoin Research Kit is a workspace of Rust crates for reading and working with Bitcoin Core data: RPC, block files, mempool, prices, types and storage." },
+        "/studio/": { "name": "Studio", "about": "Chart any of the DebitMyData chain's on-chain series, or start from thousands of ready-made charts: overlay, stack, derive with formulas, draw, and share a chart as a link. Free, in the browser." },
+        "/calendar/": { "name": "Calendar", "about": "Every day since the first DebitMyData block, the mining pool that found the most blocks, and every block of any day." },
+        "/series/": { "name": "Series", "about": "Every series computed from the DebitMyData chain, browsed like files: what each one is, its intervals, its history drawn, and how to fetch it." },
+        "/api/": { "about": "Free on-chain analytics API for the DebitMyData (DMD) chain: thousands of time series, blocks, transactions, addresses, the mempool and mining. No key, no account." },
       };
       /* /from the apps */
       for (const t of [...APPS, ...DEV]) Object.assign(t, /** @type {Record<string, object>} */ (FROM_APPS)[t.href]);
       for (const t of APPS) t.face = t.id;
       const ALL = [...APPS, ...DEV], byId = new Map(ALL.map((t) => [t.id, t]));
       /** The billboard's titles, in turn. */
-      const FEATURED = ["studio", "oracle", "globe", "trail", "stack", "calendar"].map((id) => /** @type {Title} */ (byId.get(id)));
+      const FEATURED = ["studio", "calendar", "series"].map((id) => /** @type {Title} */ (byId.get(id)));
 
       /** When each title was last opened on this device (ms), as stored now (another tab's opens kept; an earlier
        * page's { n, at } read as its at; anything else that isn't a finite number left out, on its own). */
-      const OPENS = "bitview.opened";
+      const OPENS = "dmd-analytics.opened";
       function readOpens() {
         try {
           const raw = JSON.parse(localStorage.getItem(OPENS) ?? "{}") ?? {};
@@ -2528,10 +2507,7 @@
       /** Each developer card's statement: large, in type, set here (the API's answer read live). @type {Record<string, () => HTMLElement>} */
       const STATEMENTS = {
         api: () => el("span", { className: "say" }, el("code", { className: "ask" }, el("b", {}, "GET"), "\u00a0/api/blocks/", el("wbr"), "tip/height"), el("code", { className: "big api-answer" }, "–")),
-        changes: () => el("span", { className: "say" }, el("code", { className: "ask" }, "utxos_2y_to_3y_old_…"), el("code", { className: "big" }, el("b", {}, "→"), "\u00a0age_2y_to_3y_…")),
-        run: () => el("span", { className: "say" }, el("code", { className: "big cmd" }, el("b", {}, "$"), " cargo install", el("br"), "--locked bitviewd"), el("span", { className: "small" }, "Linux · macOS · beside Bitcoin Core")),
-        brk: () => el("span", { className: "say crates" }, ...["rpc", "reader", "mempool", "oracle", "types", "store"].map((n) => el("code", {}, el("i", {}, "brk_"), n))),
-        mcp: () => el("span", { className: "say" }, el("code", { className: "big" }, "mcp.bitview.space"), el("span", { className: "small" }, "Claude · ChatGPT · any MCP client")),
+        mcp: () => el("span", { className: "say" }, el("code", { className: "big" }, "/llms.txt"), el("span", { className: "small" }, "Claude · ChatGPT · any assistant")),
       };
       /** A developer's card: its name, its statement; as its row draws it, wherever it's shown. */
       function card(/** @type {Title} */ t) {
@@ -2601,7 +2577,7 @@
         const url = new URL(t.href, location.href).href, label = el("span", {}, "Share"), copied = copiedOn(label);
         const button = el("button", { className: "secondary share", type: "button", hidden: !navigator.share && !navigator.clipboard }, icon("i-share"), label);
         button.addEventListener("click", () => {
-          if (navigator.share) navigator.share({ title: `${t.name} · Bitview`, url }).catch(() => {});
+          if (navigator.share) navigator.share({ title: `${t.name} · DebitMyData Analytics`, url }).catch(() => {});
           else navigator.clipboard.writeText(url).then(copied, () => {});
         });
         return button;
@@ -2658,7 +2634,7 @@
         const fee = feeRate(b.extras?.medianFee ?? 0), fees = Number(((b.extras?.totalFees ?? 0) / 1e8).toFixed(3));
         const tile = el("a", { className: "tile block", href: `/calendar/?view=day&date=${iso(b.timestamp)}` },
           el("div", { className: "head" }, el("div", {}, el("div", { className: "height" }, grouped(b.height)), when), logo(pool.slug, pool.name)),
-          el("div", {}, el("div", { className: "by" }, pool.name), el("div", { className: "facts" }, el("span", {}, `${grouped(b.tx_count)} txs`), el("span", { className: "sep" }, " · "), el("span", {}, `${fee} sat/vB`), el("span", { className: "fees" }, ` · ${fees} ₿ fees`))));
+          el("div", {}, el("div", { className: "by" }, pool.name), el("div", { className: "facts" }, el("span", {}, `${grouped(b.tx_count)} txs`), el("span", { className: "sep" }, " · "), el("span", {}, `${fee} sat/vB`), el("span", { className: "fees" }, ` · ${fees} DMD fees`))));
         tile.dataset.open = "calendar";
         tile.dataset.label = `Block ${grouped(b.height)}, mined by ${pool.name}`;
         tile.setAttribute("aria-label", `${tile.dataset.label}, ${when.textContent}`);
@@ -2694,8 +2670,8 @@
           // (Its share against the leader's, a bar along its foot: the ranking seen at once.)
           const bar = el("span", { className: "bar", ariaHidden: "true" });
           bar.style.setProperty("--of", String(p.blockCount / d.pools[0].blockCount));
-          const tile = el("a", { className: "rank", href: "/globe/" }, el("span", { className: "n", ariaHidden: "true" }, String(i + 1)), el("span", { className: "portrait" }, logo(p.slug, p.name), el("b", {}, p.name), el("small", {}, share, el("span", { className: "blocks" }, ` · ${grouped(p.blockCount)} blocks`)), bar));
-          tile.dataset.open = "globe";
+          const tile = el("a", { className: "rank", href: "/calendar/" }, el("span", { className: "n", ariaHidden: "true" }, String(i + 1)), el("span", { className: "portrait" }, logo(p.slug, p.name), el("b", {}, p.name), el("small", {}, share, el("span", { className: "blocks" }, ` · ${grouped(p.blockCount)} blocks`)), bar));
+          tile.dataset.open = "calendar";
           tile.setAttribute("aria-label", `${i + 1}: ${p.name}, ${share} of this week's blocks`);
           return el("li", {}, tile);
         }));
@@ -2705,16 +2681,16 @@
       /** @typedef {{ name: string, href: string, series: string[], colors: string[], log?: boolean, unit: (v: number) => string }} Chart */
       /** @type {Chart[]} */
       const CHARTS = [
-        { name: "MVRV", href: "/studio/presets/valuation/mvrv", series: ["mvrv"], colors: ["#ff8a3d"], unit: (v) => `${v.toFixed(2)}×` },
-        { name: "Price", href: "/studio/presets/price/in-dollars", series: ["price"], colors: ["#f6f3ee"], log: true, unit: (v) => dollars(v) },
         { name: "Hashrate", href: "/studio/presets/mining/hashing/hash-rate", series: ["hashrate"], colors: ["#3ccf7c"], log: true, unit: (v) => `${short(v).replace(/([A-Z])$/, "\u2009$1")}H/s` },
-        { name: "Market and realized cap", href: "/studio/presets/valuation/market-and-realized-cap", series: ["market_cap", "realized_cap"], colors: ["#f6f3ee", "#4cc9f0"], log: true, unit: (v) => dollars(v) },
-        { name: "Supply in profit", href: "/studio/presets/holders/all-coins/supply/in-profit-and-loss", series: ["supply_in_profit"], colors: ["#3ccf7c"], unit: (v) => `${short(v)}\u2009₿` },
-        { name: "NUPL", href: "/studio/presets/valuation/nupl", series: ["nupl"], colors: ["#c77dff"], unit: (v) => v.toFixed(2) },
         { name: "Difficulty", href: "/studio/presets/mining/difficulty/history", series: ["difficulty"], colors: ["#ffd166"], log: true, unit: (v) => short(v) },
-        { name: "Sats per dollar", href: "/studio/presets/price/sats-per-dollar", series: ["sats_per_dollar"], colors: ["#ff8a3d"], log: true, unit: (v) => `${grouped(v)}\u2009sats` },
-        { name: "Reserve risk", href: "/studio/presets/valuation/reserve-risk", series: ["reserve_risk"], colors: ["#ef476f"], log: true, unit: (v) => v.toPrecision(3) },
+        { name: "Reference price", href: "/studio/presets/price/in-dollars", series: ["price"], colors: ["#f6f3ee"], log: true, unit: (v) => dollars(v) },
+        { name: "Market and realized cap", href: "/studio/presets/valuation/market-and-realized-cap", series: ["market_cap", "realized_cap"], colors: ["#f6f3ee", "#4cc9f0"], log: true, unit: (v) => dollars(v) },
+        { name: "Circulating supply", href: "/studio/presets/supply/circulating", series: ["circulating_supply"], colors: ["#c80815"], unit: (v) => `${short(v)}\u2009DMD` },
         { name: "Inflation", href: "/studio/presets/supply/inflation", series: ["inflation_rate"], colors: ["#4cc9f0"], log: true, unit: (v) => `${v.toFixed(2)}%` },
+        { name: "Transactions", href: "/studio/presets/network/transactions/count", series: ["tx_count_sum_1m"], colors: ["#60a5fa"], unit: (v) => `${short(v)} a month` },
+        { name: "Funded addresses", href: "/studio/presets/addresses/count/funded-empty-and-total", series: ["funded_address_count"], colors: ["#f472b6"], unit: (v) => short(v) },
+        { name: "Unspent outputs", href: "/studio/presets/utxos/count", series: ["utxo_count"], colors: ["#38bdf8"], unit: (v) => short(v) },
+        { name: "DMD per dollar", href: "/studio/presets/price/sats-per-dollar", series: ["sats_per_dollar"], colors: ["#ff8a3d"], log: true, unit: (v) => `${grouped(v / 1e8)}\u2009DMD` },
       ];
       /** Each series' history, a month a point. @type {Map<string, number[]>} */
       const histories = new Map();
@@ -2853,7 +2829,6 @@
         ["coin-age", "Coin age", "#fb923c"],
         ["cointime", "Cointime", "#c084fc"],
         ["coinflow", "Coinflow", "#34d399"],
-        ["bedrock", "Bedrock", "#22d3ee", "realized_price"],
       ];
       const topics = row("topics-title");
       const topicTiles = TOPICS.map(([slug, name, hue, series]) => {
@@ -2914,7 +2889,7 @@
           : behind ? `<span class="behind">syncing</span>, block <b>${grouped(sync.indexed_height)}</b> of ${grouped(sync.tip_height)}, ${grouped(sync.blocks_behind)} to go`
           : `<span class="ok">synced</span> to block <b>${grouped(sync.indexed_height)}</b>`;
         const whole = (/** @type {string} */ s) => s.replaceAll(" ", " ");
-        $("server-more").textContent = `${health ? ` · ${whole(`Bitview ${health.version}`)} · ${whole(`up ${lasting(health.uptime_seconds)}`)}` : ""}${disk ? ` · ${whole(disk)}` : ""}`;
+        $("server-more").textContent = `${health ? ` · ${whole(`DebitMyData Analytics ${health.version}`)} · ${whole(`up ${lasting(health.uptime_seconds)}`)}` : ""}${disk ? ` · ${whole(disk)}` : ""}`;
         if (state === stateSaid) return;
         stateSaid = state;
         $("status").textContent = state === "unread" ? "This server's state can't be read." : behind ? `This server is syncing, ${grouped(sync.blocks_behind)} blocks behind.` : "This server is synced.";
@@ -2925,11 +2900,7 @@
         const parts = [
           part("price-panel", read("/api/v1/prices"), (p) => {
             $("price").textContent = dollars(p.USD);
-            facts.oracle = `<b>${dollars(p.USD)}</b> read from the chain just now`;
-            facts.stack = `A dollar buys <b>${grouped(1e8 / p.USD)} sats</b> today`;
-            refresh("oracle");
-            refresh("stack");
-          }).then((ok) => ok || forget("oracle", "stack")),
+          }),
           // (The next block's rate as it is, not rounded up to a whole one as the recommended ones are.)
           part("fees-panel", read("/api/v1/fees/precise"), (f) => ($("fee").textContent = feeRate(f.fastestFee))),
           read("/api/blocks/tip/height", "text").then((h) => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = grouped(Number(h)))), () => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = "not answering"))),
@@ -2940,19 +2911,14 @@
             if (b) facts.calendar = `Block <b>${grouped(b.height)}</b> by ${b.extras?.pool?.name ?? "an unknown pool"}, ${ago(b.timestamp)}`;
             refresh("calendar");
           }, () => (answered("blocks-title", blocks, false), forget("calendar"))),
-          rounds % 10 ? null : read("/api/v1/mining/pools/1w").then((d) => (drawPools(d), answered("pools-title", pools, true)), () => (answered("pools-title", pools, false), forget("globe"))),
-          rounds % 10 ? null : read("/api/series/bulk?series=supply_in_profit_share,circulating_supply&index=day1&start=-1").then(([share, supply]) => {
-            const pct = share.data.at(-1), coins = supply.data.at(-1);
-            if (pct != null && coins != null) facts.trail = `<b>${pct.toFixed(1)}%</b> of ${short(coins)} coins in profit today`;
-            refresh("trail");
-          }, () => forget("trail")),
+          rounds % 10 ? null : read("/api/v1/mining/pools/1w").then((d) => (drawPools(d), answered("pools-title", pools, true)), () => answered("pools-title", pools, false)),
           counted ? null : read("/api/series/count").then((c) => {
             facts.studio = facts.series = `<b>${grouped(c.distinct)}</b> series to chart`;
             refresh("studio");
             refresh("series");
             counted = true;
           }, () => {}),
-          rounds % 20 ? null : read("/api/server/disk").then((d) => (disk = `${d.brk} beside Bitcoin Core's ${d.bitcoin}`), () => {}),
+          rounds % 20 ? null : read("/api/server/disk").then((d) => (disk = `${d.brk} beside the DebitMyData node's ${d.bitcoin}`), () => {}),
           Promise.allSettled([read("/api/server/sync"), read("/health")]).then(([s, h]) => {
             [sync, health] = [s.status === "fulfilled" ? s.value : null, h.status === "fulfilled" ? h.value : null];
             showServer();
@@ -3042,7 +3008,7 @@
       });
       // (The foot's apps, named as their pages name them, in this page's order.)
       $("footer-apps").append(...APPS.map((t) => el("a", { href: t.href }, t.name)));
-      $("public").hidden = location.hostname === "bitview.space";
+      $("public").hidden = location.hostname === "analytics.debitmydata.io";
       round();
       setInterval(round, 30_000);
     </script>

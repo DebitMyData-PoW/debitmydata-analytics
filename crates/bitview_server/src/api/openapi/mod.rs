@@ -47,12 +47,13 @@ const TAGS: [(&str, &str); 12] = [
     ),
     (
         tags::SERIES,
-        "Thousands of historical Bitcoin series across calendar, block and entity indexes, as JSON \
-        or CSV. Series are renamed only in releases, each rename listed in the changelog.",
+        "Thousands of historical DebitMyData (DMD) series across calendar, block and entity \
+        indexes, as JSON or CSV. Amounts named `sats` are in DMD's smallest unit (10^-8 DMD); \
+        US dollar values use DMD's reference price, not a market price.",
     ),
     (
         tags::GENERAL,
-        "Difficulty adjustments and BTC/USD price data.\n\n\
+        "Difficulty adjustments and DMD's reference price in US dollars.\n\n\
         *[Mempool.space](https://mempool.space/docs/api/rest) compatible.*",
     ),
     (
@@ -101,20 +102,19 @@ const TAGS: [(&str, &str); 12] = [
         tags::UTXO_SET,
         "The UTXO set by creation height: what remains unspent of each block's outputs \
         after a block or a UTC day, and what a block or a day changed. Reconstructed from \
-        the UTXO set's history on demand. Supplies are in BTC; a set plus the next diff \
+        the UTXO set's history on demand. Supplies are in DMD; a set plus the next diff \
         gives the next set, exact when each supply is rounded to 8 decimals. A date \
         covers the day's published blocks, by each block's monotonic timestamp (the \
         running maximum of block times), like URPD.\n\n\
-        The set excludes `OP_RETURN` outputs and the genesis coinbase (unspendable), and \
-        the coinbases of blocks 91812 and 91722 once duplicates at 91842 and 91880 \
-        overwrite them; it includes zero-value outputs.",
+        The set excludes `OP_RETURN` outputs and the genesis coinbase (unspendable); it \
+        includes zero-value outputs.",
     ),
     (
         tags::URPD,
         "UTXO Realized Price Distribution. For each (cohort, block) pair, supply is \
         grouped by the price at which each UTXO was last moved. Distributions are \
         reconstructed from the UTXO set's history on demand.\n\n\
-        The buckets are columns, one entry per bucket in ascending `price`: `supply` (BTC), \
+        The buckets are columns, one entry per bucket in ascending `price`: `supply` (DMD), \
         `realized_cap` (USD, the sum of each coin's creation price times its supply, so not \
         `price * supply` once aggregated), and `unrealized_pnl` (USD, = `close * supply - \
         realized_cap`, can be negative).\n\n\
@@ -137,9 +137,9 @@ const TAGS: [(&str, &str); 12] = [
 
 pub fn create_openapi() -> OpenApi {
     let info = Info {
-        title: "Bitview".to_string(),
+        title: "DebitMyData Analytics".to_string(),
         description: Some(
-            r#"API for querying Bitcoin blockchain data, mempool state, and on-chain series.
+            r#"API for querying the DebitMyData (DMD) chain: blocks, addresses, mempool state, and on-chain series. Built on Bitview (Bitcoin Research Kit), adapted to DebitMyData.
 
 ### Features
 
@@ -147,15 +147,15 @@ pub fn create_openapi() -> OpenApi {
 - **Series**: Thousands of on-chain time-series across multiple indexes (date, block height, etc.)
 - **Multiple formats**: JSON and CSV output
 - **For LLMs**: [`/llms.txt`](/llms.txt) for discovery, [`/api.json`](/api.json) a compact custom summary of this spec for reading (not OpenAPI); build tools from [`/openapi.json`](/openapi.json)
-- **MCP**: Stateless, read-only access to these operations at [mcp.bitview.space](https://mcp.bitview.space/), with no authentication required
+- **Prices**: DMD has no market price yet. US dollar values use DMD's reference price: the cost of the electricity it takes to mine one DMD, never below $0.001 (`/api/price`)
 
 ### Quick start
 
 ```bash
-curl -s https://bitview.space/api/blocks/tip/height
-curl -s https://bitview.space/api/v1/fees/recommended
-curl -s https://bitview.space/api/mempool
-curl -s https://bitview.space/api/series/search?q=price
+curl -s https://analytics.debitmydata.io/api/blocks/tip/height
+curl -s https://analytics.debitmydata.io/api/price
+curl -s https://analytics.debitmydata.io/api/mempool
+curl -s https://analytics.debitmydata.io/api/series/search?q=supply
 ```
 
 ### Errors
@@ -176,30 +176,24 @@ Errors use `application/problem+json`:
 - **`type`**: Error category, following the status — `invalid_request` (4xx other than 404), `not_found` (404), `unavailable` (503), `timeout` (504), or `internal` (other 5xx); see the `ErrorType` schema
 - **`code`**: Machine-readable error code (e.g. `invalid_address`, `series_not_found`, `weight_exceeded`); see the `ErrorCode` schema
 
-### Client Libraries
-
-- [JavaScript](https://www.npmjs.com/package/bitview-client)
-- [Python](https://pypi.org/project/bitview-client/)
-- [Rust](https://crates.io/crates/bitview_client)
-- [MCP](https://mcp.bitview.space/)
-
 ### Links
 
-- [GitHub](https://github.com/bitcoinresearchkit/mono)
-- [Bitview Studio](https://bitview.space/studio/) - Charts of any series, built on this API"#
+- [GitHub](https://github.com/DebitMyData-PoW/debitmydata-analytics)
+- [Studio](https://analytics.debitmydata.io/studio/) - Charts of any series, built on this API
+- [Bitview](https://github.com/bitcoinresearchkit/mono) - the open-source project this server is built on"#
                 .to_string(),
         ),
         version: VERSION.to_string(),
         contact: Some(Contact {
-            name: Some("Bitview".to_string()),
-            url: Some("https://github.com/bitcoinresearchkit/mono".to_string()),
-            email: Some("support@bitview.space".to_string()),
+            name: Some("DebitMyData".to_string()),
+            url: Some("https://github.com/DebitMyData-PoW/debitmydata-analytics".to_string()),
             ..Contact::default()
         }),
         license: Some(License {
             name: "MIT".to_string(),
             url: Some(
-                "https://github.com/bitcoinresearchkit/mono/blob/main/LICENSE".to_string(),
+                "https://github.com/DebitMyData-PoW/debitmydata-analytics/blob/main/LICENSE"
+                    .to_string(),
             ),
             ..License::default()
         }),

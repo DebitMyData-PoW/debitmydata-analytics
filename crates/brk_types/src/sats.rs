@@ -12,7 +12,7 @@ use crate::{CheckedSub, unlikely};
 #[cfg(feature = "storage")]
 use vecdb::{OverflowVecValue, Pco, SaturatingAdd, Version};
 
-/// An amount in satoshis (100,000,000 to a bitcoin).
+/// An amount in satoshis (100,000,000 to a DMD).
 #[derive(
     Debug,
     PartialEq,
@@ -118,7 +118,7 @@ impl Sats {
         *self == Self::MAX
     }
 
-    /// The amount's value at `price` (cents per BTC), rounded to the nearest cent; NaN at a NaN
+    /// The amount's value at `price` (millionths of a dollar per DMD), rounded to the nearest millionth of a dollar; NaN at a NaN
     /// price. Widens to u128 when the u64 product or its rounding offset overflows.
     #[inline(always)]
     pub fn value_at(self, price: Cents) -> Cents {

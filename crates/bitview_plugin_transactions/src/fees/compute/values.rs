@@ -1,7 +1,7 @@
 use brk_types::Sats;
 
 /// Visit a complete block's inputs or outputs to fill per-transaction sums.
-/// Indexed Bitcoin transactions have at least one input and one output. Sums fit `Sats`: the
+/// Indexed transactions have at least one input and one output. Sums fit `Sats`: the
 /// coinbase's single input is the `Sats::MAX` sentinel, every other sum is bounded by supply.
 pub(super) fn sum<'a, I: Copy + Into<u64>>(
     starts: &'a [I],

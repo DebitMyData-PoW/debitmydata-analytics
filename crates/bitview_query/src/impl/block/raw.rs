@@ -1,7 +1,7 @@
 use std::io::Read;
 
 use crate::{ReadPin, check_bound};
-use bitcoin::{Block as BitcoinBlock, Weight, consensus::deserialize, p2p::Magic};
+use bitcoin::{Block as BitcoinBlock, Weight, consensus::deserialize};
 use brk_reader::BlkRead;
 use brk_types::{BlkPosition, BlockHash, Height};
 use vecdb::ReadableVec;
@@ -60,11 +60,11 @@ impl Query {
         if !(81..=MAX_BLOCK_BYTES).contains(&size) {
             return Err(Error::Internal("Invalid indexed block size"));
         }
-        // This reader indexes Bitcoin-mainnet blk records (same magic as scan).
+        // The node's blk records, with its network's bytes (the chain's magic, as scan).
         // Read framing and header together, before allocating the payload.
         let mut prefix = [0u8; 88];
         reader.read_exact(&mut prefix)?;
-        if prefix[..4] != Magic::BITCOIN.to_bytes()
+        if prefix[..4] != brk_types::chain::current().magic()
             || u64::from(u32::from_le_bytes(prefix[4..8].try_into().unwrap())) != size
         {
             return Err(Error::Internal("Block frame differs from index"));

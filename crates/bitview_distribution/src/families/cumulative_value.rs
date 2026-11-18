@@ -7,7 +7,7 @@ use brk_error::Result;
 use brk_types::{Cents, Sats, Version};
 use vecdb::{Database, Rw, StorageMode};
 
-/// One cohort's flow of bitcoin, stored as running totals `{name}_cumulative_{sats,cents}`.
+/// One cohort's flow of DMD, stored as running totals `{name}_cumulative_{sats,cents}`.
 #[derive(Traversable)]
 pub struct CumulativeValue<M: StorageMode = Rw> {
     #[traversable(flatten)]

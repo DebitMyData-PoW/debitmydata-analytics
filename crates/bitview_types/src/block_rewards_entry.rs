@@ -15,7 +15,7 @@ pub struct BlockRewardsEntry {
     /// Mean coinbase reward (subsidy + fees) per block in this bucket, rounded half up (sats)
     #[schemars(example = 315715861)]
     pub avg_rewards: Sats,
-    /// Mean BTC/USD spot price over the bucket's blocks (the price, not the rewards in USD)
+    /// Mean DMD/USD reference price over the bucket's blocks (the price, not the rewards in USD)
     #[serde(rename = "USD")]
     #[schemars(example = 84342.12)]
     pub usd: Dollars,

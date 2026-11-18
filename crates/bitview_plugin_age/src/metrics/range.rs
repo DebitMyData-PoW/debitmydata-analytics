@@ -30,29 +30,29 @@ pub struct RangeVecs<M: StorageMode = Rw> {
     #[deref_mut]
     #[traversable(flatten)]
     cohort: CreationCohort<M>,
-    /// Amount of unspent bitcoin that ages out of the range during the
+    /// Amount of unspent DMD that ages out of the range during the
     /// represented block interval.
     #[traversable(wrap = "supply", rename = "aged_out")]
-    #[traversable(lead = "Aged out: the bitcoin growing older than the range, leaving it.")]
+    #[traversable(lead = "Aged out: the DMD growing older than the range, leaving it.")]
     aged_out: LazyValuePerBlockCumulativeRolling,
     #[traversable(hidden)]
     aged_out_sources:
         SatsCents<PerBlockCumulativeRolling<Sats, M>, PerBlockCumulativeRolling<Cents, M>>,
     /// Coin days created in the range: its supply held for the block's
     /// duration, supply crossing into an older range counted in each range for its time there,
-    /// one coin day per BTC per day.
+    /// one coin day per DMD per day.
     #[traversable(wrap = "activity", rename = "coindays_created")]
-    #[traversable(lead = "Coin days created: holding time added, one per bitcoin per day.")]
+    #[traversable(lead = "Coin days created: holding time added, one per DMD per day.")]
     pub coindays_created: PerBlockCumulativeRolling<CoinDays, M>,
     /// Value of the outputs spent in each block whose spending price is greater than or equal to
     /// their creation price; USD at the spending block's spot price.
     #[traversable(wrap = "activity/transfer_volume", rename = "in_profit")]
-    #[traversable(lead = "Transfer volume in profit: the bitcoin spent at or above its cost.")]
+    #[traversable(lead = "Transfer volume in profit: the DMD spent at or above its cost.")]
     pub transfer_volume_in_profit: CumulativeValue<M>,
     /// Value of the outputs spent in each block whose spending price is below their creation
     /// price; USD at the spending block's spot price.
     #[traversable(wrap = "activity/transfer_volume", rename = "in_loss")]
-    #[traversable(lead = "Transfer volume in loss: the bitcoin spent below its cost.")]
+    #[traversable(lead = "Transfer volume in loss: the DMD spent below its cost.")]
     pub transfer_volume_in_loss: CumulativeValue<M>,
     #[traversable(hidden)]
     pub raw: RawSources<M>,
@@ -62,14 +62,14 @@ pub struct RangeVecs<M: StorageMode = Rw> {
 /// models. Zstd: u128 values that pco cannot encode, read only sequentially.
 #[derive(Traversable)]
 pub struct RawSources<M: StorageMode = Rw> {
-    /// Raw sum of creation price in cents per BTC multiplied by unspent
+    /// Raw sum of creation price in millionths of a dollar per DMD multiplied by unspent
     /// satoshis. Dividing by 100,000,000 converts it to realized
     /// capitalization in cents; dividing by unspent satoshis gives realized
-    /// price in cents per BTC.
+    /// price in millionths of a dollar per DMD.
     pub cap: M::Stored<ZstdVec<Height, CentsSats>>,
-    /// Raw sum of squared creation price in cents per BTC multiplied by
+    /// Raw sum of squared creation price in millionths of a dollar per DMD multiplied by
     /// unspent satoshis. Dividing it by the raw creation-price-times-satoshis
-    /// sum gives capitalized price in cents per BTC.
+    /// sum gives capitalized price in millionths of a dollar per DMD.
     pub capitalized_cap: M::Stored<ZstdVec<Height, CentsSquaredSats>>,
     /// Exact peak-regret product in this block.
     pub peak_regret: M::Stored<ZstdVec<Height, CentsSats>>,

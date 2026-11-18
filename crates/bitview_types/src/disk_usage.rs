@@ -7,11 +7,11 @@ pub struct DiskUsage {
     pub brk: String,
     /// brk data size in bytes
     pub brk_bytes: u64,
-    /// Human-readable Bitcoin blocks directory size
+    /// Human-readable node blocks directory size
     pub bitcoin: String,
-    /// Bitcoin blocks directory size in bytes
+    /// Node blocks directory size in bytes
     pub bitcoin_bytes: u64,
-    /// Ratio of BRK bytes to Bitcoin bytes; zero when Bitcoin bytes are zero.
+    /// Ratio of Bitview's bytes to the node's; zero when the node's are zero.
     pub ratio: f64,
 }
 

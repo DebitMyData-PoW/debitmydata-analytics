@@ -4,7 +4,6 @@ use bitview_distribution::metrics::ShareTotals;
 use bitview_plugin::{ImportContext, Plugin};
 use bitview_plugin_addresses::{ID as ADDRESSES_ID, Vecs as Addresses};
 use bitview_plugin_age::{ID as AGE_ID, Vecs as Age};
-use bitview_plugin_bedrock::{ID as BEDROCK_ID, Vecs as Bedrock};
 use bitview_plugin_blocks::{ID as BLOCKS_ID, Vecs as Blocks};
 use bitview_plugin_coinflow::{ID as COINFLOW_ID, Vecs as Coinflow};
 use bitview_plugin_cointime::{ID as COINTIME_ID, Vecs as Cointime};
@@ -20,7 +19,6 @@ use bitview_plugin_outputs::{ID as OUTPUTS_ID, Vecs as Outputs};
 use bitview_plugin_pools::{ID as POOLS_ID, Vecs as Pools};
 use bitview_plugin_price::{ID as PRICE_ID, Vecs as Price};
 use bitview_plugin_profitability::{ID as PROFITABILITY_ID, Vecs as Profitability};
-use bitview_plugin_rarity_meter::{ID as RARITY_METER_ID, Vecs as RarityMeter};
 use bitview_plugin_supply::{ID as SUPPLY_ID, Vecs as Supply};
 use bitview_plugin_transactions::{ID as TRANSACTIONS_ID, Vecs as Transactions};
 use bitview_plugin_utxo_set::{ID as UTXO_SET_ID, Vecs as UtxoSet};
@@ -169,7 +167,7 @@ impl DefaultPlugins {
         })?;
         let all_chain = holders.all_chain_sources();
 
-        let (cointime, coinflow, bedrock, entry, profitability) =
+        let (cointime, coinflow, entry, profitability) =
             thread::scope(|scope| -> Result<_> {
                 let cointime = large_stack_thread().spawn_scoped(scope, || {
                     timed_import(COINTIME_ID, || {
@@ -187,15 +185,6 @@ impl DefaultPlugins {
                 let coinflow = large_stack_thread().spawn_scoped(scope, || {
                     timed_import(COINFLOW_ID, || {
                         Coinflow::import(context, &mappings, &price, &age)
-                    })
-                })?;
-                let bedrock = large_stack_thread().spawn_scoped(scope, || {
-                    timed_import(BEDROCK_ID, || {
-                        Bedrock::import(
-                            context,
-                            &mappings,
-                            &price.spot.cents.height.read_only_boxed_clone(),
-                        )
                     })
                 })?;
                 let entry = large_stack_thread().spawn_scoped(scope, || {
@@ -221,31 +210,20 @@ impl DefaultPlugins {
                 Ok((
                     cointime.join().unwrap()?,
                     coinflow.join().unwrap()?,
-                    bedrock.join().unwrap()?,
                     entry.join().unwrap()?,
                     profitability.join().unwrap()?,
                 ))
             })?;
 
-        let (supply, rarity_meter) = thread::scope(|scope| -> Result<_> {
-            let supply = large_stack_thread().spawn_scoped(scope, || {
-                timed_import(SUPPLY_ID, || {
-                    Supply::import(
-                        context,
-                        &mappings,
-                        &window_starts,
-                        &holders,
-                        &all_chain,
-                        &transactions,
-                    )
-                })
-            })?;
-            let rarity_meter = large_stack_thread().spawn_scoped(scope, || {
-                timed_import(RARITY_METER_ID, || {
-                    RarityMeter::import(context, &mappings, &holders, &cointime, &coinflow)
-                })
-            })?;
-            Ok((supply.join().unwrap()?, rarity_meter.join().unwrap()?))
+        let supply = timed_import(SUPPLY_ID, || {
+            Supply::import(
+                context,
+                &mappings,
+                &window_starts,
+                &holders,
+                &all_chain,
+                &transactions,
+            )
         })?;
 
         info!("Imported all plugins in {:.2?}", import_start.elapsed());
@@ -266,8 +244,6 @@ impl DefaultPlugins {
             pools,
             cointime,
             coinflow,
-            bedrock,
-            rarity_meter,
             mappings,
             inputs,
             price,

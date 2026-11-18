@@ -27,7 +27,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
     ath: AthVecs<M>,
-    /// Bitcoin spot-price return over a trailing monotonic-time window: the
+    /// Reference-price return over a trailing monotonic-time window: the
     /// represented block's price divided by the last price before the window,
     /// minus one. Positive values mean price increased and negative values mean
     /// it decreased. Null when that price is zero (before the first price) or

@@ -1,5 +1,5 @@
-//! Spot-price coverage and dollar windows. Heights before the first exchange price (block
-//! 74,641) hold zero placeholders, not prices: a dollar value there is zero. A trailing window
+//! Spot-price coverage and dollar windows. Heights before the first price (none on DebitMyData,
+//! where every block has its reference price) hold zero placeholders, not prices: a dollar value there is zero. A trailing window
 //! reaching into them would read short (a sum, a change from zero), so a dollar window has no
 //! value (NaN) until it's priced ([`PricedWindow`]); a mean of per-block values is over the
 //! window's priced blocks ([`PricedRows`]), and a window may start at the first price instead

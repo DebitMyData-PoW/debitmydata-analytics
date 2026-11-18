@@ -14,7 +14,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const check = process.argv.includes("--check"), drop = process.argv.includes("--drop");
 const SERVER = process.argv.slice(2).find((arg) => !arg.startsWith("--")) ?? "http://127.0.0.1:3110";
 // (The address Studio's known by, on every domain it's served on: see ORIGIN in the page.)
-const ORIGIN = "https://bitview.space/studio";
+const ORIGIN = "https://analytics.debitmydata.io/studio";
 
 const html = readFileSync(join(HERE, "index.html"), "utf8");
 const { BitviewClient } = await import(pathToFileURL(join(HERE, "..", "modules", "bitview-client", "index.js")).href);

@@ -151,7 +151,7 @@ impl WeightedSum {
         f64::from(self) / f64::from(divisor)
     }
 
-    /// This sum over `divisor`, rounded to the nearest cent (halves up); undefined (NaN) without
+    /// This sum over `divisor`, rounded to the nearest millionth of a dollar (halves up); undefined (NaN) without
     /// `divisor`. The f64 quotient lands within a cent of it; the half-cent boundaries on either
     /// side of that one settle it exactly. Weighted means of prices stay under `Cents::MAX_FINITE`.
     #[inline]
