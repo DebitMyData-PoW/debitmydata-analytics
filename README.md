@@ -90,6 +90,11 @@ scripts/debitmydata-regtest-check.py --node-bin <folder with debitmydatad and de
    ```
    git clone https://github.com/DebitMyData-PoW/debitmydata-analytics.git /opt/debitmydata-analytics
    apt-get -y install tmux && tmux
+   ```
+
+   A green bar appears at the bottom: you are in tmux. Then, on its own:
+
+   ```
    /opt/debitmydata-analytics/deploy/debitmydata/install.sh
    ```
 
@@ -111,6 +116,8 @@ systemctl status dmd-analytics             # bitviewd
 journalctl -u dmd-analytics -n 50          # its log
 systemctl restart dmd-analytics
 curl -s https://analytics.debitmydata.io/api/price   # the reference price now
+dmd-tor-check --status                     # Tor: running, its version, connected, the node through it
+journalctl -u dmd-tor-check                # what the Tor check found and repaired
 ```
 
 ## Updating
@@ -148,6 +155,13 @@ you want that.
 - The server holds **no keys and no coins**: its node has no wallet, and its RPC answers this
   server only. bitviewd reads the node's block files (read only: the node's folder gives its group
   read access, never write) and asks the node over RPC.
+- **The node's IP address stays hidden too.** The node accepts no connections (`listen=0`) and
+  reaches its peers through **Tor** ([`tor.sh`](deploy/debitmydata/tor.sh): `proxy=127.0.0.1:9050`),
+  so its peers, and the explorers that list the peers they see, only get a Tor exit's address.
+  Tor comes from the Tor Project's own repository; unattended-upgrades installs each new version
+  within a day, and `dmd-tor-check` (every 30 minutes) restarts Tor when it stops or is cut off,
+  and upgrades it at once when the Tor network says its version is too old. Its problems go to its
+  log, and to Discord with a webhook in `/etc/default/dmd-tor-check` (`DMD_TOR_WEBHOOK=`).
 - **Only Cloudflare reaches ports 80 and 443** ([`cloudflare.sh`](deploy/debitmydata/cloudflare.sh);
   run it again if Cloudflare changes its addresses). bitviewd listens on this server only, behind
   nginx, which limits each visitor's requests and keeps the server's own log private.

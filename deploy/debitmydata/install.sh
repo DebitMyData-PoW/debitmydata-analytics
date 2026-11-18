@@ -12,8 +12,10 @@
 #   swap                   8 GB, when the server has less than 8 GB of memory: building bitviewd
 #                          needs more than 4 GB
 #   debitmydata.service    this server's own DebitMyData node (main chain, no wallet, outgoing
-#                          connections only, RPC on 127.0.0.1); bitviewd reads its block files
-#                          (group dmd, read only)
+#                          connections only, through Tor; RPC on 127.0.0.1); bitviewd reads its
+#                          block files (group dmd, read only)
+#   Tor                    tor.sh: from the Tor Project's repository, kept up to date by
+#                          unattended-upgrades, checked every 30 minutes (dmd-tor-check.timer)
 #   Rust                   the version the repository names (rust-toolchain.toml), in /opt/rust
 #   bitviewd               built from this repository when it changed, in /usr/local/bin
 #   dmd-analytics.service  bitviewd on 127.0.0.1:3110, its data in /var/lib/debitmydata-analytics
@@ -110,6 +112,10 @@ install -d -m 750 -o analytics -g analytics "$DATA" "$DATA/data"
 setfacl -R -m g::rX "$DMD_DATA"
 setfacl -R -d -m u::rwX,g::rX,o::- "$DMD_DATA"
 
+# ------------------------------------------------------------------ Tor, for the node
+step "Tor (the node reaches its peers through it, hiding this server's IP address)"
+"$HERE/tor.sh"
+
 # ------------------------------------------------------------------ the DebitMyData node
 step "The DebitMyData node (main chain)"
 if [ ! -s "$DMD_CONF" ]; then
@@ -117,6 +123,8 @@ if [ ! -s "$DMD_CONF" ]; then
 # The analytics server's own DebitMyData node: the main chain, no wallet, RPC on this server
 # only, outgoing connections only. bitviewd signs in with the cookie (group-readable) and reads
 # the block files.
+# Peers are reached through Tor, so that none of them sees this server's IP address (tor.sh).
+proxy=127.0.0.1:9050
 server=1
 disablewallet=1
 listen=0
@@ -214,6 +222,7 @@ for _ in $(seq 1 30); do
 done
 height="$(dmd-cli getblockcount 2>/dev/null || echo "not answering yet")"
 echo "The node: block $height (it syncs the chain first; dmd-cli getblockchaininfo)."
+dmd-tor-check --status | sed -n 's/^Tor: */Tor: /p; s/^The node: */The node: /p'
 systemctl is-active --quiet dmd-analytics || fail "dmd-analytics is not running: journalctl -u dmd-analytics -n 50"
 echo "bitviewd: running. It waits for the node to be synced, reads every block, then answers"
 echo "on https://$ANALYTICS_HOST (follow it: journalctl -fu dmd-analytics)."
