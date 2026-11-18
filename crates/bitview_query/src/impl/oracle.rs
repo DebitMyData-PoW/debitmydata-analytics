@@ -193,8 +193,13 @@ impl Query {
         ))
     }
 
+    /// DMD's reference price at the tip block, in US dollars: DebitMyData's price (the cost of
+    /// mining one DMD, at least $0.001), not the oracle's, which cannot read DMD's chain.
     pub fn live_price(&self) -> Result<Dollars> {
-        Ok(self.live_oracle()?.oracle.price_dollars())
+        let pin = self.pin_safe_lengths()?;
+        let tip = Query::tip_height(&pin)?;
+        let prices = &self.plugins().price.spot.cents.height;
+        Ok(prices.collect_one(tip).data()?.to_dollars())
     }
 
     /// The live tip oracle: the committed base, with the published pool's mempool outputs

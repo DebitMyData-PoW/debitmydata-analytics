@@ -10,7 +10,7 @@ use crate::{CheckedSub, unlikely};
 #[cfg(feature = "storage")]
 use vecdb::Pco;
 
-/// A signed amount in US cents (100 cents = 1 USD).
+/// A signed amount in US dollars, in millionths ([`crate::CENTS_PER_DOLLAR`] = 1 USD).
 ///
 /// `i64::MIN` is reserved as a NaN sentinel.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -107,7 +107,7 @@ impl From<CentsSigned> for i64 {
 impl From<Dollars> for CentsSigned {
     #[inline]
     fn from(value: Dollars) -> Self {
-        Self::from(*value * 100.0)
+        Self::from(*value * crate::CENTS_PER_DOLLAR as f64)
     }
 }
 
@@ -117,7 +117,7 @@ impl From<CentsSigned> for Dollars {
         if unlikely(value.is_nan()) {
             Dollars::NAN
         } else {
-            Self::from(value.0 as f64 / 100.0)
+            Self::from(value.0 as f64 / crate::CENTS_PER_DOLLAR as f64)
         }
     }
 }

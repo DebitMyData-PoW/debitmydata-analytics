@@ -14,7 +14,12 @@ use crate::{CheckedSub, unlikely};
 #[cfg(feature = "storage")]
 use vecdb::Pco;
 
-/// An amount in US cents (100 cents = 1 USD).
+/// Price units per US dollar. Bitview counts dollars in cents; DMD's prices are fractions of a
+/// cent (DebitMyData's reference rate is $0.001), so on DebitMyData its "cents" are millionths
+/// of a dollar: $0.001 is 1,000 of them. The types keep Bitview's names.
+pub const CENTS_PER_DOLLAR: u64 = 1_000_000;
+
+/// An amount in US dollars, in millionths ([`CENTS_PER_DOLLAR`] = 1 USD).
 ///
 /// Unsigned; `u64::MAX` is reserved as a NaN sentinel.
 #[derive(
@@ -101,13 +106,13 @@ impl Cents {
         }
     }
 
-    /// The whole sats one dollar buys at this price (cents per BTC), rounded down; zero at a zero
-    /// price. A NaN price has no whole-sats value.
+    /// The whole sats (10^-8 DMD) one dollar buys at this price (cents per DMD), rounded down;
+    /// zero at a zero price. A NaN price has no whole-sats value.
     #[inline]
     pub fn sats_per_dollar(self) -> Sats {
         debug_assert!(!self.is_nan(), "a NaN price has no sats per dollar");
         Sats::new(
-            (100 * Sats::ONE_BTC_U64)
+            (CENTS_PER_DOLLAR * Sats::ONE_BTC_U64)
                 .checked_div(self.inner())
                 .unwrap_or_default(),
         )
@@ -117,13 +122,13 @@ impl Cents {
         if unlikely(self.is_nan()) {
             Dollars::NAN
         } else {
-            Dollars::from(self.0 as f64 / 100.0)
+            Dollars::from(self.0 as f64 / CENTS_PER_DOLLAR as f64)
         }
     }
 
-    /// Rounds half up to `digits` significant digits of the amount in cents; amounts under
-    /// 10^`digits` cents stay exact. With 5 digits, 12345 (= $123.45) stays and 1234567
-    /// (= $12,345.67) becomes 1234600 (= $12,346.00).
+    /// Rounds half up to `digits` significant digits of the amount in cents (millionths of a
+    /// dollar); amounts under 10^`digits` stay exact. With 4 digits, 1234 (= $0.001234) stays and
+    /// 123456 (= $0.123456) becomes 123500 (= $0.1235).
     #[inline]
     pub fn round_to_significant(self, digits: u32) -> Self {
         if unlikely(self.is_nan()) {
@@ -143,7 +148,7 @@ impl Cents {
 impl From<Dollars> for Cents {
     #[inline]
     fn from(value: Dollars) -> Self {
-        Self::from(f64::from(value) * 100.0)
+        Self::from(f64::from(value) * CENTS_PER_DOLLAR as f64)
     }
 }
 

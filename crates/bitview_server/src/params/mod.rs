@@ -29,7 +29,6 @@ mod pool_slug_param;
 #[cfg(feature = "series")]
 mod series_param;
 #[cfg(feature = "price")]
-mod start_param;
 #[cfg(feature = "chain")]
 mod time_period_param;
 #[cfg(feature = "chain")]
@@ -82,7 +81,6 @@ pub use pool_slug_param::*;
 #[cfg(feature = "series")]
 pub use series_param::*;
 #[cfg(feature = "price")]
-pub use start_param::*;
 #[cfg(feature = "chain")]
 pub use time_period_param::*;
 #[cfg(feature = "chain")]

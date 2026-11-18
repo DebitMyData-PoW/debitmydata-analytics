@@ -5,7 +5,8 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 /// Aggregation strategy for URPD buckets.
-/// Options: raw (no aggregation), lin200/lin500/lin1000 (linear $200/$500/$1000),
+/// Options: raw (no aggregation), lin200/lin500/lin1000 (linear: $0.0002/$0.0005/$0.001, that
+/// many millionths of a dollar, for DMD's prices),
 /// log10/log50/log100/log200/log500/log1000/log2000 (logarithmic, that many buckets per decade).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Deserialize, Serialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
@@ -52,9 +53,9 @@ impl UrpdAggregation {
         let linear = |size: u64| price_cents / size * size;
         let buckets_per_decade: u32 = match self {
             Self::Raw => return price_cents,
-            Self::Lin200 => return linear(20_000),
-            Self::Lin500 => return linear(50_000),
-            Self::Lin1000 => return linear(100_000),
+            Self::Lin200 => return linear(200),
+            Self::Lin500 => return linear(500),
+            Self::Lin1000 => return linear(1_000),
             Self::Log10 => 10,
             Self::Log50 => 50,
             Self::Log100 => 100,

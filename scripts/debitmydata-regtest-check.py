@@ -5,8 +5,8 @@ It makes a chain with every address type (D…-style legacy, P2SH-SegWit, dm…1
 and spends between them, and a whole reward cycle (regtest halves the reward every 150 blocks
 and starts again at block 4,800), lets bitviewd index it, then compares what bitviewd says with
 what the node says: the tip, every address's balance (scantxoutset), the coins in existence
-(gettxoutsetinfo), each block's reward (getblockstats) and the addresses of the coinbase
-outputs.
+(gettxoutsetinfo), each block's reward (getblockstats), the addresses of the coinbase outputs,
+and the reference price ($0.001 at a test chain's difficulty) with the market cap it gives.
 
     scripts/debitmydata-regtest-check.py --node-bin <folder with debitmydatad, debitmydata-cli> \\
         --bitviewd target/debug/bitviewd [--blocks 5000] [--work /tmp/dmd-regtest-check]
@@ -60,6 +60,9 @@ class Node:
 
     def start(self) -> None:
         self.folder.mkdir(parents=True, exist_ok=True)
+        # Without a config file the node writes one with the public network's seeds, which a
+        # test chain refuses on its next start: an empty one.
+        (self.folder / "debitmydata.conf").write_text("")
         subprocess.run(
             [self.bin / "debitmydatad", *self.base, "-daemon", "-listen=0", "-server=1", "-txindex=1"],
             check=True,
@@ -229,8 +232,22 @@ def check(port: int, node: Node, tip: int, addresses: list[str], descriptors: li
         round(Decimal(info["total_amount"]) * DATA_PER_DMD),
     )
     same("unspent outputs", utxo_set["count"], info["txouts"])
-    same("circulating supply series", Decimal(str(get(port, "/api/series/circulating_supply/height/latest"))),
-         Decimal(info["total_amount"]))
+    same(
+        "circulating supply series",
+        Decimal(str(get(port, "/api/series/circulating_supply/height/latest"))),
+        Decimal(info["total_amount"]),
+    )
+
+    # the reference price: a test chain's difficulty is tiny, so its mining cost is far below
+    # the minimum rate, $0.001 per DMD, at every block (the formula's own test: reference.rs)
+    same("price now", get(port, "/api/price"), 0.001)
+    prices = get(port, f"/api/series/price/height?start=0&end={tip + 1}")["data"]
+    same("price of every block", set(prices), {0.001})
+    same(
+        "market cap",
+        round(Decimal(str(get(port, "/api/series/market_cap/height/latest"))), 6),
+        round(Decimal(info["total_amount"]) * Decimal("0.001"), 6),
+    )
 
     # every address's balance and coins, from the node's own coins
     for address, descriptor in zip(addresses, descriptors, strict=True):
@@ -256,8 +273,11 @@ def check(port: int, node: Node, tip: int, addresses: list[str], descriptors: li
         block_hash = node.cli("getblockhash", height)
         ours = get(port, f"/api/block/{block_hash}/txs")[0]["vout"][0]
         theirs = node.cli("getblock", block_hash, 2)["tx"][0]["vout"][0]["scriptPubKey"]
-        same(f"coinbase address of block {height}", ours.get("scriptpubkey_address"),
-             theirs.get("address"))
+        same(
+            f"coinbase address of block {height}",
+            ours.get("scriptpubkey_address"),
+            theirs.get("address"),
+        )
 
 
 if __name__ == "__main__":

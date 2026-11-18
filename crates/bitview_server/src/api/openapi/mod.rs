@@ -34,7 +34,7 @@ pub mod tags {
     pub const FEES: &str = "Fees";
     pub const MEMPOOL: &str = "Mempool";
     pub const TRANSACTIONS: &str = "Transactions";
-    pub const ORACLE: &str = "Oracle";
+    pub const ORACLE: &str = "Price";
     pub const UTXO_SET: &str = "UTXO Set";
     pub const URPD: &str = "URPD";
 }
@@ -90,13 +90,12 @@ const TAGS: [(&str, &str); 12] = [
     ),
     (
         tags::ORACLE,
-        "On-chain BTC/USD price derived purely from round-dollar payment patterns in \
-        transaction outputs, with no external price feed. Payment activity is binned on a \
-        log scale, and a smoothed EMA over recent blocks locates the price.\n\n\
-        The live price is at `/api/oracle/price`, confirmed per-height price history at \
-        `/api/series/price/height`. How it read each block (what it counted, where it looked, what \
-        it found) is at `/api/oracle/blocks/{height}`, and now at `/api/oracle/live`; the payments \
-        behind its prices, 144 blocks at a time, at `/api/oracle/payments/{start}`.",
+        "DMD's reference price in US dollars: DebitMyData's price, the cost of the electricity \
+        it takes to mine one DMD (the chain's work over the last 4,032 blocks, at 20 J/TH and \
+        $0.06 per kWh, divided by the block reward), never below DebitMyData's minimum rate of \
+        $0.001. The DebitMyData Agent Gateway charges with it. DMD has no market price yet: this \
+        is not one.\n\n\
+        The price now is at `/api/price`, the price of every block at `/api/series/price/height`.",
     ),
     (
         tags::UTXO_SET,
@@ -121,7 +120,7 @@ const TAGS: [(&str, &str); 12] = [
         realized_cap`, can be negative).\n\n\
         Aggregate with the `agg` query parameter:\n\
         - `raw`: one bucket per rounded price (default).\n\
-        - `lin200` / `lin500` / `lin1000`: linear buckets, $200 / $500 / $1000 wide.\n\
+        - `lin200` / `lin500` / `lin1000`: linear buckets, $0.0002 / $0.0005 / $0.001 wide.\n\
         - `log10` / `log50` / `log100` / `log200` / `log500` / `log1000` / `log2000`: logarithmic \
         buckets, N bins per price decade.\n\n\
         Weight supply with the `weight` query parameter:\n\

@@ -8,7 +8,8 @@ use serde::{Deserialize, Serialize};
 use crate::unlikely;
 
 /// Compact unsigned cents (u32) - memory-efficient for map keys.
-/// Supports finite values from $0.00 to $42,949,672.94; larger ones saturate there.
+/// Supports finite values from $0 to $4,294.967294 (millionths of a dollar, as
+/// [`brk_types::CENTS_PER_DOLLAR`]); larger ones saturate there.
 /// `u32::MAX` is reserved as a NaN sentinel.
 #[derive(
     Debug,
@@ -66,7 +67,7 @@ impl CentsCompact {
         if unlikely(self.is_nan()) {
             Dollars::NAN
         } else {
-            Dollars::from(self.0 as f64 / 100.0)
+            Dollars::from(self.0 as f64 / brk_types::CENTS_PER_DOLLAR as f64)
         }
     }
 
@@ -111,7 +112,7 @@ impl From<Dollars> for CentsCompact {
         } else if f < 0.0 {
             Self::ZERO
         } else {
-            let cents = (f * 100.0).round();
+            let cents = (f * brk_types::CENTS_PER_DOLLAR as f64).round();
             debug_assert!(
                 cents < u32::MAX as f64,
                 "price ${f} exceeds CentsCompact finite range"
