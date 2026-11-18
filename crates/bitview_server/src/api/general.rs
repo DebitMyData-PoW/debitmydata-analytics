@@ -27,7 +27,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 op.id("get_difficulty_adjustment")
                     .tag(tags::GENERAL)
                     .summary("Difficulty adjustment")
-                    .description("Get current difficulty adjustment progress and estimates.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustment)*")
+                    .description("Progress through the current 2,016-block period and its estimates, as mempool.space reports a difficulty epoch. DebitMyData's difficulty itself adjusts at every block (LWMA): the period is Bitview's, for comparing.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustment)*")
                     .json_response::<DifficultyAdjustment>()
                     .not_modified()
             },

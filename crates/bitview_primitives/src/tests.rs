@@ -31,3 +31,28 @@ fn cents_compact_saturates() {
     assert!(!top.is_nan());
     assert_eq!(CentsCompact::from(Cents::from(12_345_u64)).inner(), 12_345);
 }
+
+/// DebitMyData's pool is known by the text it writes in its blocks' coinbase.
+#[test]
+fn the_debitmydata_pool() {
+    let pools = crate::pools();
+    let pool = pools.find_from_coinbase_tag("/YiiMP/ Official").unwrap();
+    assert_eq!(
+        (pool.slug, pool.name),
+        (PoolSlug::DebitMyData, "DebitMyData Pool")
+    );
+    assert_eq!(
+        pools.get(PoolSlug::DebitMyData).link(),
+        "https://pool.debitmydata.io"
+    );
+    assert!(
+        pools
+            .find_from_coinbase_tag("/Foundry USA Pool #dropgold/")
+            .is_none()
+    );
+    assert_eq!(pools.len(), 2); // with Unknown
+    assert_eq!(
+        PoolSlug::from_str("debitmydata").unwrap(),
+        PoolSlug::DebitMyData
+    );
+}
