@@ -1,0 +1,30 @@
+[Unit]
+Description=DebitMyData Analytics (bitviewd): the chain's series, Studio and the API
+After=network-online.target debitmydata.service
+Wants=network-online.target debitmydata.service
+
+[Service]
+User=analytics
+Group=analytics
+# Reads the node's block files and its cookie (group dmd, read only)
+SupplementaryGroups=dmd
+Environment=HOME=/var/lib/debitmydata-analytics
+ExecStart=/usr/local/bin/bitviewd --bitviewdir /var/lib/debitmydata-analytics/data --bitcoindir /var/lib/debitmydata --rpcport 18557 --serverbind 127.0.0.1 --serverport 3110
+Restart=always
+RestartSec=10
+TimeoutStopSec=300
+LimitNOFILE=65536
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/debitmydata-analytics
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target

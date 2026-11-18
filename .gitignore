@@ -16,6 +16,7 @@ _*
 !__*.py
 /*.md
 !/TODO.md
+!/README.md
 /*.py
 /*.json
 /*.html
