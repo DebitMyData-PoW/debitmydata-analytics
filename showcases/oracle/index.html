@@ -331,7 +331,7 @@
       .price-line {
         fill: none;
         stroke: var(--ink);
-        stroke-width: 1.6;
+        stroke-width: 1.2;
         stroke-linejoin: round;
         stroke-linecap: round;
       }
@@ -1317,10 +1317,10 @@
       /** A square's share of its column's most readings, to this power: only the closest burn, the rest fade. */
       const HOT = 1.5;
       /** The line's own light: how strong (Bitview's is 1), and how fast it fades either side of it, in rows. */
-      const LIFT = 0.8, FADE = 2.5;
+      const LIFT = 0.8, FADE = 3.3;
       /** The glow's far reach: how bright it is at most beside the line (dim colors only), and how fast it fades, in
        * rows: it burns into the background over a dozen rows either side, as Bitview's. */
-      const HALO = 0.45, REACH = 9;
+      const HALO = 0.45, REACH = 12;
       /** The grid Bitview's has (its round bitcoin amounts read as round dollars draw rows at round prices; its blocks
        * of many or few payments, brighter or darker columns): here faint rows at round values and columns at round
        * times, GRID bright at most, and columns brighter where blocks came faster (their pace, to the STRIPE power). */
@@ -1407,6 +1407,8 @@
         probe.remove();
         return rgb;
       }
+      /** The squares' side, in CSS pixels: Bitview's are a little under 8. */
+      const SQUARE = 7.5;
       /** How near the line a square is, `d` rows from it: 1 on it, fading either side. */
       const nearLine = (/** @type {number} */ d) => Math.exp(-Math.abs(d) / FADE);
       /** A steady random number from 0 to 1 for a square. */
@@ -1443,9 +1445,9 @@
         }
         return out;
       }
-      /** The squares, over the whole chart, as Bitview's Oracle draws its: rows about 10px, columns as wide, each over the
-       * points under it. A square is the readings it holds, brightest where its column's are densest, lifted softly
-       * around the line; gray where no block is read (yet). */
+      /** The squares, over the whole chart, as Bitview's Oracle draws its: rows of about SQUARE px, columns as wide,
+       * each over the points under it. A square is the readings it holds, brightest where its column's are densest,
+       * lifted softly around the line; gray where no block is read (yet). */
       function drawHeat(/** @type {ReturnType<typeof frame>} */ f) {
         const ratio = devicePixelRatio || 1;
         heat.width = Math.round(f.w * ratio);
@@ -1461,12 +1463,12 @@
         };
         // (Its 256 steps written once.)
         const fills = Array.from({ length: 256 }, (_, i) => `rgba(${ramp(i / 255)},${(0.06 + (0.94 * i) / 255).toFixed(3)})`), gray = `rgba(${ink},0.035)`;
-        const rows = Math.max(3, Math.round(f.h / 10)), side = f.h / rows, cols = Math.max(3, Math.round(f.w / side)), width = f.w / cols;
+        const rows = Math.max(3, Math.round(f.h / SQUARE)), side = f.h / rows, cols = Math.max(3, Math.round(f.w / side)), width = f.w / cols;
         const colOf = (/** @type {number} */ k) => Math.max(0, Math.min(cols - 1, Math.floor(f.x(k) / width)));
         const sums = Array.from({ length: cols }, () => new Float64Array(rows)), seen = new Float64Array(cols);
         // (How much each square is the line's: over the column's points, each its share.)
         const lift = Array.from({ length: cols }, () => new Float64Array(rows)), picks = new Float64Array(cols);
-        const halo = Array.from({ length: cols }, () => new Float64Array(rows)), reach = Math.ceil(REACH * 5);
+        const halo = Array.from({ length: cols }, () => new Float64Array(rows)), reach = Math.ceil(REACH * 4);
         // (Each column's first and last time, for how fast its blocks came.)
         const first = new Float64Array(cols).fill(Infinity), last = new Float64Array(cols).fill(-Infinity);
         points.forEach((pt, k) => {
@@ -1474,7 +1476,7 @@
           picks[c]++;
           first[c] = Math.min(first[c], pt.t);
           last[c] = Math.max(last[c], pt.t);
-          for (let r = Math.max(0, Math.floor(on) - 10); r <= Math.min(rows - 1, Math.floor(on) + 10); r++) lift[c][r] += nearLine(r + 0.5 - on);
+          for (let r = Math.max(0, Math.floor(on) - 14); r <= Math.min(rows - 1, Math.floor(on) + 14); r++) lift[c][r] += nearLine(r + 0.5 - on);
           for (let r = Math.max(0, Math.floor(on) - reach); r <= Math.min(rows - 1, Math.floor(on) + reach); r++) halo[c][r] += Math.exp(-Math.abs(r + 0.5 - on) / REACH);
         });
         // (Each block in the column its point falls in. The frame's y over a row's height, of a logarithm, worked out
