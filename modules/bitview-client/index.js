@@ -1914,6 +1914,156 @@ const _s = (children) => (c, b) => _n(c, b, children);
 
 /**
  * @typedef {{
+ *   btc: SeriesPattern1<?Bitcoin>,
+ *   usd: SeriesPattern1<?Dollars>,
+ *   marketCap: SeriesPattern1<?Dollars>,
+ * }} UnweightedEntrySupplyBelowP99_9Floor
+ */
+const _UnweightedEntrySupplyBelowP99_9Floor = _s({
+  btc: [_i1, 'bedrock_unweighted_entry_supply_*'],
+  usd: [_i1, 'bedrock_unweighted_entry_supply_*_usd'],
+  marketCap: [_i1, 'bedrock_unweighted_entry_market_cap_*'],
+});
+
+/**
+ * @typedef {{
+ *   btc: SeriesPattern1<?Bitcoin>,
+ *   usd: SeriesPattern1<?Dollars>,
+ *   marketCap: SeriesPattern1<?Dollars>,
+ * }} MobileEntrySupplyBelowP99_9Floor
+ */
+const _MobileEntrySupplyBelowP99_9Floor = _s({
+  btc: [_i1, 'bedrock_mobile_entry_supply_*'],
+  usd: [_i1, 'bedrock_mobile_entry_supply_*_usd'],
+  marketCap: [_i1, 'bedrock_mobile_entry_market_cap_*'],
+});
+
+/**
+ * @typedef {{
+ *   betweenP95AndP98Floors: SeriesPattern1<?Dollars>,
+ *   betweenP98AndP99Floors: SeriesPattern1<?Dollars>,
+ *   betweenP99AndP99_5Floors: SeriesPattern1<?Dollars>,
+ *   betweenP99_5AndP99_9Floors: SeriesPattern1<?Dollars>,
+ *   belowP99_9Floor: SeriesPattern1<?Dollars>,
+ * }} EntryCapital
+ */
+const _EntryCapital = _s({
+  betweenP95AndP98Floors: [_i1, '*_between_p95_and_p98_floors'],
+  betweenP98AndP99Floors: [_i1, '*_between_p98_and_p99_floors'],
+  betweenP99AndP99_5Floors: [_i1, '*_between_p99_and_p99_5_floors'],
+  betweenP99_5AndP99_9Floors: [_i1, '*_between_p99_5_and_p99_9_floors'],
+  belowP99_9Floor: [_i1, '*_below_p99_9_floor'],
+});
+
+/**
+ * @typedef {{
+ *   btc: SeriesPattern1<?Bitcoin>,
+ *   usd: SeriesPattern1<?Dollars>,
+ *   marketCap: SeriesPattern1<?Dollars>,
+ * }} AwakeEntrySupplyBelowP99_9Floor
+ */
+const _AwakeEntrySupplyBelowP99_9Floor = _s({
+  btc: [_i1, 'bedrock_awake_entry_supply_*'],
+  usd: [_i1, 'bedrock_awake_entry_supply_*_usd'],
+  marketCap: [_i1, 'bedrock_awake_entry_market_cap_*'],
+});
+
+/**
+ * @template A
+ * @typedef {{
+ *   betweenP95AndP98Floors: A,
+ *   betweenP98AndP99Floors: A,
+ *   betweenP99AndP99_5Floors: A,
+ *   betweenP99_5AndP99_9Floors: A,
+ *   belowP99_9Floor: A,
+ * }} EntrySupply
+ */
+/** @type {_Make} */
+const _EntrySupply = (c, b, f0) => _n(c, b, {
+  betweenP95AndP98Floors: [f0, 'between_p95_and_p98_floors'],
+  betweenP98AndP99Floors: [f0, 'between_p98_and_*_floors'],
+  betweenP99AndP99_5Floors: [f0, 'between_*_and_p99_5_floors'],
+  betweenP99_5AndP99_9Floors: [f0, 'between_*_5_and_p99_9_floors'],
+  belowP99_9Floor: [f0, 'below_*_9_floor'],
+});
+
+/**
+ * @typedef {{
+ *   p10: SeriesPattern1<?Dollars>,
+ *   p20: SeriesPattern1<?Dollars>,
+ *   p30: SeriesPattern1<?Dollars>,
+ *   p40: SeriesPattern1<?Dollars>,
+ *   median: SeriesPattern1<?Dollars>,
+ *   p60: SeriesPattern1<?Dollars>,
+ *   p70: SeriesPattern1<?Dollars>,
+ *   p80: SeriesPattern1<?Dollars>,
+ *   p90: SeriesPattern1<?Dollars>,
+ * }} Levels
+ */
+const _Levels = _s({
+  p10: [_i1, '*_p10'],
+  p20: [_i1, '*_p20'],
+  p30: [_i1, '*_p30'],
+  p40: [_i1, '*_p40'],
+  median: [_i1, '*_median'],
+  p60: [_i1, '*_p60'],
+  p70: [_i1, '*_p70'],
+  p80: [_i1, '*_p80'],
+  p90: [_i1, '*_p90'],
+});
+
+/**
+ * @template A
+ * @typedef {{
+ *   p95: SeriesPattern1<A>,
+ *   p98: SeriesPattern1<A>,
+ *   p99: SeriesPattern1<A>,
+ *   p99_5: SeriesPattern1<A>,
+ *   p99_9: SeriesPattern1<A>,
+ * }} Percentiles
+ */
+const _Percentiles = _s({
+  p95: [_i1, '*_p95'],
+  p98: [_i1, '*_p98'],
+  p99: [_i1, '*_p99'],
+  p99_5: [_i1, '*_p99_5'],
+  p99_9: [_i1, '*_p99_9'],
+});
+
+/**
+ * @template A
+ * @typedef {{
+ *   supplyInLossShareThreshold: Percentiles<?Percent>,
+ *   floor: Percentiles<?Dollars>,
+ *   costBasisAboveP95Floor: Levels,
+ *   entrySupply: EntrySupply<A>,
+ *   entryCapital: EntryCapital,
+ * }} Mode
+ */
+/** @type {_Make} */
+const _Mode = (c, b, f0) => _n(c, b, {
+  supplyInLossShareThreshold: [_Percentiles, '*_supply_in_loss_share_threshold'],
+  floor: [_Percentiles, '*_floor'],
+  costBasisAboveP95Floor: [_Levels, '*_cost_basis_above_p95_floor'],
+  entrySupply: [(c, b) => _EntrySupply(c, b, f0), 'p99'],
+  entryCapital: [_EntryCapital, '*_entry_capital'],
+});
+
+/**
+ * @typedef {{
+ *   awake: Mode<AwakeEntrySupplyBelowP99_9Floor>,
+ *   mobile: Mode<MobileEntrySupplyBelowP99_9Floor>,
+ *   unweighted: Mode<UnweightedEntrySupplyBelowP99_9Floor>,
+ * }} Bedrock
+ */
+const _Bedrock = _s({
+  awake: [(c, b) => _Mode(c, b, _AwakeEntrySupplyBelowP99_9Floor), '*_awake'],
+  mobile: [(c, b) => _Mode(c, b, _MobileEntrySupplyBelowP99_9Floor), '*_mobile'],
+  unweighted: [(c, b) => _Mode(c, b, _UnweightedEntrySupplyBelowP99_9Floor), '*_unweighted'],
+});
+
+/**
+ * @typedef {{
  *   value: SeriesPattern1<?Dollars>,
  *   ratio: SeriesPattern1<?Multiple>,
  *   aviv: SeriesPattern1<?Multiple>,
@@ -6073,6 +6223,7 @@ const _Indexer = _s({
  *   supply: Supply,
  *   cointime: Cointime,
  *   coinflow: Coinflow,
+ *   bedrock: Bedrock,
  * }} SeriesTree
  */
 const _SeriesTree = _s({
@@ -6097,6 +6248,7 @@ const _SeriesTree = _s({
   supply: [_Supply, 'circulating_supply'],
   cointime: [_Cointime, 'age'],
   coinflow: [_Coinflow, 'age'],
+  bedrock: [_Bedrock, 'bedrock'],
 });
 
 /**
@@ -6107,7 +6259,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "aa65f790abfe678dcc83c352ad58634b62ccecf29dbd93c88b6f7afe165acfb8";
+  static HASH = "48e02ea049c4969811bbf563c9e09c30aa72399fd36409eaa7f9722f7fb13069";
 
   INDEXES = /** @type {const} */ ([
     "minute10",

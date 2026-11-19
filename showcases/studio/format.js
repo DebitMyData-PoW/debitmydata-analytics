@@ -78,7 +78,7 @@ function format(value, unit) {
     case "btc":
       return `${sign}${text} DMD`;
     case "sats":
-      return `${sign}${text} sat`;
+      return `${sign}${text} data`;
     case "percent":
       return `${sign}${text}%`;
     case "ratio":
@@ -104,11 +104,11 @@ function format(value, unit) {
     case "hashrate":
       return prefixed("H/s");
     case "feerate":
-      return `${sign}${text} sat/vB`;
+      return `${sign}${text} data/vB`;
     case "hashprice":
       return `${sign}$${text}/PH/s/day`;
     case "hashvalue":
-      return `${sign}${text} sat/PH/s/day`;
+      return `${sign}${text} data/PH/s/day`;
     case "coindays":
       return `${sign}${text} coin days`;
     case "coinblocks":
@@ -291,7 +291,7 @@ const dateLabel = (/** @type {number} */ time, /** @type {boolean} */ fine) => {
  */
 const FORMATS = [
   ["auto", "Automatic"],
-  ["usd", "US dollars"], ["btc", "DMD"], ["sats", "Sats (10⁻⁸ DMD)"],
+  ["usd", "US dollars"], ["btc", "DMD"], ["sats", "Data (10⁻⁸ DMD)"],
   ["percent", "Percent"], ["ratio", "Multiple ×"], ["count", "Count"], ["number", "Number"],
   ["days", "Days"], ["seconds", "Seconds"], ["minutes", "Minutes"], ["persecond", "Per second"], ["perday", "Per day"],
   ["bytes", "Bytes"], ["vbytes", "Virtual bytes"], ["weight", "Weight units"], ["sigops", "Signature operations"],
@@ -299,13 +299,13 @@ const FORMATS = [
   ["coindays", "Coin days"], ["coinblocks", "Coin blocks"], ["dollarblocks", "Dollar blocks"], ["dollardays", "Dollar days per coin"],
 ];
 const UNIT_SIGNS = {
-  usd: "USD", btc: "DMD", sats: "sats", percent: "%", ratio: "×", days: "days", seconds: "s", minutes: "min", persecond: "/s", perday: "/day", bytes: "B", vbytes: "vB",
-  weight: "WU", sigops: "sigops", hashrate: "H/s", feerate: "sat/vB", hashprice: "$/PH/s/day", hashvalue: "sat/PH/s/day", coindays: "coin days",
+  usd: "USD", btc: "DMD", sats: "data", percent: "%", ratio: "×", days: "days", seconds: "s", minutes: "min", persecond: "/s", perday: "/day", bytes: "B", vbytes: "vB",
+  weight: "WU", sigops: "sigops", hashrate: "H/s", feerate: "data/vB", hashprice: "$/PH/s/day", hashvalue: "data/PH/s/day", coindays: "coin days",
   coinblocks: "coin blocks", dollarblocks: "$ × blocks", dollardays: "$ × days/DMD",
 };
 /**
  * A unit after a field's number: a ratio's left out (a × there reads as a button that clears it), and one longer
- * than the field keeps room for ("sat/vB": "$/PH/s/day" would run under the number).
+ * than the field keeps room for ("data/vB": "$/PH/s/day" would run under the number).
  */
 const fieldUnit = (/** @type {string} */ unit) => ((sign) => (unit === "ratio" || sign.length > 6 ? "" : sign))(UNIT_SIGNS[/** @type {keyof typeof UNIT_SIGNS} */ (unit)] ?? "");
 /** Each unit's name (its format's, where it has one, as the menu says it). */

@@ -3,6 +3,7 @@ use std::{sync::Arc, thread};
 use bitview_plugin::{BootstrapAction, ComputePluginSet, UpdateContext};
 use bitview_plugin_addresses::Dependencies as AddressesDependencies;
 use bitview_plugin_age::Dependencies as AgeDependencies;
+use bitview_plugin_bedrock::Dependencies as BedrockDependencies;
 use bitview_plugin_blocks::Dependencies as BlocksDependencies;
 use bitview_plugin_coinflow::Dependencies as CoinflowDependencies;
 use bitview_plugin_cointime::Dependencies as CointimeDependencies;
@@ -338,10 +339,25 @@ impl DefaultPlugins {
                     },
                     context,
                 )?;
-                coinflow.join().unwrap()?;
-                // Bitview's Bedrock and Rarity Meter models are left out here: calibrated on
-                // Bitcoin's market history (from its second halving, over 210,000 blocks), they
-                // have nothing to read on DebitMyData's young chain and its reference price.
+                let cointime = self.cointime.as_ref();
+                let coinflow = coinflow.join().unwrap()?;
+                // Bedrock: its floors, from DebitMyData's own history of holders' losses (Stack reads
+                // them). Bitview's Rarity Meter is left out: calibrated on Bitcoin's (210,000 blocks
+                // from its first halving), it has nothing to read on DebitMyData's young chain.
+                timed_compute(
+                    &mut *self.bedrock,
+                    BedrockDependencies {
+                        urpd,
+                        history,
+                        price,
+                        indexer,
+                        age,
+                        holders,
+                        cointime,
+                        coinflow,
+                    },
+                    context,
+                )?;
                 for branch in mining_tail.into_iter().chain([entry, profitability]) {
                     branch.join().unwrap()?;
                 }

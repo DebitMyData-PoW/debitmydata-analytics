@@ -4,6 +4,7 @@ use bitview_distribution::metrics::ShareTotals;
 use bitview_plugin::{ImportContext, Plugin};
 use bitview_plugin_addresses::{ID as ADDRESSES_ID, Vecs as Addresses};
 use bitview_plugin_age::{ID as AGE_ID, Vecs as Age};
+use bitview_plugin_bedrock::{ID as BEDROCK_ID, Vecs as Bedrock};
 use bitview_plugin_blocks::{ID as BLOCKS_ID, Vecs as Blocks};
 use bitview_plugin_coinflow::{ID as COINFLOW_ID, Vecs as Coinflow};
 use bitview_plugin_cointime::{ID as COINTIME_ID, Vecs as Cointime};
@@ -170,7 +171,7 @@ impl DefaultPlugins {
         })?;
         let all_chain = holders.all_chain_sources();
 
-        let (cointime, coinflow, entry, profitability) =
+        let (cointime, coinflow, bedrock, entry, profitability) =
             thread::scope(|scope| -> Result<_> {
                 let cointime = large_stack_thread().spawn_scoped(scope, || {
                     timed_import(COINTIME_ID, || {
@@ -188,6 +189,15 @@ impl DefaultPlugins {
                 let coinflow = large_stack_thread().spawn_scoped(scope, || {
                     timed_import(COINFLOW_ID, || {
                         Coinflow::import(context, &mappings, &price, &age)
+                    })
+                })?;
+                let bedrock = large_stack_thread().spawn_scoped(scope, || {
+                    timed_import(BEDROCK_ID, || {
+                        Bedrock::import(
+                            context,
+                            &mappings,
+                            &price.spot.cents.height.read_only_boxed_clone(),
+                        )
                     })
                 })?;
                 let entry = large_stack_thread().spawn_scoped(scope, || {
@@ -213,6 +223,7 @@ impl DefaultPlugins {
                 Ok((
                     cointime.join().unwrap()?,
                     coinflow.join().unwrap()?,
+                    bedrock.join().unwrap()?,
                     entry.join().unwrap()?,
                     profitability.join().unwrap()?,
                 ))
@@ -247,6 +258,7 @@ impl DefaultPlugins {
             pools,
             cointime,
             coinflow,
+            bedrock,
             mappings,
             inputs,
             price,

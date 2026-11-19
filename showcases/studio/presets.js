@@ -1405,11 +1405,11 @@ export function studioPresets(client, facts, report = (problem) => console.error
         // comparisons, the low end by calendar period (see step): the share under 1 sat/vB by month, over the blocks'
         // fullness; under 0.1 sat/vB by day.)
         section("By fee rate", feeRates(tx.fees.txCountByFeeRate, (said) => `transactions paying ${said}`, "fee rate", { disjoint: true, more: [
-          chart("Under 1 sat/vB, by month", "Transactions paying under 1 sat/vB, by month", [
+          chart("Under 1 data/vB, by month", "Transactions paying under 1 data/vB, by month", [
             { formula: `100 * (${underOneSatVb.map(step).join(" + ")}) / (${txSteps})`, label: "Share of transactions", type: "histogram", color: "orange", format: "percent", maxInterval: "month1" },
             { formula: `${step(blocks.weight)} / ${step(blocks.count)} / 40000`, label: "Block fullness", type: "line", color: "sky", width: 2, format: "percent", pane: 2, maxInterval: "month1", levels: [{ value: 100, color: "gray", dash: 3 }] },
           ], { index: "month1", size: { 2: 1.5 } }),
-          chart("Under 0.1 sat/vB, by day", "Transactions paying under 0.1 sat/vB, by day", [
+          chart("Under 0.1 data/vB, by day", "Transactions paying under 0.1 data/vB, by day", [
             { formula: underTenthSatVb.map(step).join(" + "), label: "Transactions, zero-fee ones too", type: "histogram", color: "orange", format: "number", maxInterval: "day1" },
             { formula: `100 * (${underTenthSatVb.map(step).join(" + ")}) / (${txSteps})`, label: "Share of transactions", type: "line", color: "orange", format: "percent", pane: 2, maxInterval: "day1" },
           ], { size: { 2: 1.5 } }),

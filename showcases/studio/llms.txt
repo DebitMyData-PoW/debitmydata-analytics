@@ -169,3 +169,8 @@ Each section's page lists its charts; each chart's own address is in https://ana
 - Coinflow (237): https://analytics.debitmydata.io/studio/presets/coinflow/
   - Age bands (99): https://analytics.debitmydata.io/studio/presets/coinflow/age-bands/
   - Mobile coins (138): https://analytics.debitmydata.io/studio/presets/coinflow/mobile-coins/
+- Bedrock (23): https://analytics.debitmydata.io/studio/presets/bedrock/
+  - Compare (5): https://analytics.debitmydata.io/studio/presets/bedrock/compare/
+  - Awake (6): https://analytics.debitmydata.io/studio/presets/bedrock/awake/
+  - Mobile (6): https://analytics.debitmydata.io/studio/presets/bedrock/mobile/
+  - Unweighted (6): https://analytics.debitmydata.io/studio/presets/bedrock/unweighted/

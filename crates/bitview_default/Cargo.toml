@@ -14,6 +14,7 @@ bitview_distribution = { workspace = true }
 bitview_plugin = { workspace = true }
 bitview_plugin_addresses = { workspace = true }
 bitview_plugin_age = { workspace = true }
+bitview_plugin_bedrock = { workspace = true }
 bitview_plugin_blocks = { workspace = true }
 bitview_plugin_coinflow = { workspace = true }
 bitview_plugin_cointime = { workspace = true }

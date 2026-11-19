@@ -3,7 +3,8 @@ use bitview_compute::ExactOrderStats;
 use brk_types::{Height, Version};
 use vecdb::{ReadableVec, VecValue};
 
-// One nominal year of block observations. The represented block is excluded.
+// One nominal year of block observations (Bitcoin's: on DebitMyData's 576 blocks a day, about three
+// months). The represented block is excluded.
 const MINIMUM_BLOCKS: usize = 365 * 144;
 const PERCENTILES: [f64; 5] = [0.95, 0.98, 0.99, 0.995, 0.999];
 

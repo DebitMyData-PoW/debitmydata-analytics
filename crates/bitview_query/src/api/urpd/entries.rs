@@ -89,20 +89,20 @@ impl UrpdHeader {
         json::field(&mut body, "weight", &self.weight)?;
         json::field(&mut body, "aggregation", &self.aggregation)?;
         json::key(&mut body, "close");
-        json::append(&mut body, close.inner(), json::decimal::<2>);
+        json::append(&mut body, close.inner(), json::decimal::<6>);
         json::key(&mut body, "supply");
         json::append(&mut body, total, json::decimal::<8>);
         body.extend_from_slice(b",\"buckets\":{\"price\":");
-        json::append_array(&mut body, &buckets, |out, b| json::decimal::<2>(out, 0, b.price));
+        json::append_array(&mut body, &buckets, |out, b| json::decimal::<6>(out, 0, b.price));
         json::key(&mut body, "supply");
         json::append_array(&mut body, &buckets, |out, b| json::decimal::<8>(out, 0, b.supply));
         json::key(&mut body, "realized_cap");
         json::append_array(&mut body, &buckets, |out, b| {
-            json::decimal::<2>(out, 0, b.realized_cap)
+            json::decimal::<6>(out, 0, b.realized_cap)
         });
         json::key(&mut body, "unrealized_pnl");
         json::append_array(&mut body, &buckets, |out, b| {
-            json::signed_decimal::<2>(out, 0, b.unrealized_pnl)
+            json::signed_decimal::<6>(out, 0, b.unrealized_pnl)
         });
         body.extend_from_slice(b"}}");
         debug_assert!(

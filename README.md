@@ -4,9 +4,10 @@ On-chain analytics for the DebitMyData (DMD) chain, at
 [analytics.debitmydata.io](https://analytics.debitmydata.io): thousands of ready-made charts
 (**Studio**), the network's hashrate, reference price and difficulty on one screen (**Oracle**),
 every block, transaction and address (**Explorer**), where DMD stands against what its holders paid
-(**Compass**), where the blocks are mined, by each pool's country (**Globe**), each day's blocks
-and pools (**Calendar**), every series browsed like files (**Catalog**), and every series, block and
-address as data through an open **API**.
+(**Compass**), where the blocks are mined, by each pool's country (**Globe**), every DMD by the
+price it last moved at, as a terrain (**The Satoshi Trail**), a plan buying DMD on a schedule
+(**Stack**), each day's blocks and pools (**Calendar**), every series browsed like files
+(**Catalog**), and every series, block and address as data through an open **API**.
 
 It is a fork of [Bitview](https://github.com/bitcoinresearchkit/mono), the Bitcoin Research Kit,
 adapted to the DebitMyData chain. Bitview's own documentation is in [docs/](docs/README.md).
@@ -32,18 +33,19 @@ adapted to the DebitMyData chain. Bitview's own documentation is in [docs/](docs
   the logos in [DebitMyData-PoW/mining-pool-logos](https://github.com/DebitMyData-PoW/mining-pool-logos),
   read from GitHub every day (see *The mining pools* below). The difficulty adjusts at every block
   (LWMA): Bitview's 2,016-block periods are kept for charts.
-- **Left out.** Bitview's Bedrock and Rarity Meter models (calibrated on Bitcoin's market history),
-  its Miners and Ledger pages, its benchmarks, its MCP server and its plugin for assistants, and its
-  terms, privacy and support pages (Bitview's own). Stack and the Satoshi Trail are not on the site
-  yet.
+- **Bedrock** (the price floors Stack buys at) reads DebitMyData's own history of holders' losses:
+  it has floors once the chain has 52,560 blocks behind it (about three months of DebitMyData's).
+- **Left out.** Bitview's Rarity Meter model (calibrated on Bitcoin's history, 210,000 blocks from
+  its first halving), its Miners and Ledger pages, its benchmarks, its MCP server and its plugin for
+  assistants, and its terms, privacy and support pages (Bitview's own).
 - **The Oracle.** Bitview's Oracle reads Bitcoin's price from round-dollar payments; here its design
   shows the network instead: hashrate (the default), the reference price or the difficulty, a
   switch at the top, over 7, 30 or 90 days or the whole chain.
 - **The website.** DebitMyData's name and colors, its coin with the analytics badge at the top
-  left; the home page, Studio, Oracle, Explorer, Compass, Globe, Calendar, Catalog, the API's
-  documentation and every series' description speak of DMD. The API keeps Bitview's
-  names (`btc`, `sats`, `cents`: DMD, its 10^-8 unit, millionths of a dollar), so that Bitview's
-  clients and charts work unchanged.
+  left; the home page, Studio, Oracle, Explorer, Compass, Globe, The Satoshi Trail, Stack, Calendar,
+  Catalog, the API's documentation and every series' description speak of DMD, its amounts in DMD
+  and data (10^-8 DMD) and fee rates in data/vB. The API keeps Bitview's names (`btc`, `sats`,
+  `cents`: DMD, data, millionths of a dollar), so that Bitview's clients and charts work unchanged.
 
 ## Checking it against a real node
 

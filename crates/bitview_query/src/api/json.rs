@@ -98,8 +98,10 @@ fn fraction_digits<const D: u32>(fraction: u64) -> u64 {
     let quad = |n: u64| u64::from(u32::from_le_bytes(QUADS[n as usize]));
     match D {
         8 => quad(fraction / 10_000) | quad(fraction % 10_000) << 32,
+        // (DebitMyData: dollars in millionths, its "cents".)
+        6 => quad(fraction / 100) | (quad(fraction % 100) >> 16) << 32,
         2 => quad(fraction) >> 16,
-        _ => unreachable!("decimals are 8 (BTC) or 2 (USD)"),
+        _ => unreachable!("decimals are 8 (DMD), 6 (USD, in millionths) or 2"),
     }
 }
 

@@ -1,6 +1,6 @@
 # DebitMyData Analytics
 
-> DebitMyData Analytics is a free, open-source data server for the DebitMyData (DMD) chain, built on Bitview: on-chain metrics, blocks, mempool and mining data, with charts and an API. US dollar values use DMD's reference price (the cost of mining one DMD, at least $0.001), not a market price. 17673 on-chain time-series and 105 API operations.
+> DebitMyData Analytics is a free, open-source data server for the DebitMyData (DMD) chain, built on Bitview: on-chain metrics, blocks, mempool and mining data, with charts and an API. US dollar values use DMD's reference price (the cost of mining one DMD, at least $0.001), not a market price. 17790 on-chain time-series and 105 API operations.
 
 ## API
 

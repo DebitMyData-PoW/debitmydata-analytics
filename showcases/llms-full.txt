@@ -8,7 +8,7 @@
 - Base URL: https://analytics.debitmydata.io
 - Support: https://github.com/DebitMyData-PoW/debitmydata-analytics
 - Code: MIT.
-- Metrics: 17673
+- Metrics: 17790
 - Operations: 105
 
 For machine-readable tool construction, use [https://analytics.debitmydata.io/openapi.json](https://analytics.debitmydata.io/openapi.json). For the complete source-derived series tree, use [https://analytics.debitmydata.io/api/series](https://analytics.debitmydata.io/api/series).

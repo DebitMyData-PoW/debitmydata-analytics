@@ -12,7 +12,7 @@ export const capitalized = (text) => text.charAt(0).toUpperCase() + text.slice(1
 export const inSentence = (text) => (/^[A-Z][a-z]+(?![A-Za-z])/.test(text) && !/[\s-][A-Z][a-z]+(?![A-Za-z])/.test(text) ? text.charAt(0).toLowerCase() + text.slice(1) : text);
 
 /** Units as said, one and more, as keys spell them: a time's letter, else the key's unit. */
-const UNIT_WORDS = { h: ["hour", "hours"], d: ["day", "days"], w: ["week", "weeks"], m: ["month", "months"], y: ["year", "years"], Block: ["block", "blocks"], Blocks: ["block", "blocks"], Bytes: ["byte", "bytes"], SatVb: ["sat/vB", "sat/vB"], Sats: ["sat", "sats"], Btc: ["BTC", "BTC"] };
+const UNIT_WORDS = { h: ["hour", "hours"], d: ["day", "days"], w: ["week", "weeks"], m: ["month", "months"], y: ["year", "years"], Block: ["block", "blocks"], Blocks: ["block", "blocks"], Bytes: ["byte", "bytes"], SatVb: ["data/vB", "data/vB"], Sats: ["data", "data"], Btc: ["DMD", "DMD"] };
 /**
  * A span's or band's key, as the client spells it: a profit or loss band's side, its bound ("_" none, "over", "Over",
  * "under"), its edges (each a number, "0p1" 0.1, and a letter: with a unit after, a multiplier, "k" or "m"; without, a

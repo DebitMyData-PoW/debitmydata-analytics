@@ -141,7 +141,7 @@ export function chainStatistics({ t, facts, chart, section, ramp, flowWindow, un
       chart("Coinbase output value", "Coinbase output value", (/** @type {const} */ ([["block subsidy", t.mining.rewards.subsidy], ["transaction fees", t.mining.rewards.fees]])).map(([name, node], i) => ({ formula: perBlock(perDay(node.cumulative.btc)), label: name, format: "btc", type: "area", color: ramp(2)[i] })), { stack: { 1: "stack" }, average: { 1: "7d" } }),
     ]),
     section("Fees", [
-      percentLine("Sub 1 sat/vByte transactions", [["sub 1 sat/vbyte", percent(underOne, day.txs)]], 7),
+      percentLine("Sub 1 data/vByte transactions", [["sub 1 data/vbyte", percent(underOne, day.txs)]], 7),
       ...events("Zero-Fee transactions", [["zero-fee transactions", fees.zeroFee.txCount]]),
       shareStack("Transaction fee rate distribution", [["zero fee", daily(fees.zeroFee.txCount)], ...feeRanges.map(([key, name]) => [name, daily(fees.txCountByFeeRate[key])])], 90),
       shareStack("Fee rates by block space", feeRanges.map(([key, name]) => [name, daily(fees.vsizeByEffectiveFeeRate[key])]), 30),

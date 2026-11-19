@@ -451,6 +451,65 @@ impl SeriesValue for Year10 {
 pub mod tree {
     use super::*;
 
+    shape! { UnweightedEntrySupplyBelowP99_9Floor at "series().bedrock.unweighted.entry_supply.below_p99_9_floor" {
+        btc: SeriesPattern1<Option<Bitcoin>> = "bedrock_unweighted_entry_supply_*",
+        usd: SeriesPattern1<Option<Dollars>> = "bedrock_unweighted_entry_supply_*_usd",
+        market_cap: SeriesPattern1<Option<Dollars>> = "bedrock_unweighted_entry_market_cap_*",
+    } }
+    shape! { MobileEntrySupplyBelowP99_9Floor at "series().bedrock.mobile.entry_supply.below_p99_9_floor" {
+        btc: SeriesPattern1<Option<Bitcoin>> = "bedrock_mobile_entry_supply_*",
+        usd: SeriesPattern1<Option<Dollars>> = "bedrock_mobile_entry_supply_*_usd",
+        market_cap: SeriesPattern1<Option<Dollars>> = "bedrock_mobile_entry_market_cap_*",
+    } }
+    shape! { EntryCapital at "series().bedrock.awake.entry_capital" {
+        between_p95_and_p98_floors: SeriesPattern1<Option<Dollars>> = "*_between_p95_and_p98_floors",
+        between_p98_and_p99_floors: SeriesPattern1<Option<Dollars>> = "*_between_p98_and_p99_floors",
+        between_p99_and_p99_5_floors: SeriesPattern1<Option<Dollars>> = "*_between_p99_and_p99_5_floors",
+        between_p99_5_and_p99_9_floors: SeriesPattern1<Option<Dollars>> = "*_between_p99_5_and_p99_9_floors",
+        below_p99_9_floor: SeriesPattern1<Option<Dollars>> = "*_below_p99_9_floor",
+    } }
+    shape! { AwakeEntrySupplyBelowP99_9Floor at "series().bedrock.awake.entry_supply.below_p99_9_floor" {
+        btc: SeriesPattern1<Option<Bitcoin>> = "bedrock_awake_entry_supply_*",
+        usd: SeriesPattern1<Option<Dollars>> = "bedrock_awake_entry_supply_*_usd",
+        market_cap: SeriesPattern1<Option<Dollars>> = "bedrock_awake_entry_market_cap_*",
+    } }
+    shape! { EntrySupply<A> at "series().bedrock.awake.entry_supply" {
+        between_p95_and_p98_floors: A = "between_p95_and_p98_floors",
+        between_p98_and_p99_floors: A = "between_p98_and_*_floors",
+        between_p99_and_p99_5_floors: A = "between_*_and_p99_5_floors",
+        between_p99_5_and_p99_9_floors: A = "between_*_5_and_p99_9_floors",
+        below_p99_9_floor: A = "below_*_9_floor",
+    } }
+    shape! { Levels at "series().bedrock.awake.cost_basis_above_p95_floor" {
+        p10: SeriesPattern1<Option<Dollars>> = "*_p10",
+        p20: SeriesPattern1<Option<Dollars>> = "*_p20",
+        p30: SeriesPattern1<Option<Dollars>> = "*_p30",
+        p40: SeriesPattern1<Option<Dollars>> = "*_p40",
+        median: SeriesPattern1<Option<Dollars>> = "*_median",
+        p60: SeriesPattern1<Option<Dollars>> = "*_p60",
+        p70: SeriesPattern1<Option<Dollars>> = "*_p70",
+        p80: SeriesPattern1<Option<Dollars>> = "*_p80",
+        p90: SeriesPattern1<Option<Dollars>> = "*_p90",
+    } }
+    shape! { Percentiles<A> at "series().bedrock.awake.floor" {
+        p95: SeriesPattern1<A> = "*_p95",
+        p98: SeriesPattern1<A> = "*_p98",
+        p99: SeriesPattern1<A> = "*_p99",
+        p99_5: SeriesPattern1<A> = "*_p99_5",
+        p99_9: SeriesPattern1<A> = "*_p99_9",
+    } }
+    shape! { Mode<A> at "series().bedrock.awake" {
+        supply_in_loss_share_threshold: Percentiles<Option<Percent>> = "*_supply_in_loss_share_threshold",
+        floor: Percentiles<Option<Dollars>> = "*_floor",
+        cost_basis_above_p95_floor: Levels = "*_cost_basis_above_p95_floor",
+        entry_supply: EntrySupply<A> = "p99",
+        entry_capital: EntryCapital = "*_entry_capital",
+    } }
+    shape! { Bedrock at "series().bedrock" {
+        awake: Mode<AwakeEntrySupplyBelowP99_9Floor> = "*_awake",
+        mobile: Mode<MobileEntrySupplyBelowP99_9Floor> = "*_mobile",
+        unweighted: Mode<UnweightedEntrySupplyBelowP99_9Floor> = "*_unweighted",
+    } }
     shape! { CointimePriceWithRatio at "series().cointime.prices.true_market_mean" {
         value: SeriesPattern1<Option<Dollars>> = "*",
         ratio: SeriesPattern1<Option<Multiple>> = "*_ratio",
@@ -2166,6 +2225,7 @@ pub mod tree {
         supply: Supply = "circulating_supply",
         cointime: Cointime = "age",
         coinflow: Coinflow = "age",
+        bedrock: Bedrock = "bedrock",
     } }
 }
 pub use tree::SeriesTree;

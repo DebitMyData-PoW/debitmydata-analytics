@@ -218,6 +218,8 @@ const CARDS = {
   explorer: { url: "/explorer/", settle: 9000 },
   compass: { url: "/compass/", settle: 6000 },
   globe: { url: "/globe/", settle: 9000 },
+  trail: { url: "/trail/", settle: 12000 },
+  stack: { url: "/stack/", settle: 8000 },
   calendar: { url: "/calendar/", settle: 9000 },
   catalog: { url: "/catalog/?series=hashrate", settle: 8000 },
   api: { url: "/api/", settle: 6000 },
@@ -291,6 +293,8 @@ const PICTURES = {
   explorer: { url: "/explorer/", settle: 9000, cover: [8, 60, 1344, 840] },
   compass: { url: "/compass/", settle: 6000, cover: [130, 60, 1088, 680] },
   globe: { url: "/globe/", settle: 9000, hide: "text", cover: [166, 44, 720, 450], banner: [43, 64, 966, 450] },
+  trail: { url: "/trail/", settle: 12000, hide: "scene", cover: [230, 130, 960, 600], banner: [60, 80, 1360, 640] },
+  stack: { url: "/stack/", settle: 8000, cover: [192, 336, 640, 400], banner: [192, 341, 648, 300] },
   calendar: { url: "/calendar/", settle: 9000, cover: [105, 100, 384, 240], banner: [105, 100, 863, 400] },
 };
 if (onlyAt >= 0 && !(ONLY && (Object.hasOwn(PICTURES, ONLY) || Object.hasOwn(ICONS, ONLY) || Object.hasOwn(CARDS, ONLY)))) throw new Error(`--only ${ONLY ?? ""}: not an app (${[...new Set([...Object.keys(PICTURES), ...Object.keys(ICONS), ...Object.keys(CARDS)])].join(", ")})`);

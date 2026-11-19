@@ -2297,7 +2297,7 @@
       <p class="status" id="status-bar" hidden>
         <span class="tip" id="tip"><span class="vh" id="tip-state"></span><b id="tip-height"></b></span>
         <span id="price-panel" hidden title="DMD's reference price: the cost of mining one DMD, at least $0.001. Not a market price."><b class="num" id="price"></b><span class="vh" data-said></span></span>
-        <span class="fee" id="fees-panel" hidden><b class="num" id="fee"></b> sat/vB<span class="vh" data-said></span></span>
+        <span class="fee" id="fees-panel" hidden><b class="num" id="fee"></b> data/vB<span class="vh" data-said></span></span>
       </p>
     </header>
 
@@ -2384,7 +2384,7 @@
 
       const groupedFormat = new Intl.NumberFormat("en-US");
       const grouped = (/** @type {number} */ n) => groupedFormat.format(Math.round(n));
-      /** A fee rate, in sat/vB, to a tenth: 0.5, 1.4, 12.3. */
+      /** A fee rate, in data/vB, to a tenth: 0.5, 1.4, 12.3. */
       const feeRate = (/** @type {number} */ v) => String(Number(v.toFixed(1)));
       const SI = ["", "K", "M", "B", "T", "P", "E", "Z"];
       /** Four digits and a letter past a thousand: 1.13Z, 164.5M, 0.817. */
@@ -2422,6 +2422,8 @@
         { id: "explorer", kind: "Blocks", line: "Every block, transaction and address, and what gets you in.", href: "/explorer/", live: true, made: "Each block, the mempool and every transaction's coins" },
         { id: "compass", kind: "Market", line: "Where DMD stands, and which way it's heading.", href: "/compass/", made: "The reference price, and long- and short-term holders' cost basis" },
         { id: "globe", kind: "Mining", line: "Where blocks are mined, live and since the first block.", href: "/globe/", live: true, made: "Each block's mining pool and its home country" },
+        { id: "trail", kind: "Supply", line: "Every coin by the price it last moved at, in 3D.", href: "/trail/", made: "Every unspent coin, by the reference price it last moved at" },
+        { id: "stack", kind: "Savings", line: "DMD on a schedule, more when it's cheap.", href: "/stack/", made: "The daily reference price, Bedrock's floors, what young coins cost" },
         { id: "calendar", kind: "Mining", line: "Every day's leading pool, every block of any day.", href: "/calendar/", live: true, made: "Each block's mining pool" },
       ]);
       // (The developers' named by what they're for, here; their words their pages'.)
@@ -2438,6 +2440,8 @@
         "/explorer/": { "name": "Explorer", "about": "What it takes to get into the next DebitMyData block, and every block, transaction and address: where a payment is, when it gets in and what it paid, read exactly from the chain." },
         "/compass/": { "name": "Compass", "about": "Where DebitMyData stands, day by day since its first block: DMD's reference price against its long-term and short-term holders' cost basis, and which way their trends point: nine moods, from Fear to Optimism, and how long each has lasted." },
         "/globe/": { "name": "Globe", "about": "Where DebitMyData's blocks are mined: every block by its mining pool's home country, live on a globe, and how that map has moved since the first block." },
+        "/trail/": { "name": "The Satoshi Trail", "about": "A moving 2.5D terrain view of DebitMyData's UTXO realized price distribution, at its reference price." },
+        "/stack/": { "name": "Stack", "about": "Dollar-cost averaging into DMD that saves from each all-time high and buys from the cycle's floor: what any plan since the first block would be worth at DebitMyData's reference price, beside the plain plan buying the same each time, and how every start and length turned out." },
         "/calendar/": { "name": "Calendar", "about": "Every day since the first DebitMyData block, the mining pool that found the most blocks, and every block of any day." },
         "/api/": { "about": "Free on-chain analytics API for the DebitMyData (DMD) chain: thousands of time series, blocks, transactions, addresses, the mempool and mining. No key, no account." },
         "/catalog/": { "about": "Every series computed from the DebitMyData chain, browsed like files: what each one is, its intervals, its history drawn, and how to fetch it." },
@@ -2447,7 +2451,7 @@
       for (const t of APPS) t.face = t.id;
       const ALL = [...APPS, ...DEV], byId = new Map(ALL.map((t) => [t.id, t]));
       /** The billboard's titles, in turn. */
-      const FEATURED = ["studio", "oracle", "globe", "calendar"].map((id) => /** @type {Title} */ (byId.get(id)));
+      const FEATURED = ["studio", "oracle", "globe", "trail", "stack", "calendar"].map((id) => /** @type {Title} */ (byId.get(id)));
 
       /** When each title was last opened on this device (ms), as stored now (another tab's opens kept; an earlier
        * page's { n, at } read as its at; anything else that isn't a finite number left out, on its own). */
@@ -2784,7 +2788,7 @@
         const fee = feeRate(b.extras?.medianFee ?? 0), fees = Number(((b.extras?.totalFees ?? 0) / 1e8).toFixed(3));
         const tile = el("a", { className: "tile block", href: `/explorer/block/${b.height}` },
           el("div", { className: "head" }, el("div", {}, el("div", { className: "height" }, grouped(b.height)), when), logo(pool.slug, pool.name)),
-          el("div", {}, el("div", { className: "by" }, pool.name), el("div", { className: "facts" }, el("span", {}, `${grouped(b.tx_count)} txs`), el("span", { className: "sep" }, " · "), el("span", {}, `${fee} sat/vB`), el("span", { className: "fees" }, ` · ${fees} DMD fees`))));
+          el("div", {}, el("div", { className: "by" }, pool.name), el("div", { className: "facts" }, el("span", {}, `${grouped(b.tx_count)} txs`), el("span", { className: "sep" }, " · "), el("span", {}, `${fee} data/vB`), el("span", { className: "fees" }, ` · ${fees} DMD fees`))));
         tile.dataset.open = "explorer";
         tile.dataset.label = `Block ${grouped(b.height)}, mined by ${pool.name}`;
         tile.setAttribute("aria-label", `${tile.dataset.label}, ${when.textContent}`);
@@ -3051,7 +3055,9 @@
           part("price-panel", read(early.prices), (p) => {
             $("price").textContent = dollars(p.USD);
             facts.oracle = `Reference price <b>${dollars(p.USD)}</b> now`;
+            facts.stack = `A dollar buys <b>${grouped(1 / p.USD)} DMD</b> today`;
             refresh("oracle");
+            refresh("stack");
           }),
           // (The next block's rate as it is, not rounded up to a whole one as the recommended ones are.)
           part("fees-panel", read(early.fees), (f) => ($("fee").textContent = feeRate(f.fastestFee))),

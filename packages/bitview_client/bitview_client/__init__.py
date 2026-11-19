@@ -2936,6 +2936,74 @@ F = TypeVar('F')
 G = TypeVar('G')
 H = TypeVar('H')
 
+class UnweightedEntrySupplyBelowP99_9Floor(_Node):
+    btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, 'bedrock_unweighted_entry_supply_*')
+    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'bedrock_unweighted_entry_supply_*_usd')
+    market_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'bedrock_unweighted_entry_market_cap_*')
+
+
+class MobileEntrySupplyBelowP99_9Floor(_Node):
+    btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, 'bedrock_mobile_entry_supply_*')
+    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'bedrock_mobile_entry_supply_*_usd')
+    market_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'bedrock_mobile_entry_market_cap_*')
+
+
+class EntryCapital(_Node):
+    between_p95_and_p98_floors: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_between_p95_and_p98_floors')
+    between_p98_and_p99_floors: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_between_p98_and_p99_floors')
+    between_p99_and_p99_5_floors: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_between_p99_and_p99_5_floors')
+    between_p99_5_and_p99_9_floors: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_between_p99_5_and_p99_9_floors')
+    below_p99_9_floor: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_below_p99_9_floor')
+
+
+class AwakeEntrySupplyBelowP99_9Floor(_Node):
+    btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, 'bedrock_awake_entry_supply_*')
+    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'bedrock_awake_entry_supply_*_usd')
+    market_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'bedrock_awake_entry_market_cap_*')
+
+
+class EntrySupply(_Node, Generic[A]):
+    between_p95_and_p98_floors: A = _at(0, 'between_p95_and_p98_floors')
+    between_p98_and_p99_floors: A = _at(0, 'between_p98_and_*_floors')
+    between_p99_and_p99_5_floors: A = _at(0, 'between_*_and_p99_5_floors')
+    between_p99_5_and_p99_9_floors: A = _at(0, 'between_*_5_and_p99_9_floors')
+    below_p99_9_floor: A = _at(0, 'below_*_9_floor')
+
+
+class Levels(_Node):
+    p10: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p10')
+    p20: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p20')
+    p30: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p30')
+    p40: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p40')
+    median: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_median')
+    p60: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p60')
+    p70: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p70')
+    p80: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p80')
+    p90: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p90')
+
+
+class Percentiles(_Node, Generic[A]):
+    p95: SeriesPattern1[A] = _at(SeriesPattern1, '*_p95')
+    p98: SeriesPattern1[A] = _at(SeriesPattern1, '*_p98')
+    p99: SeriesPattern1[A] = _at(SeriesPattern1, '*_p99')
+    p99_5: SeriesPattern1[A] = _at(SeriesPattern1, '*_p99_5')
+    p99_9: SeriesPattern1[A] = _at(SeriesPattern1, '*_p99_9')
+
+
+class Mode(_Node, Generic[A]):
+    supply_in_loss_share_threshold: Percentiles[Optional[Percent]] = _at(Percentiles, '*_supply_in_loss_share_threshold')
+    floor: Percentiles[Optional[Dollars]] = _at(Percentiles, '*_floor')
+    cost_basis_above_p95_floor: Levels = _at(Levels, '*_cost_basis_above_p95_floor')
+    entry_supply: EntrySupply[A] = _at((EntrySupply, 0), 'p99')
+    entry_capital: EntryCapital = _at(EntryCapital, '*_entry_capital')
+
+
+class Bedrock(_Node):
+    awake: Mode[AwakeEntrySupplyBelowP99_9Floor] = _at((Mode, AwakeEntrySupplyBelowP99_9Floor), '*_awake')
+    mobile: Mode[MobileEntrySupplyBelowP99_9Floor] = _at((Mode, MobileEntrySupplyBelowP99_9Floor), '*_mobile')
+    unweighted: Mode[UnweightedEntrySupplyBelowP99_9Floor] = _at((Mode, UnweightedEntrySupplyBelowP99_9Floor), '*_unweighted')
+
+
 class CointimePriceWithRatio(_Node):
     value: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
     ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_ratio')
@@ -4894,6 +4962,7 @@ class SeriesTree(_Node):
     supply: Supply = _at(Supply, 'circulating_supply')
     cointime: Cointime = _at(Cointime, 'age')
     coinflow: Coinflow = _at(Coinflow, 'age')
+    bedrock: Bedrock = _at(Bedrock, 'bedrock')
 
 
 class BitviewClient(BitviewClientBase):

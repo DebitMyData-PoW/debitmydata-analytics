@@ -3,6 +3,7 @@
 use bitview_plugin::PluginSet;
 use bitview_plugin_addresses::Vecs as Addresses;
 use bitview_plugin_age::Vecs as Age;
+use bitview_plugin_bedrock::Vecs as Bedrock;
 use bitview_plugin_blocks::Vecs as Blocks;
 use bitview_plugin_coinflow::Vecs as Coinflow;
 use bitview_plugin_cointime::Vecs as Cointime;
@@ -72,4 +73,5 @@ pub struct DefaultPlugins<M: StorageMode = Rw> {
     cointime: Box<Cointime<M>>,
     #[plugin_set(has = bitview_plugin_coinflow::HasCoinflow<M>)]
     coinflow: Box<Coinflow<M>>,
+    bedrock: Box<Bedrock<M>>,
 }
