@@ -5,7 +5,7 @@ On-chain analytics for the DebitMyData (DMD) chain, at
 (**Studio**), the network's hashrate, reference price and difficulty on one screen (**Oracle**),
 every block, transaction and address (**Explorer**), where DMD stands against what its holders paid
 (**Compass**), where the blocks are mined, by each pool's country (**Globe**), every DMD by the
-price it last moved at, as a terrain (**Trail**), a plan buying DMD on a schedule
+price it last moved at, as a terrain (**DebitMyData Trail**), a plan buying DMD on a schedule
 (**Stack**), each day's blocks and pools (**Calendar**), which pool first did each new thing on the
 chain (**Miners**), every series browsed like files (**Catalog**), and every series, block and
 address as data through an open **API**.
@@ -45,11 +45,12 @@ adapted to the DebitMyData chain. Bitview's own documentation is in [docs/](docs
   switch at the top, over 7, 30 or 90 days or the whole chain. Its grid of squares behind the line
   is DebitMyData's blocks, each block's own value (its last hour's hashrate, its reference price or
   its difficulty), and its chapters below show how each is worked out, with small live charts.
-- **The Explorer** draws its blocks full at 100,000 weight units (25,000 vB), as DebitMyData's
-  mempool explorer does: its blocks are small, and a block drawn at Bitcoin's 4,000,000 would look
-  empty. Each block says its size and transactions.
+- **The Explorer** draws its blocks full at 2,000 weight units (500 vB): DebitMyData's blocks are
+  small (a coinbase alone fills a third of a square), and a block drawn at Bitcoin's 4,000,000 would
+  look empty. Each block says its size and transactions, its larger squares what they are, and the
+  next block, while nothing waits for it, the coinbase it will hold.
 - **The website.** DebitMyData's name and colors, its coin with the analytics badge at the top
-  left; the home page, Studio, Oracle, Explorer, Compass, Globe, Trail, Stack, Calendar, Miners,
+  left; the home page, Studio, Oracle, Explorer, Compass, Globe, DebitMyData Trail, Stack, Calendar, Miners,
   Catalog, the API's documentation and every series' description speak of DMD, its amounts in DMD
   and data (10^-8 DMD) and fee rates in data/vB. The API keeps Bitview's names (`btc`, `sats`,
   `cents`: DMD, data, millionths of a dollar), so that Bitview's clients and charts work unchanged.

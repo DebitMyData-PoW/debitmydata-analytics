@@ -10,7 +10,8 @@ import {
   folderAgain, folderMark, folderNow, fromUnfit, galleryAhead, galleryPlace, galleryShown, galleryTilesAhead,
   galleryTilesSeen, goTo, GROUP_OF, GROUPS, HEAT_PICTURE_AGG, HEAT_PICTURE_GRID, HEAT_PICTURE_ROWS, HEAT_TILE_COLUMNS,
   heatKnown, heldUpright, home, homeAt, homeScroll, homeScroller, importCharts, inLibrary, isPreview, isYours,
-  keepSidePresets, keepsLeaving, keptAsEdited, keysNow, layoutCurve, layoutOwed, leaveHome, leftView, leftWith,
+  keepSidePresets, keepSiteTheme, keepsLeaving, keptAsEdited, keysNow, layoutCurve, layoutOwed, leaveHome, leftView,
+  leftWith,
   letterOf, library, libraryEdits, libraryStep, light, listedPreviews, listOwed, livePrice, loadPresets, minedHalvings,
   mostBars, MOTION, newDraft, notice, openChart, openView, paletteMarksSeen, phone, pickPreset, placeGallery, prefs,
   presetLabels, presetMarks, presets, presetsFailed, presetsMatching, pressedTile, previewCharts, previews,
@@ -3239,6 +3240,7 @@ function foldRow(/** @type {() => HTMLElement | null} */ find, /** @type {boolea
 /** A theme chosen: kept, named on its row, and on the page (see THEMES). @param {"system" | "light" | "dark"} theme */
 function setTheme(theme) {
   prefs.theme = theme;
+  keepSiteTheme(theme);
   savePrefs();
   renderTheme();
   applyTheme();

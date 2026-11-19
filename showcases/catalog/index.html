@@ -20,7 +20,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="color-scheme" content="light dark" />
     <title>Catalog · DebitMyData Analytics</title>
-    <link rel="icon" href="/assets/logo/logo.svg" type="image/svg+xml" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg?v=2" />
     <link rel="modulepreload" href="/modules/bitview-client/core.js" />
     <style>
       /* fallback fonts */
@@ -186,6 +186,11 @@
       }
 
       /* ── The bar: the brand, the search ── */
+
+      /* (The light / dark switch in the bar's third column, at its right.) */
+      .bar > [data-theme-switch] {
+        justify-self: end;
+      }
 
       .bar {
         position: sticky;
@@ -1187,7 +1192,7 @@
         }
 
         .bar {
-          grid-template-columns: auto minmax(0, 1fr);
+          grid-template-columns: auto minmax(0, 1fr) auto;
           gap: 12px;
         }
 
@@ -1352,6 +1357,7 @@
         <kbd>/</kbd>
         <button type="button" class="clear" id="clear" aria-label="Clear the search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" /></svg></button>
       </form>
+      <span data-theme-switch></span>
     </header>
     <main id="main"></main>
     <p class="said" id="said" aria-live="polite"></p>

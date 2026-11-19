@@ -1417,6 +1417,26 @@ function readPrefs(/** @type {any} */ stored) {
  * next drawing takes, whatever its tool (the last one set, on a tool or on a drawing).
  */
 const prefs = readPrefs(storage.get(PREFS, {}));
+// (Light or dark, the site's choice, as its other pages' switch keeps it (assets/launch/launch.js): Studio's too, but for
+// System, Studio's own; a theme chosen here is the site's (see setTheme).)
+const SITE_THEME = "dmd-theme-analytics";
+const siteTheme = () => {
+  try {
+    const kept = document.cookie.match(/(?:^|;\s*)dmd-theme-analytics=(light|dark)/)?.[1] ?? localStorage.getItem(SITE_THEME);
+    return kept === "light" || kept === "dark" ? kept : null;
+  } catch {
+    return null;
+  }
+};
+if (prefs.theme !== "system") prefs.theme = siteTheme() ?? prefs.theme;
+/** A theme chosen in Studio, light or dark, the site's from then on. @param {string} theme */
+const keepSiteTheme = (theme) => {
+  if (theme !== "light" && theme !== "dark") return;
+  try {
+    localStorage.setItem(SITE_THEME, theme);
+  } catch {}
+  document.cookie = `${SITE_THEME}=${theme}; path=/; max-age=31536000; samesite=lax${location.protocol === "https:" ? "; secure" : ""}`;
+};
 // (A phone's drawing tools put away at each start: there, they take the place of the chart's foot, the interval and
 // the ranges.)
 if (phone.matches) prefs.belt.on = false;
@@ -11139,7 +11159,8 @@ export {
   HEAT_PICTURE_GRID, HEAT_PICTURE_ROWS, HEAT_TILE_COLUMNS, heatAt, heatCohort, heatKnown, heldUpright, hideBelt,
   hideDrawings, hideTip, histories, historyFor, holding, home, homeAt, homeScroll, homeScroller, hoverTime,
   importCharts, indexAt, indexCatalog, inLibrary, isDeleted, isOhlc, isPreview, isView, isYours, keepChart, keepDrawing,
-  keepSidePresets, keepsLeaving, keepStretch, kept, keptAsEdited, keyAway, keysNow, keyTime, keyValue, labelTyping,
+  keepSidePresets, keepSiteTheme, keepsLeaving, keepStretch, kept, keptAsEdited, keyAway, keysNow, keyTime, keyValue,
+  labelTyping,
   layerPicks, layersBatch, layoutCurve, layoutOwed, leaveHome, leftView, leftWith, lensAt, letterChip, letterOf,
   library, libraryEdits, libraryStep, light, linkView, listedPreviews, listOwed, LIVE, liveHeight, livePrice,
   loadPresets, lookDoc, lookShown, magnifying, markFor, markPicks, marksOf, measure, measurer, measuring, memberable,

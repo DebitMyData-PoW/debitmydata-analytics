@@ -17,9 +17,9 @@
   <head>
     <meta charset="utf-8" />
     <!-- Its launch from a home screen, every showcase's (it says when it's ready: see start). -->
-    <script src="/assets/launch/launch.js" data-app="Studio" data-color="#c80815" data-wait></script>
+    <script src="/assets/launch/launch.js" data-app="Studio" data-color="#c80815" data-wait data-own-theme></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
-    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg?v=2" />
     <meta name="theme-color" content="#08090a" />
     <!-- Found and shared: how a link to it previews, what it is (its canonical address, each place's own, added once it
          knows where it is: see showAddress). -->
@@ -10909,8 +10909,15 @@
           if (Number.isFinite(prefs.sideWidth)) document.documentElement.style.setProperty("--side", `${side}px`);
           if (Number.isFinite(prefs.panelWidth)) document.documentElement.style.setProperty("--panel-kept", `${Math.min(Math.max(prefs.panelWidth, 300), most(300, 0.4, 560, side))}px`);
         }
-        // (The theme, as chosen: the stylesheet does the rest.)
-        document.documentElement.dataset.theme = prefs.theme === "light" || prefs.theme === "system" ? prefs.theme : "dark";
+        // (The theme, as chosen: the stylesheet does the rest. Light or dark, the site's choice, its other pages' switch's
+        // (assets/launch/launch.js); System, Studio's own.)
+        {
+          let site = null;
+          try {
+            site = document.cookie.match(/(?:^|;\s*)dmd-theme-analytics=(light|dark)/)?.[1] ?? localStorage.getItem("dmd-theme-analytics");
+          } catch {}
+          document.documentElement.dataset.theme = prefs.theme === "system" ? "system" : site === "light" || site === "dark" ? site : prefs.theme === "light" ? "light" : "dark";
+        }
         const there = history.state;
         // (A picture's link, #image=: the picture alone, the page out of sight while it's made.)
         if (/[#&]image=/.test(location.hash)) document.body.toggleAttribute("data-picture", true);

@@ -22,7 +22,7 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Calendar's year: each day its leading mining pool's logo, the year's leading pools and its notes beside it" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg?v=2" />
     <!-- (The serif the year's caption is set in, asked for at once, so the caption doesn't re-wrap when it arrives.) -->
     <link rel="preload" href="/assets/fonts/InstrumentSerif-Italic.woff2" as="font" type="font/woff2" crossorigin />
     <style>
@@ -159,11 +159,12 @@
           opacity: 0.07;
           mix-blend-mode: multiply;
           pointer-events: none;
+        }
 
-          @media (prefers-color-scheme: dark) {
-            opacity: 0.06;
-            mix-blend-mode: screen;
-          }
+        /* (A pseudo-element's dark, beside it: nesting can't name one inside.) */
+        :root[data-theme="dark"] &::after {
+          opacity: 0.06;
+          mix-blend-mode: screen;
         }
       }
 
@@ -349,7 +350,7 @@
 
         /* (A line of its own on a phone, held while it's empty, so the totals come in without moving the page.) */
         @media (max-width: 640px) {
-          width: 100%;
+          width: calc(100% - 42px);
           min-height: 1lh;
           margin: 0;
         }
@@ -596,7 +597,7 @@
         print-color-adjust: exact;
         -webkit-print-color-adjust: exact;
 
-        @media (prefers-color-scheme: dark) {
+        :root[data-theme="dark"] & {
           background-image: var(--dark);
         }
 
@@ -928,6 +929,7 @@
           <button type="button" id="forward" class="num"></button>
         </nav>
         <dl class="totals" id="totals"></dl>
+        <span data-theme-switch></span>
       </header>
 
       <!-- In reading order: the year (or the day), its pools, its notes (so on a phone the data comes first, and the pools,

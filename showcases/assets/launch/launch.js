@@ -26,6 +26,99 @@
   const asset = (/** @type {string} */ path) => new URL(`../${path}`, /** @type {HTMLScriptElement} */ (script).src).href;
   // (A newer version of the page, said: its own file, every showcase's from here.)
   document.head.append(Object.assign(document.createElement("script"), { src: asset("version/version.js") }));
+
+  // ── Light or dark: dark unless the visitor chose light ──
+  // DebitMyData's sites each keep the visitor's own choice, with a switch in the top bar (a moon in the light theme, a
+  // sun in the dark one): here "dmd-theme-analytics", a cookie and this browser's storage, dark until one is chosen;
+  // the device's own setting no longer decides. The root's color-scheme picks the pages' colors (their light-dark()
+  // pairs), from the first frame; their stylesheets' dark blocks read the root's data-theme; and their scripts' own
+  // questions about the device's scheme (matchMedia) answer with the choice, told again when it changes. A switch
+  // goes wherever a page puts `<span data-theme-switch></span>`. Studio (`data-own-theme`) keeps its own, System
+  // among them, and the same choice: see studio/app.js.
+  const THEME = "dmd-theme-analytics";
+  if (!script?.hasAttribute("data-own-theme")) {
+    let theme = "dark";
+    try {
+      const kept = document.cookie.match(/(?:^|;\s*)dmd-theme-analytics=(light|dark)/)?.[1] ?? localStorage.getItem(THEME);
+      if (kept === "light") theme = "light";
+    } catch {}
+    // (The browser's own bar, as the page's theme-color for the scheme: the other one's put out of play.)
+    const metas = () => {
+      for (const tag of /** @type {NodeListOf<HTMLMetaElement>} */ (document.querySelectorAll('meta[name="theme-color"][media]'))) {
+        const said = /prefers-color-scheme:\s*(dark|light)/.exec((tag.dataset.media ??= tag.media))?.[1];
+        if (said) tag.media = said === theme ? "all" : "not all";
+      }
+    };
+    const apply = () => {
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      metas();
+    };
+    apply();
+    document.addEventListener("DOMContentLoaded", metas, { once: true });
+    // (The pages' questions about the device's scheme, answered with the choice: each list they hold told when it
+    // changes, as the device's would be.)
+    const native = window.matchMedia.bind(window), lists = /** @type {Set<EventTarget & { matches: boolean, media: string, onchange: any }>} */ (new Set());
+    window.matchMedia = (/** @type {string} */ query) => {
+      const asked = /^\s*\(\s*prefers-color-scheme\s*:\s*(dark|light)\s*\)\s*$/i.exec(query)?.[1]?.toLowerCase();
+      if (!asked) return native(query);
+      const list = /** @type {any} */ (new EventTarget());
+      Object.defineProperties(list, { media: { value: query }, matches: { get: () => theme === asked } });
+      list.onchange = null;
+      list.addListener = (/** @type {any} */ listener) => list.addEventListener("change", listener);
+      list.removeListener = (/** @type {any} */ listener) => list.removeEventListener("change", listener);
+      lists.add(list);
+      return list;
+    };
+    const choose = (/** @type {"light" | "dark"} */ next) => {
+      theme = next;
+      try {
+        localStorage.setItem(THEME, theme);
+      } catch {}
+      document.cookie = `${THEME}=${theme}; path=/; max-age=31536000; samesite=lax${location.protocol === "https:" ? "; secure" : ""}`;
+      apply();
+      label();
+      for (const list of lists) {
+        const event = new Event("change");
+        Object.defineProperties(event, { matches: { value: list.matches }, media: { value: list.media } });
+        list.dispatchEvent(event);
+        list.onchange?.(event);
+      }
+      dispatchEvent(new CustomEvent("dmd-theme", { detail: theme }));
+    };
+    const MOON = '<svg class="moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.5 14.2A8.5 8.5 0 1 1 9.8 3.5a6.8 6.8 0 0 0 10.7 10.7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const SUN = '<svg class="sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.2M19.8 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"/></g></svg>';
+    const label = () => {
+      for (const button of /** @type {NodeListOf<HTMLButtonElement>} */ (document.querySelectorAll(".dmd-theme-toggle"))) {
+        button.setAttribute("aria-label", theme === "dark" ? "Switch to the light theme" : "Switch to the dark theme");
+        button.title = theme === "dark" ? "Light theme" : "Dark theme";
+      }
+    };
+    document.addEventListener("DOMContentLoaded", () => {
+      const slots = document.querySelectorAll("[data-theme-switch]");
+      if (!slots.length) return;
+      // (Its look the other sites' (a round button, red on a pink ground when pointed at), in the page's own size.)
+      document.head.append(
+        Object.assign(document.createElement("style"), {
+          textContent: `[data-theme-switch] { display: inline-flex; flex: none; align-items: center }
+.dmd-theme-toggle { display: inline-grid; place-items: center; flex: none; width: 32px; height: 32px; margin: 0; padding: 0; border-radius: 999px; border: 1px solid color-mix(in srgb, currentColor 22%, transparent); background: transparent; color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color 0.15s, border-color 0.15s, color 0.15s }
+.dmd-theme-toggle:hover { background: light-dark(#fff0f1, #33161b); border-color: light-dark(#f5c9cc, #5c1f27); color: light-dark(#c80815, #ff5a64) }
+.dmd-theme-toggle:focus-visible { outline: 2px solid light-dark(#c80815, #ff5a64); outline-offset: 2px }
+.dmd-theme-toggle svg { display: block; width: 16px; height: 16px }
+.dmd-theme-toggle .sun, :root[data-theme="dark"] .dmd-theme-toggle .moon { display: none }
+:root[data-theme="dark"] .dmd-theme-toggle .sun { display: block }`,
+        }),
+      );
+      for (const slot of slots) {
+        const button = Object.assign(document.createElement("button"), { type: "button", className: "dmd-theme-toggle", innerHTML: MOON + SUN });
+        button.addEventListener("click", () => choose(theme === "dark" ? "light" : "dark"));
+        slot.replaceChildren(button);
+      }
+      label();
+    });
+  }
+  // (The "Get the app" window, as DebitMyData's other sites have it: its own file, after the page.)
+  document.head.append(Object.assign(document.createElement("script"), { src: asset("install/install.js"), defer: true }));
   // (Its app: the showcase's folder, wherever in it the page is (a Studio link's chart, a preset's address).)
   const app = script?.dataset.app, name = app ? `DebitMyData ${app}` : "DebitMyData Analytics", short = app ?? "DMD Analytics";
   const folder = app ? location.pathname.replace(/^(\/[^/]+).*$/, "$1/") : "/", start = `${location.origin}${folder}`;

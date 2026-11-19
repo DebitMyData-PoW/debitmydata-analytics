@@ -22,7 +22,7 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Oracle: the DebitMyData network's hashrate, edge to edge, under its value now" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg?v=2" />
     <style>
       /* fallback fonts */
       /* Local faces keep text visible while the web fonts load. Width fits use a general Latin sample;
@@ -180,6 +180,10 @@
         display: flex;
         align-items: center;
         gap: 12px;
+
+        @media (max-width: 560px) {
+          gap: 10px;
+        }
         padding-top: max(18px, env(safe-area-inset-top));
         font-size: 13px;
 
@@ -202,7 +206,20 @@
           color: var(--faint);
           font-variant-numeric: tabular-nums;
           white-space: nowrap;
+
+          /* (A phone's: beside the brand and the light / dark switch, the block over its age.) */
+          @media (max-width: 560px) {
+            display: grid;
+            justify-items: end;
+            font-size: 12px;
+            line-height: 1.35;
+
+            .sep {
+              display: none;
+            }
+          }
         }
+
       }
 
       .hero {
@@ -599,22 +616,6 @@
         }
       }
 
-      /* Under the line, the measure's own light: the answer's orange, fading to the page. */
-      .area {
-        fill: url(#under);
-        stroke: none;
-      }
-
-      .under-top {
-        stop-color: var(--answer);
-        stop-opacity: 0.28;
-      }
-
-      .under-foot {
-        stop-color: var(--answer);
-        stop-opacity: 0;
-      }
-
       /* The highest and lowest of the range, quietly at their ends. */
       .extreme {
         fill: var(--faint);
@@ -930,6 +931,7 @@
       <header class="bar shell">
         <a class="brand" href="/"><img src="/assets/logo/logo.png" alt="" width="26" height="26" style="width: 26px; height: 26px" />DebitMyData Analytics</a>
         <span class="tip" id="tip"></span>
+        <span data-theme-switch></span>
       </header>
 
       <section class="hero shell" id="hero" aria-labelledby="value">
@@ -991,7 +993,7 @@
         <section class="chapter" aria-labelledby="h3">
           <header><span class="n">03</span><h2 id="h3">Many say much</h2></header>
           <div>
-            <p>So it's averaged: the line above is the work of the last 24 hours' blocks, over 24 hours. Behind it, each block's last hour, as noisy as an hour of blocks is. Longer, steadier still:</p>
+            <p>So it's averaged: the line above is the work of the last 24 hours' blocks, over 24 hours. Behind it, each block's last six hours, a little noisier, and further out their spread, magnified. Longer, steadier still:</p>
             <dl class="facts" id="h-windows" aria-label="The hashrate over each window"></dl>
           </div>
         </section>
@@ -1134,9 +1136,9 @@
 
       /** The three measures: their series, how a value is written, and what the top says of them. */
       const MEASURES = /** @type {const} */ ({
-        hashrate: { series: "hashrate", kicker: "Hashrate · the DebitMyData network", write: (/** @type {number} */ v) => ((s) => `${s.figure} ${s.prefix}H/s`)(si(v)), about: "about-hashrate", log: true, legend: "Behind the line, each block's last hour of hashing: brighter where more blocks put it" },
-        price: { series: "price", kicker: "DMD/USD · reference price, the cost of mining one DMD", write: dollars, about: "about-price", log: true, legend: "Behind the line, each block's reference price: brighter where more blocks had it" },
-        difficulty: { series: "difficulty", kicker: "Difficulty · set again at every block", write: (/** @type {number} */ v) => ((s) => `${s.figure}${s.prefix ? ` ${s.prefix}` : ""}`)(si(v)), about: "about-difficulty", log: true, legend: "Behind the line, each block's difficulty: brighter where more blocks had it" },
+        hashrate: { series: "hashrate", kicker: "Hashrate · the DebitMyData network", write: (/** @type {number} */ v) => ((s) => `${s.figure} ${s.prefix}H/s`)(si(v)), about: "about-hashrate", log: true, legend: "Behind the line, each block's last six hours of hashing, brighter where more blocks put it; further out, their spread, magnified" },
+        price: { series: "price", kicker: "DMD/USD · reference price, the cost of mining one DMD", write: dollars, about: "about-price", log: true, legend: "Behind the line, each block's reference price, brighter where more blocks had it; further out, their spread, magnified" },
+        difficulty: { series: "difficulty", kicker: "Difficulty · set again at every block", write: (/** @type {number} */ v) => ((s) => `${s.figure}${s.prefix ? ` ${s.prefix}` : ""}`)(si(v)), about: "about-difficulty", log: true, legend: "Behind the line, each block's difficulty, brighter where more blocks had it; further out, their spread, magnified" },
       });
       /** How far back: blocks (a block each 150 seconds, a few more for a fast stretch) or days. */
       const RANGES = /** @type {const} */ ({
@@ -1222,7 +1224,8 @@
         $("kicker").textContent = !pt ? offline || m.kicker : pt.h !== undefined ? `Block ${grouped(pt.h)} · ${day(pt.t)}, ${clock(pt.t)}` : day(pt.t);
       }
       function showTip() {
-        if (tip.h) $("tip").textContent = `block ${grouped(tip.h)} · ${ago(tip.t)}`;
+        // (Its two parts apart: a phone's bar puts them on two lines.)
+        if (tip.h) $("tip").innerHTML = `<span>block ${grouped(tip.h)}</span><span class="sep"> · </span><span>${ago(tip.t)}</span>`;
       }
       function showFacts() {
         $("f-hashrate").textContent = now.hashrate ? MEASURES.hashrate.write(now.hashrate) : "…";
@@ -1289,11 +1292,13 @@
 
       // ── Behind the line: each block's own value ──
 
-      // (As Bitview's Oracle draws the payments behind its price: squares about 10px, a column over the points it covers,
-      // brightest where most of its blocks put the measure, lit along the line. A block's hashrate there is its last
-      // hour's, the work of the blocks found in the hour up to it, over the hour (one block's time alone is too much luck);
-      // its difficulty and its reference price are its own.)
-      const HOUR = 3600;
+      // (As Bitview's Oracle draws the payments behind its price: squares about 10px over the whole chart, a column over
+      // the points it covers, in two layers. Near the line, each block where its value puts it, brightest where most of
+      // a column's blocks are, lit along the line. Further out, darker, the same blocks as far from the line as their
+      // distance from it, magnified: the whole background, densest close to the line, as Bitview's payments fill its.
+      // A block's hashrate there is its last six hours', the work of the blocks found in them, over six hours (an hour's
+      // blocks are too few to say: 24 of them, a fifth off either way); its difficulty and its reference price are its own.)
+      const HOUR = 3600, BEHIND = 6 * HOUR;
       /** The blocks read for behind the line: whose (measure and range), the first shown, and from the first read on,
        * each one's value and time. Read again only from the last one read, at each new block. */
       let raw = { key: "", first: 0, from: 0, values: /** @type {number[]} */ ([]), times: /** @type {number[]} */ ([]) };
@@ -1321,8 +1326,8 @@
           // (The day's first block: the blocks counted up to the day before.)
           first = firstDay > 0 ? Number((await read(`/api/series/block_count_cumulative/day1?start=${firstDay - 1}&end=${firstDay}`)).data[0]) || 0 : 0;
         }
-        // (An hour of blocks before the first, for its hour: 80, a fast hour's.)
-        const from = Math.max(0, first - (measure === "hashrate" ? 80 : 0)), id = measure === "price" ? "price" : "difficulty";
+        // (Six hours of blocks before the first, for its six hours: 400, a fast six hours'.)
+        const from = Math.max(0, first - (measure === "hashrate" ? 400 : 0)), id = measure === "price" ? "price" : "difficulty";
         const keep = had.key === key && had.from <= from ? Math.min(had.values.length, had.times.length) - (from - had.from) : 0;
         const values = keep > 0 ? had.values.slice(from - had.from, from - had.from + keep) : [], times = keep > 0 ? had.times.slice(from - had.from, from - had.from + keep) : [];
         const next = from + values.length, to = tip.h + 1;
@@ -1345,8 +1350,8 @@
           let value = v;
           if (got.key.startsWith("hashrate:")) {
             hashes += work(v);
-            while (j < i && got.times[j] <= t - HOUR) hashes -= work(got.values[j++]);
-            value = hashes / HOUR;
+            while (j < i && got.times[j] <= t - BEHIND) hashes -= work(got.values[j++]);
+            value = hashes / BEHIND;
           }
           if (h >= got.first && value > 0) out.push({ h, t, v: value });
         }
@@ -1387,8 +1392,10 @@
         probe.remove();
         return rgb;
       }
-      /** The squares: a column over the points it covers, a row about 10px; a square's blocks counted, brightest where a
-       * column's are densest and lifted along the line, gray where a column has no block. */
+      /** The squares, over the whole chart: a column over the points it covers, a row about 10px. Near the line, its blocks
+       * counted where their values put them, brightest where a column's are densest and lifted along the line; behind
+       * them, darker, the same blocks as far from the line as their distance from it times ZOOM, each over a few rows;
+       * under all of them, a faint square in every column the chart has. */
       function drawHeat(/** @type {ReturnType<typeof frame>} */ f) {
         const ratio = devicePixelRatio || 1;
         heat.width = Math.round(f.w * ratio);
@@ -1403,27 +1410,65 @@
         };
         const cols = Math.max(3, Math.round(f.w / 10)), rows = Math.max(3, Math.round(f.h / 10)), wide = f.w / cols, tall = f.h / rows;
         const col = (/** @type {number} */ x) => Math.max(0, Math.min(cols - 1, Math.floor(x / wide)));
-        const counts = Array.from({ length: cols }, () => new Float64Array(rows)), reached = new Uint8Array(cols);
+        // (The line's row in each column, the mean of its points'.)
         const line = new Float64Array(cols), lineN = new Float64Array(cols);
         points.forEach((pt, k) => {
           const c = col(f.x(k));
           line[c] += f.y(pt.v) / tall;
           lineN[c]++;
         });
-        for (const b of placed()) {
-          const c = col(f.x(b.k)), r = Math.floor(f.y(b.v) / tall);
+        const at = (/** @type {number} */ c) => (lineN[c] ? line[c] / lineN[c] : NaN);
+        const near = Array.from({ length: cols }, () => new Float64Array(rows)), far = Array.from({ length: cols }, () => new Float64Array(rows));
+        const reached = new Uint8Array(cols);
+        // (Near: each block where its value puts it; and how far, in rows, from its column's line.)
+        const blocks = placed(), offsets = new Float64Array(blocks.length), columns = new Int32Array(blocks.length);
+        blocks.forEach((b, i) => {
+          const c = col(f.x(b.k)), r = f.y(b.v) / tall;
           reached[c] = 1;
-          if (r >= 0 && r < rows) counts[c][r]++;
-        }
+          columns[i] = c;
+          offsets[i] = r - at(c);
+          // (Over its row and a little either side, as a bin of Bitview's covers a few.)
+          const middle = Math.floor(r);
+          for (let d = -2; d <= 2; d++) {
+            const row = middle + d;
+            if (row >= 0 && row < rows) near[c][row] += Math.exp(-((row + 0.5 - r) ** 2) / 1.2);
+          }
+        });
+        // (Far: magnified so that nine blocks in ten land within six tenths of the chart's height of the line, each over
+        // a dozen rows; none for a measure that hasn't moved, as the reference price at its least.)
+        const sizes = Float64Array.from(offsets.filter(Number.isFinite), Math.abs).sort();
+        const typical = sizes.length ? sizes[Math.floor(sizes.length * 0.9)] : 0;
+        const ZOOM = typical > 0.05 ? Math.max(3, Math.min(120, (rows * 0.6) / typical)) : 0;
+        if (ZOOM)
+          for (let i = 0; i < blocks.length; i++) {
+            if (!Number.isFinite(offsets[i])) continue;
+            const c = columns[i], r = at(c) + offsets[i] * ZOOM, middle = Math.floor(r);
+            for (let d = -6; d <= 6; d++) {
+              const row = middle + d;
+              if (row >= 0 && row < rows) far[c][row] += Math.exp(-((row + 0.5 - r) ** 2) / 10);
+            }
+          }
         for (let c = 0; c < cols; c++) {
-          let most = 0;
-          for (let r = 0; r < rows; r++) most = Math.max(most, counts[c][r]);
-          const at = lineN[c] ? line[c] / lineN[c] : -9;
+          let mostNear = 0, mostFar = 0;
+          for (let r = 0; r < rows; r++) (mostNear = Math.max(mostNear, near[c][r])), (mostFar = Math.max(mostFar, far[c][r]));
+          const middle = at(c), drawn = reached[c] || lineN[c];
           for (let r = 0; r < rows; r++) {
-            const v0 = most ? (counts[c][r] / most) ** 0.7 : 0, u = Math.exp(-((r + 0.5 - at) ** 2) / 0.8);
-            const v = Math.min(1, v0 + 0.4 * u * (1 - v0) + 0.15 * u);
-            ctx.fillStyle = reached[c] || lineN[c] ? `rgba(${ramp(v)},${(0.06 + 0.94 * v).toFixed(3)})` : `rgba(${ink},0.035)`;
-            ctx.fillRect(c * wide, r * tall, wide - 1, tall - 1);
+            const x = c * wide, y = r * tall;
+            if (!drawn) {
+              ctx.fillStyle = `rgba(${ink},0.035)`;
+              ctx.fillRect(x, y, wide - 1, tall - 1);
+              continue;
+            }
+            // (Behind: the darker half of the ramp, faint where few blocks land, every square at least a little.)
+            const v3 = mostFar ? (far[c][r] / mostFar) ** 0.6 : 0;
+            ctx.fillStyle = `rgba(${ramp(0.08 + 0.4 * v3)},${(0.15 + 0.4 * v3).toFixed(3)})`;
+            ctx.fillRect(x, y, wide - 1, tall - 1);
+            // (Near: the brighter half, lifted along the line.)
+            const v0 = mostNear ? (near[c][r] / mostNear) ** 0.7 : 0, u = Number.isNaN(middle) ? 0 : Math.exp(-((r + 0.5 - middle) ** 2) / 0.8);
+            const v2 = Math.min(1, v0 + 0.4 * u * (1 - v0) + 0.15 * u);
+            if (v2 < 0.04) continue;
+            ctx.fillStyle = `rgba(${ramp(0.3 + 0.7 * v2)},${(0.12 + 0.88 * v2).toFixed(3)})`;
+            ctx.fillRect(x, y, wide - 1, tall - 1);
           }
         }
       }
@@ -1672,7 +1717,6 @@
         svg.setAttribute("viewBox", `0 0 ${f.w} ${f.h}`);
         const path = points.map((pt, k) => `${k ? "L" : "M"}${f.x(k).toFixed(1)},${f.y(pt.v).toFixed(1)}`).join("");
         const endX = f.x(f.n - 1), endY = f.y(points[f.n - 1].v);
-        const area = `${path}L${endX.toFixed(1)},${f.h}L${f.x(0).toFixed(1)},${f.h}Z`;
         const write = MEASURES[measure].write;
         const hiK = points.findIndex((pt) => pt.v === f.hi), loK = points.findIndex((pt) => pt.v === f.lo);
         const label = (/** @type {number} */ k, /** @type {number} */ dy) => {
@@ -1680,8 +1724,7 @@
           return `<text class="extreme" x="${x.toFixed(1)}" y="${(f.y(points[k].v) + dy).toFixed(1)}" text-anchor="${anchor}">${write(points[k].v)}</text>`;
         };
         svg.innerHTML =
-          `<defs><linearGradient id="under" x1="0" y1="0" x2="0" y2="1"><stop class="under-top" offset="0"/><stop class="under-foot" offset="1"/></linearGradient></defs>` +
-          `<path class="area" d="${area}"/><path class="price-glow" d="${path}"/><path class="price-line" d="${path}"/>` +
+          `<path class="price-glow" d="${path}"/><path class="price-line" d="${path}"/>` +
           (f.hi > f.lo ? label(hiK, -10) + label(loK, 18) : "") +
           `<circle class="end-glow" cx="${endX}" cy="${endY}" r="9"/><circle class="end" cx="${endX}" cy="${endY}" r="4.5"/><g class="cross" id="cross" visibility="hidden"><line/><circle r="4.5"/></g>`;
         if (pointed !== null) point(pointed);
@@ -1802,6 +1845,11 @@
       // ── Start, and each new block ──
 
       new ResizeObserver(() => draw()).observe(chart);
+      // (The theme switched: the squares and the pools' logos in its colors.)
+      dark.addEventListener("change", () => {
+        draw();
+        readChapters();
+      });
       showChoices();
       refresh();
       let lastTip = "";

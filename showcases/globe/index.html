@@ -22,7 +22,7 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Globe: the week's DebitMyData blocks by their mining pool's home country on a globe, each country's share since the first block under it" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg?v=2" />
     <style>
       /* fallback fonts */
       /* Local faces keep text visible while the web fonts load. Width fits use a general Latin sample;
@@ -204,10 +204,12 @@
 
         .brand {
           display: inline-flex;
+          flex: none;
           align-items: center;
           gap: 10px;
           color: var(--ink);
           font-weight: 600;
+          white-space: nowrap;
 
           img {
             width: 22px;
@@ -219,6 +221,11 @@
       }
 
       /* The latest block, live: a dot that breathes beside its height. */
+      /* (The light / dark switch at the bar's right, after the tip, or in its place while it's hidden.) */
+      .tip-height[hidden] + [data-theme-switch] {
+        margin-left: auto;
+      }
+
       .tip-height {
         display: inline-flex;
         align-items: center;
@@ -798,6 +805,7 @@
           <a class="brand" href="/"><img src="/assets/logo/logo.png" alt="" width="26" height="26" style="width: 26px; height: 26px" />DebitMyData Analytics</a>
           <h1 id="title">Where blocks are mined</h1>
           <span class="tip-height" id="tip" hidden>Block <b class="num" id="tip-height"></b></span>
+          <span data-theme-switch></span>
         </header>
         <canvas id="globe" role="img" aria-label="A globe, each country lit by its share of the blocks; the list of countries has the same."></canvas>
         <div class="board">

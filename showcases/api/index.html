@@ -22,7 +22,7 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="DebitMyData Analytics' API reference: the endpoints by group beside its introduction" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg?v=2" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#08090a" />
     <style>
@@ -91,6 +91,13 @@
 
       /* The way home, every page's: in a bar Scalar keeps for a header (its --refs-header-height), over its sidebar on a
          desk; on a phone beside its menu button, in its own bar. */
+      /* (A narrow phone's bar: the brand's logo alone, Docs, Source and the light / dark switch at its right.) */
+      @media (width < 440px) {
+        .brand {
+          font-size: 0 !important;
+        }
+      }
+
       .brand {
         position: fixed;
         z-index: 1001;
@@ -106,7 +113,7 @@
         letter-spacing: -0.01em;
         text-decoration: none;
 
-        @media (prefers-color-scheme: dark) {
+        :root[data-theme="dark"] & {
           color: #f7f8f8;
         }
 
@@ -124,6 +131,10 @@
 
       /* On the bar's other side: what each release changed (an id renamed or removed, an endpoint changed), and the way
          to star Bitview on GitHub; each link as tall as the bar. */
+      .ends [data-theme-switch] {
+        align-self: center;
+      }
+
       .ends {
         position: fixed;
         z-index: 1001;
@@ -150,7 +161,7 @@
             color: #0f1012;
           }
 
-          @media (prefers-color-scheme: dark) {
+          :root[data-theme="dark"] & {
             color: #8a8f98;
 
             &:hover {
@@ -161,7 +172,7 @@
           @media (prefers-contrast: more) {
             color: #3d4048;
 
-            @media (prefers-color-scheme: dark) {
+            :root[data-theme="dark"] & {
               color: #b4b8bd;
             }
           }
@@ -178,7 +189,7 @@
         font-weight: 600;
         color: #0f1012;
 
-        @media (prefers-color-scheme: dark) {
+        :root[data-theme="dark"] & {
           color: #f7f8f8;
         }
       }
@@ -216,11 +227,11 @@
           height: 52px;
           border-bottom: 1px solid rgb(0 0 0 / 0.08);
           background: #ffffff;
+        }
 
-          @media (prefers-color-scheme: dark) {
-            border-color: rgb(255 255 255 / 0.06);
-            background: #08090a;
-          }
+        :root[data-theme="dark"] body::before {
+          border-color: rgb(255 255 255 / 0.06);
+          background: #08090a;
         }
       }
     </style>
@@ -228,22 +239,29 @@
 
   <body>
     <a class="brand" href="/"><img src="/assets/logo/logo.png" alt="" width="26" height="26" style="width: 26px; height: 26px" />DebitMyData Analytics</a>
-    <nav class="ends" aria-label="Elsewhere"><a href="https://docs.debitmydata.io/data/analytics/#api">Docs</a><a href="https://github.com/DebitMyData-PoW/debitmydata-analytics">Source</a></nav>
+    <nav class="ends" aria-label="Elsewhere"><a href="https://docs.debitmydata.io/data/analytics/#api">Docs</a><a href="https://github.com/DebitMyData-PoW/debitmydata-analytics">Source</a><span data-theme-switch></span></nav>
     <div id="app"></div>
 
     <!-- Every endpoint, from the specification of the server that serves this page. -->
     <script src="/modules/scalar-api-reference/1.75.1/dist/browser/standalone.js"></script>
     <script>
-      // In Bitview's type and colors (Studio's), light or dark as the system is (Scalar's own system mode, its toggle
-      // hidden, a choice it kept from when it had one let go); no toolbar.
+      // In Bitview's type and colors (Studio's), light or dark as the site's switch says (the bar's, at its right:
+      // assets/launch/launch.js; Scalar's own toggle hidden, a choice it kept from when it had one let go); no toolbar.
       try {
         localStorage.removeItem("colorMode");
       } catch {}
+      const dark = () => document.documentElement.dataset.theme !== "light";
+      // (Switched: Scalar's own classes on the body, as its toggle would set them.)
+      addEventListener("dmd-theme", () => {
+        document.body.classList.toggle("dark-mode", dark());
+        document.body.classList.toggle("light-mode", !dark());
+      });
       Scalar.createApiReference("#app", {
         url: "/openapi.json",
         hideClientButton: true,
         showDeveloperTools: "never",
         hideDarkModeToggle: true,
+        forceDarkModeState: dark() ? "dark" : "light",
         telemetry: false,
         withDefaultFonts: false,
         mcp: { disabled: true },

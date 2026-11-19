@@ -22,7 +22,7 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Explorer: the block forming now, each of its transactions a square, beside what it takes to get in, under the chain's latest blocks" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg?v=2" />
     <link rel="preload" href="/assets/fonts/InterVariable.core.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/assets/fonts/Lilex.core.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="modulepreload" href="/modules/bitview-client/core.js" />
@@ -111,8 +111,7 @@
         --gutter: 40px;
         color-scheme: light;
       }
-      @media (prefers-color-scheme: dark) {
-        :root {
+      :root[data-theme="dark"] {
           --bg: #09090b;
           --ink: #ededf0;
           --soft: #8a8a94;
@@ -127,7 +126,6 @@
           --profit-text: #3ccf7f;
           --loss: #ff6d60;
           color-scheme: dark;
-        }
       }
 
       * {
@@ -304,6 +302,13 @@
         .miss:empty {
           display: none;
         }
+      }
+      /* (The bar's right: the price, then the light / dark switch.) */
+      .bar-end {
+        justify-self: end;
+        display: flex;
+        align-items: center;
+        gap: 14px;
       }
       .price {
         justify-self: end;
@@ -1441,7 +1446,10 @@
         <kbd>/</kbd>
         <span class="miss" id="miss" role="status"></span>
       </form>
-      <span class="price" title="DMD's reference price: the cost of mining one DMD, at least $0.001. Not a market price."><span>DMD</span><b id="price">&nbsp;</b></span>
+      <div class="bar-end">
+        <span class="price" title="DMD's reference price: the cost of mining one DMD, at least $0.001. Not a market price."><span>DMD</span><b id="price">&nbsp;</b></span>
+        <span data-theme-switch></span>
+      </div>
     </header>
     <h1 class="vh">Explorer</h1>
     <main class="page" id="view"><div class="wait">Loading</div></main>
@@ -1518,10 +1526,10 @@
       // ---------------------------------------------------------------- The DebitMyData chain.
       // A block every 2.5 minutes (150 seconds) on average; a halving every 300,000 blocks.
       const BLOCK = 150, HALVING = 300_000;
-      // (DebitMyData: a block's square stands for 25,000 vB, 100,000 weight units, as DebitMyData's mempool explorer
-      // draws its blocks (its BLOCK_WEIGHT_UNITS): its blocks are small, and at Bitcoin's 4,000,000 they'd show all but
-      // empty. A fuller block fills it, never past. Only the drawing: what's ahead in the queue counts real blocks.)
-      const SHOWN = 25_000;
+      // (DebitMyData: a block's square stands for 500 vB, 2,000 weight units: its blocks are small (a coinbase alone,
+      // 150 to 200 vB, fills a third of it), and at Bitcoin's 4,000,000 they'd show all but empty. A fuller block fills
+      // it, never past. Only the drawing: what's ahead in the queue counts real blocks.)
+      const SHOWN = 500;
       // A block's size, as the mempool explorer writes it: "275 B", "1.2 kB", "1.05 MB".
       const size = (b) => (b < 1000 ? `${int(b)} B` : b < 1e6 ? `${nf(1).format(b / 1e3)} kB` : `${nf(2).format(b / 1e6)} MB`);
 
@@ -1883,7 +1891,7 @@
           }
         state.next = { hash: diff.hash, stats: diff.stats, txs };
         if (state.view?.kind === "home") {
-          map.set(state.next.txs);
+          map.set(state.next.txs, SHOWN, nextEmpty());
           drawForming();
         }
       });
@@ -1900,6 +1908,20 @@
       const within = (n) => ceilRate(Math.min(...Array.from({ length: n }, (_, i) => entry(state.projected[i]))));
       const paymentSats = (r) => Math.ceil(r * PAYMENT - 1e-9);
       const paymentCost = (r) => (state.price ? cost((paymentSats(r) / 1e8) * state.price) : `${int(paymentSats(r))} data`);
+
+      // The next block with nothing waiting (DebitMyData's, most of the time): its words, and the coinbase it will have,
+      // the size the latest block's took, its subsidy the latest's.
+      const nextEmpty = () => {
+        const last = state.confirmed.find((b) => b.tx_count === 1) ?? state.confirmed[0];
+        const ghost = last?.weight ? Math.max(100, Math.round((last.weight - 324) / 4)) : 250;
+        const subsidy = last?.extras ? last.extras.reward - (last.extras.totalFees ?? 0) : 0;
+        return {
+          ghost,
+          ghostSay: `about ${int(ghost)} vB`,
+          title: "No transactions waiting",
+          say: `The next block will hold its coinbase alone${subsidy ? `: ${btc(subsidy)} DMD to the pool that finds it` : ""}. A transaction sent now gets in it.`,
+        };
+      };
 
       // ---------------------------------------------------------------- The home: the forming block's view.
       // Every page is one of three, a block, a transaction or an address; the home is the block forming now: the
@@ -1929,8 +1951,8 @@
           </section>`;
         paintChain(chain);
         map.mount($("map"), (i, t) => go(url.tx(t.txid)));
-        if (state.next) map.set(state.next.txs);
-        next.then(() => state.view === v && (map.set(state.next.txs), drawHome())).catch(() => {});
+        if (state.next) map.set(state.next.txs, SHOWN, nextEmpty());
+        next.then(() => state.view === v && (map.set(state.next.txs, SHOWN, nextEmpty()), drawHome())).catch(() => {});
         drawForming();
         readWeek().catch(() => {});
       }
@@ -2171,6 +2193,8 @@
         let colorOf = (t) => feeColor(t.rate);
         let describe = null;
         let capacity = SHOWN;
+        // (An empty block's words, and the coinbase it will have, drawn as to come: { ghost, title, say }.)
+        let empty = null;
         let onOpen = null;
         let glowing = false;
         let lit = -1;
@@ -2259,7 +2283,65 @@
             }
           }
           ctx.globalAlpha = 1;
+          if (!txs.length && empty) drawEmpty(ctx, D, Math.max(2, Math.round(devicePixelRatio)));
+          else words(ctx, rects, gap, Math.max(2, Math.round(devicePixelRatio)));
           return fresh;
+        }
+        // (A square with room for them says what it is: the coinbase, or the fee rate, and its size, in a color read on its
+        // own.)
+        function words(ctx, rects, gap, Q) {
+          for (let i = 0; i < txs.length; i++) {
+            const w = rects.w[i] - gap, h = rects.h[i] - gap;
+            if (w < 72 * Q || h < 44 * Q) continue;
+            const t = txs[i];
+            const lines = [t.coinbase ? "Coinbase" : rate(t.rate), vbytes(t.vsize)];
+            const size = Math.min(15, Math.max(11, w / Q / 9)) * Q;
+            const color = colors[i].trim();
+            const [r, g, b] = color.startsWith("#") ? [1, 3, 5].map((k) => parseInt(color.slice(k, k + 2), 16)) : (color.match(/\d+/g) ?? [0, 0, 0]).map(Number);
+            ctx.fillStyle = 0.299 * r + 0.587 * g + 0.114 * b > 150 ? "rgba(0,0,0,0.78)" : "rgba(255,255,255,0.92)";
+            ctx.textBaseline = "top";
+            ctx.font = `600 ${size}px Inter, system-ui, sans-serif`;
+            ctx.fillText(lines[0], rects.x[i] + 10 * Q, rects.y[i] + 10 * Q, w - 20 * Q);
+            ctx.font = `400 ${size * 0.9}px Inter, system-ui, sans-serif`;
+            ctx.fillText(lines[1], rects.x[i] + 10 * Q, rects.y[i] + 10 * Q + size * 1.35, w - 20 * Q);
+          }
+        }
+        // (The next block with nothing waiting: the coinbase it will have, dashed, at the size it'll take, and what that is.)
+        function drawEmpty(ctx, D, Q) {
+          const style = getComputedStyle(document.documentElement);
+          const side = Math.round(D * Math.sqrt(Math.min(1, empty.ghost / capacity)));
+          ctx.save();
+          ctx.setLineDash([6 * Q, 5 * Q]);
+          ctx.lineWidth = 1.5 * Q;
+          ctx.strokeStyle = MINER().trim();
+          ctx.strokeRect(Q, D - side + Q, side - 2 * Q, side - 2 * Q);
+          ctx.restore();
+          ctx.textBaseline = "top";
+          ctx.fillStyle = style.getPropertyValue("--soft");
+          if (side >= 110 * Q) {
+            ctx.font = `600 ${13 * Q}px Inter, system-ui, sans-serif`;
+            ctx.fillText("Its coinbase", 12 * Q, D - side + 12 * Q, side - 24 * Q);
+            ctx.font = `400 ${12 * Q}px Inter, system-ui, sans-serif`;
+            ctx.fillText(empty.ghostSay, 12 * Q, D - side + 32 * Q, side - 24 * Q);
+          }
+          // (Its words over it, wrapped to the map's width.)
+          const wrap = (text, size, weight, top, color) => {
+            ctx.font = `${weight} ${size * Q}px Inter, system-ui, sans-serif`;
+            ctx.fillStyle = color;
+            const most = D * 0.76;
+            const lines = [];
+            for (const word of text.split(" ")) {
+              const last = lines.at(-1);
+              if (last !== undefined && ctx.measureText(`${last} ${word}`).width <= most) lines[lines.length - 1] = `${last} ${word}`;
+              else lines.push(word);
+            }
+            ctx.textAlign = "center";
+            lines.forEach((line, k) => ctx.fillText(line, D / 2, top + k * size * 1.45 * Q));
+            ctx.textAlign = "left";
+            return top + lines.length * size * 1.45 * Q;
+          };
+          const below = wrap(empty.title, Math.max(15, Math.min(22, D / Q / 22)), 600, D * 0.2, style.getPropertyValue("--ink"));
+          wrap(empty.say, Math.max(12, Math.min(15, D / Q / 32)), 400, below + 10 * Q, style.getPropertyValue("--soft"));
         }
         function glow() {
           if (glowing) return;
@@ -2313,8 +2395,9 @@
             });
             new ResizeObserver(() => draw()).observe(canvas);
           },
-          set(list, size = SHOWN) {
+          set(list, size = SHOWN, none = null) {
             txs = list;
+            empty = none;
             lit = -1;
             capacity = Math.max(size, list.reduce((s, t) => s + t.vsize, 0));
             layout = null;
