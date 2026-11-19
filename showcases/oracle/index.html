@@ -1136,9 +1136,9 @@
 
       /** The three measures: their series, how a value is written, and what the top says of them. */
       const MEASURES = /** @type {const} */ ({
-        hashrate: { series: "hashrate", kicker: "Hashrate · the DebitMyData network", write: (/** @type {number} */ v) => ((s) => `${s.figure} ${s.prefix}H/s`)(si(v)), about: "about-hashrate", log: true, legend: "Behind the line, each block's last six hours of hashing, brighter where more blocks put it; further out, their spread, magnified" },
-        price: { series: "price", kicker: "DMD/USD · reference price, the cost of mining one DMD", write: dollars, about: "about-price", log: true, legend: "Behind the line, each block's reference price, brighter where more blocks had it; further out, their spread, magnified" },
-        difficulty: { series: "difficulty", kicker: "Difficulty · set again at every block", write: (/** @type {number} */ v) => ((s) => `${s.figure}${s.prefix ? ` ${s.prefix}` : ""}`)(si(v)), about: "about-difficulty", log: true, legend: "Behind the line, each block's difficulty, brighter where more blocks had it; further out, their spread, magnified" },
+        hashrate: { series: "hashrate", kicker: "Hashrate · the DebitMyData network", write: (/** @type {number} */ v) => ((s) => `${s.figure} ${s.prefix}H/s`)(si(v)), about: "about-hashrate", log: true, legend: "Behind the line, blocks read over 19 spans: brighter where more imply that hashrate" },
+        price: { series: "price", kicker: "DMD/USD · reference price, the cost of mining one DMD", write: dollars, about: "about-price", log: true, legend: "Behind the line, mining's cost read over 19 spans: the price is never under $0.001" },
+        difficulty: { series: "difficulty", kicker: "Difficulty · set again at every block", write: (/** @type {number} */ v) => ((s) => `${s.figure}${s.prefix ? ` ${s.prefix}` : ""}`)(si(v)), about: "about-difficulty", log: true, legend: "Behind the line, blocks read over 19 spans: brighter where more imply that difficulty" },
       });
       /** How far back: blocks (a block each 150 seconds, a few more for a fast stretch) or days. */
       const RANGES = /** @type {const} */ ({
@@ -1151,6 +1151,8 @@
       const DAY_ZERO = Date.UTC(2009, 0, 1) / 1000;
       /** The DebitMyData chain's first day. */
       const GENESIS_DAY = "2026-02-20";
+      /** An hour, in seconds. */
+      const HOUR = 3600;
 
       const read = (/** @type {string} */ path) => fetch(path, { signal: AbortSignal.timeout(30_000) }).then((r) => {
         if (!r.ok) throw new Error(String(r.status));
@@ -1285,28 +1287,28 @@
         const got = await readBehind(raw).catch(() => null);
         if (!got || mine !== reading || shown !== `${measure}:${range}`) return;
         raw = got;
-        behind = blocksBehind(raw);
-        wide = spread();
+        readings = readingsOf(raw);
         draw();
       }
 
-      // ── Behind the line: each block's own value ──
+      // ── Behind the line: each block read 19 ways ──
 
-      // (As Bitview's Oracle draws the payments behind its price: squares about 10px over the whole chart, a column over
-      // the points it covers, in two layers. Near the line, each block where its value puts it, brightest where most of
-      // a column's blocks are, lit along the line. Further out, darker, the same blocks as far from the line as their
-      // distance from it, magnified: the whole background, densest close to the line, as Bitview's payments fill its.
-      // A block's hashrate there is its last six hours', the work of the blocks found in them, over six hours (an hour's
-      // blocks are too few to say: 24 of them, a fifth off either way); its difficulty and its reference price are its own.)
-      const HOUR = 3600, BEHIND = 6 * HOUR;
-      /** The blocks read for behind the line: whose (measure and range), the first shown, and from the first read on,
-       * each one's value and time. Read again only from the last one read, at each new block. */
-      let raw = { key: "", first: 0, from: 0, values: /** @type {number[]} */ ([]), times: /** @type {number[]} */ ([]) };
-      /** Each block behind the line: its height, time and value (its hour's hashrate, its difficulty or price).
-       * @type {{ h: number, t: number, v: number }[]} */
-      let behind = [];
-      /** How far most of them spread (null: too few to say). @type {{ lo: number, hi: number } | null} */
-      let wide = null;
+      // (As Bitview's Oracle draws its price over each block's payments, every one read as 19 round-dollar amounts and
+      // counted where the price it implies lands: most land on the price, the rest fill the background. Here each block
+      // is read over 19 spans instead, from its own solve time to its last 10,000 blocks: the hashrate their work in
+      // their time says, the difficulty that pace calls for, or what their work costs a DMD (the reference price, but
+      // under its $0.001 floor too). The middle spans land on the line; the short ones scatter wide of it (a block found
+      // in 15 seconds says ten times the hashrate, one found in ten minutes a quarter of it); the long ones trail it,
+      // smoothed: the line again, at a larger scale.)
+      const SPANS = [1, 2, 3, 5, 10, 15, 20, 25, 30, 50, 100, 150, 200, 300, 500, 1000, 2000, 5000, 10_000];
+      const LONGEST = SPANS[SPANS.length - 1];
+      /** The blocks read for behind the line: for which range, the first shown, and from LONGEST blocks before it on,
+       * each one's difficulty and time. Read again only from the last one read, at each new block. */
+      let raw = { key: "", first: 0, from: 0, diffs: /** @type {number[]} */ ([]), times: /** @type {number[]} */ ([]) };
+      /** The readings behind the line: each block's point, then its readings, SPANS of them a block (NaN: none), and
+       * their logarithms, for a log scale. */
+      const NONE = { at: new Int32Array(0), values: new Float64Array(0), logs: new Float32Array(0), spread: /** @type {{ lo: number, hi: number } | null} */ (null) };
+      let readings = NONE;
       /** The most values a read is sent in: under the server's cap on a response. */
       const PIECE = 30_000;
       /** A series by block from a height to the tip, in pieces. */
@@ -1315,9 +1317,10 @@
         for (let s = from; s < to; s += PIECE) asked.push(read(`/api/series/${id}/height?start=${s}&end=${Math.min(to, s + PIECE)}`));
         return (await Promise.all(asked)).flatMap((piece) => piece.data.map(Number));
       }
-      /** The blocks behind the line of the measure and range shown: those already read kept, the new ones added. */
+      /** The blocks behind the line of the range shown (whichever measure: each is read from the same blocks), those
+       * already read kept, the new ones added. */
       async function readBehind(/** @type {typeof raw} */ had) {
-        const r = RANGES[range], key = `${measure}:${range}`;
+        const r = RANGES[range], key = range;
         if (!points.length || !tip.h) return null;
         let first = 0;
         if (r.index === "height") first = /** @type {number} */ (points[0].h);
@@ -1326,60 +1329,60 @@
           // (The day's first block: the blocks counted up to the day before.)
           first = firstDay > 0 ? Number((await read(`/api/series/block_count_cumulative/day1?start=${firstDay - 1}&end=${firstDay}`)).data[0]) || 0 : 0;
         }
-        // (Six hours of blocks before the first, for its six hours: 400, a fast six hours'.)
-        const from = Math.max(0, first - (measure === "hashrate" ? 400 : 0)), id = measure === "price" ? "price" : "difficulty";
-        const keep = had.key === key && had.from <= from ? Math.min(had.values.length, had.times.length) - (from - had.from) : 0;
-        const values = keep > 0 ? had.values.slice(from - had.from, from - had.from + keep) : [], times = keep > 0 ? had.times.slice(from - had.from, from - had.from + keep) : [];
-        const next = from + values.length, to = tip.h + 1;
+        const from = Math.max(0, first - LONGEST);
+        const keep = had.key === key && had.from <= from ? Math.min(had.diffs.length, had.times.length) - (from - had.from) : 0;
+        const diffs = keep > 0 ? had.diffs.slice(from - had.from, from - had.from + keep) : [], times = keep > 0 ? had.times.slice(from - had.from, from - had.from + keep) : [];
+        const next = from + diffs.length, to = tip.h + 1;
         if (next < to) {
-          const [v, t] = await Promise.all([heights(id, next, to), heights("timestamp", next, to)]);
-          const n = Math.min(v.length, t.length);
+          const [d, t] = await Promise.all([heights("difficulty", next, to), heights("timestamp", next, to)]);
+          const n = Math.min(d.length, t.length);
           for (let i = 0; i < n; i++) {
-            values.push(v[i]);
+            diffs.push(d[i]);
             times.push(t[i]);
           }
         }
-        return { key, first, from, values, times };
+        return { key, first, from, diffs, times };
       }
-      /** The blocks read, each its value behind the line. */
-      function blocksBehind(/** @type {typeof raw} */ got) {
-        const out = [];
-        let j = 0, hashes = 0;
-        for (let i = 0; i < got.values.length; i++) {
-          const h = got.from + i, t = got.times[i], v = got.values[i];
-          let value = v;
-          if (got.key.startsWith("hashrate:")) {
-            hashes += work(v);
-            while (j < i && got.times[j] <= t - BEHIND) hashes -= work(got.values[j++]);
-            value = hashes / BEHIND;
+      /** What mining one DMD costs, as the server works the reference price out (the gateway's settings: 20 J/TH, $0.06
+       * a kWh): the electricity for the work of a block of `difficulty`, over the reward at `height`. The price is that
+       * or $0.001, the higher. */
+      function costOf(/** @type {number} */ difficulty, /** @type {number} */ height) {
+        const kwh = (work(difficulty) / 1e12) * 20 / 3_600_000, reward = 35 / 2 ** (Math.floor(height / 300_000) % 32);
+        return (kwh * 0.06) / reward;
+      }
+      /** Each block shown read over SPANS, as the measure shown: over the span's blocks up to it (their work and the
+       * time they took), the hashrate, the difficulty that would have brought them each 150 seconds, or what their
+       * average work costs a DMD (under the floor too: how far the cost is from it). None for a span reaching before
+       * the first block, or a time that runs backwards. For the price, how far most readings spread, for the frame. */
+      function readingsOf(/** @type {typeof raw} */ got) {
+        const n = Math.min(got.diffs.length, got.times.length), S = SPANS.length, sums = new Float64Array(n + 1);
+        for (let i = 0; i < n; i++) sums[i + 1] = sums[i] + got.diffs[i];
+        // (A block at its point: its own, by block; its day's, by day.)
+        const byHeight = RANGES[range].index === "height", dayOf = (/** @type {number} */ t) => Math.floor((t - DAY_ZERO) / 86400);
+        const index = new Map(points.map((pt, k) => [byHeight ? pt.h : Math.round((pt.t - DAY_ZERO) / 86400), k]));
+        const start = Math.max(0, got.first - got.from), at = new Int32Array(Math.max(0, n - start)), values = new Float64Array(at.length * S);
+        let b = 0;
+        for (let i = start; i < n; i++) {
+          const h = got.from + i, t = got.times[i], k = index.get(byHeight ? h : dayOf(t));
+          if (k === undefined) continue;
+          at[b] = k;
+          for (let s = 0; s < S; s++) {
+            const j = i - SPANS[s], d = j >= 0 ? sums[i + 1] - sums[j + 1] : 0, dt = j >= 0 ? t - got.times[j] : 0;
+            values[b * S + s] = !(d > 0) ? NaN : measure === "price" ? costOf(d / SPANS[s], h) : !(dt > 0) ? NaN : measure === "hashrate" ? work(d) / dt : (d * 150) / dt;
           }
-          if (h >= got.first && value > 0) out.push({ h, t, v: value });
+          b++;
+        }
+        const kept = values.subarray(0, b * S), logs = new Float32Array(kept.length);
+        for (let i = 0; i < kept.length; i++) logs[i] = kept[i] > 0 ? Math.log(kept[i]) : NaN;
+        const out = { at: at.subarray(0, b), values: kept, logs, spread: /** @type {{ lo: number, hi: number } | null} */ (null) };
+        if (measure === "price") {
+          // (From a sample of them: up to 50,000.)
+          const step = Math.max(1, Math.floor(out.values.length / 50_000)), some = [];
+          for (let i = 0; i < out.values.length; i += step) if (out.values[i] > 0) some.push(out.values[i]);
+          some.sort((a, z) => a - z);
+          if (some.length >= 20) out.spread = { lo: some[Math.floor(some.length * 0.02)], hi: some[Math.floor(some.length * 0.98)] };
         }
         return out;
-      }
-      /** The blocks behind the line, each at the point it falls in: its own, by block; its day's, by day. */
-      function placed() {
-        const out = [];
-        if (RANGES[range].index === "height") {
-          const at = new Map(points.map((pt, k) => [pt.h, k]));
-          for (const b of behind) {
-            const k = at.get(b.h);
-            if (k !== undefined) out.push({ k, v: b.v });
-          }
-        } else {
-          const at = new Map(points.map((pt, k) => [Math.round((pt.t - DAY_ZERO) / 86400), k]));
-          for (const b of behind) {
-            const k = at.get(Math.floor((b.t - DAY_ZERO) / 86400));
-            if (k !== undefined) out.push({ k, v: b.v });
-          }
-        }
-        return out;
-      }
-      /** How far most blocks behind the line spread: the line's frame wide enough for them, the odd one off it. */
-      function spread() {
-        if (behind.length < 20) return null;
-        const sorted = Float64Array.from(behind, (b) => b.v).sort();
-        return { lo: sorted[Math.floor(sorted.length * 0.02)], hi: sorted[Math.floor(sorted.length * 0.98)] };
       }
 
       const heat = /** @type {HTMLCanvasElement} */ ($("heat"));
@@ -1392,10 +1395,11 @@
         probe.remove();
         return rgb;
       }
-      /** The squares, over the whole chart: a column over the points it covers, a row about 10px. Near the line, its blocks
-       * counted where their values put them, brightest where a column's are densest and lifted along the line; behind
-       * them, darker, the same blocks as far from the line as their distance from it times ZOOM, each over a few rows;
-       * under all of them, a faint square in every column the chart has. */
+      /** How near the line a square is, `d` rows from it: 1 on it, fading over a row or two. */
+      const nearLine = (/** @type {number} */ d) => Math.exp(-(d ** 2) / 2);
+      /** The squares, over the whole chart, as Bitview's Oracle draws its: rows about 10px, columns as wide, each over the
+       * points under it. A square is the readings it holds, brightest where its column's are densest, lifted softly
+       * around the line; gray where no block is read (yet). */
       function drawHeat(/** @type {ReturnType<typeof frame>} */ f) {
         const ratio = devicePixelRatio || 1;
         heat.width = Math.round(f.w * ratio);
@@ -1403,72 +1407,46 @@
         const ctx = /** @type {CanvasRenderingContext2D} */ (heat.getContext("2d"));
         ctx.scale(ratio, ratio);
         if (!f.n) return;
+        // (The ramp's three stops as the scheme resolves them; a square's color and strength both from its score.)
         const stops = ["var(--heat-lo)", "var(--heat-mid)", "var(--heat-hi)"].map((c) => resolved(c).split(",").map(Number)), ink = resolved("var(--ink)");
         const ramp = (/** @type {number} */ v) => {
           const k = v < 0.5 ? 0 : 1, u = v < 0.5 ? v * 2 : (v - 0.5) * 2;
           return stops[k].map((a, i) => Math.round(a + (stops[k + 1][i] - a) * u)).join(",");
         };
-        const cols = Math.max(3, Math.round(f.w / 10)), rows = Math.max(3, Math.round(f.h / 10)), wide = f.w / cols, tall = f.h / rows;
-        const col = (/** @type {number} */ x) => Math.max(0, Math.min(cols - 1, Math.floor(x / wide)));
-        // (The line's row in each column, the mean of its points'.)
-        const line = new Float64Array(cols), lineN = new Float64Array(cols);
+        // (Its 256 steps written once.)
+        const fills = Array.from({ length: 256 }, (_, i) => `rgba(${ramp(i / 255)},${(0.06 + (0.94 * i) / 255).toFixed(3)})`), gray = `rgba(${ink},0.035)`;
+        const rows = Math.max(3, Math.round(f.h / 10)), side = f.h / rows, cols = Math.max(3, Math.round(f.w / side)), width = f.w / cols;
+        const colOf = (/** @type {number} */ k) => Math.max(0, Math.min(cols - 1, Math.floor(f.x(k) / width)));
+        const sums = Array.from({ length: cols }, () => new Float64Array(rows)), seen = new Uint8Array(cols);
+        // (How much each square is the line's: over the column's points, each its share.)
+        const lift = Array.from({ length: cols }, () => new Float64Array(rows)), picks = new Float64Array(cols);
         points.forEach((pt, k) => {
-          const c = col(f.x(k));
-          line[c] += f.y(pt.v) / tall;
-          lineN[c]++;
+          const c = colOf(k), on = f.y(pt.v) / side;
+          picks[c]++;
+          for (let r = Math.max(0, Math.floor(on) - 4); r <= Math.min(rows - 1, Math.floor(on) + 4); r++) lift[c][r] += nearLine(r + 0.5 - on);
         });
-        const at = (/** @type {number} */ c) => (lineN[c] ? line[c] / lineN[c] : NaN);
-        const near = Array.from({ length: cols }, () => new Float64Array(rows)), far = Array.from({ length: cols }, () => new Float64Array(rows));
-        const reached = new Uint8Array(cols);
-        // (Near: each block where its value puts it; and how far, in rows, from its column's line.)
-        const blocks = placed(), offsets = new Float64Array(blocks.length), columns = new Int32Array(blocks.length);
-        blocks.forEach((b, i) => {
-          const c = col(f.x(b.k)), r = f.y(b.v) / tall;
-          reached[c] = 1;
-          columns[i] = c;
-          offsets[i] = r - at(c);
-          // (Over its row and a little either side, as a bin of Bitview's covers a few.)
-          const middle = Math.floor(r);
-          for (let d = -2; d <= 2; d++) {
-            const row = middle + d;
-            if (row >= 0 && row < rows) near[c][row] += Math.exp(-((row + 0.5 - r) ** 2) / 1.2);
+        // (Each block in the column its point falls in, each of its readings in the row its value puts it: the frame's
+        // y over a row's height, worked out once for them all.)
+        const { at } = readings, S = SPANS.length, scaled = f.log ? readings.logs : readings.values;
+        const per = (f.bottom - f.top) / (f.b - f.a) / side, base = f.bottom / side + f.a * per;
+        for (let b = 0; b < at.length; b++) {
+          const c = colOf(at[b]), sum = sums[c];
+          seen[c] = 1;
+          for (let s = 0; s < S; s++) {
+            const r = Math.floor(base - scaled[b * S + s] * per);
+            if (r >= 0 && r < rows) sum[r]++;
           }
-        });
-        // (Far: magnified so that nine blocks in ten land within six tenths of the chart's height of the line, each over
-        // a dozen rows; none for a measure that hasn't moved, as the reference price at its least.)
-        const sizes = Float64Array.from(offsets.filter(Number.isFinite), Math.abs).sort();
-        const typical = sizes.length ? sizes[Math.floor(sizes.length * 0.9)] : 0;
-        const ZOOM = typical > 0.05 ? Math.max(3, Math.min(120, (rows * 0.6) / typical)) : 0;
-        if (ZOOM)
-          for (let i = 0; i < blocks.length; i++) {
-            if (!Number.isFinite(offsets[i])) continue;
-            const c = columns[i], r = at(c) + offsets[i] * ZOOM, middle = Math.floor(r);
-            for (let d = -6; d <= 6; d++) {
-              const row = middle + d;
-              if (row >= 0 && row < rows) far[c][row] += Math.exp(-((row + 0.5 - r) ** 2) / 10);
-            }
-          }
+        }
         for (let c = 0; c < cols; c++) {
-          let mostNear = 0, mostFar = 0;
-          for (let r = 0; r < rows; r++) (mostNear = Math.max(mostNear, near[c][r])), (mostFar = Math.max(mostFar, far[c][r]));
-          const middle = at(c), drawn = reached[c] || lineN[c];
+          let most = 0;
+          for (let r = 0; r < rows; r++) most = Math.max(most, sums[c][r]);
           for (let r = 0; r < rows; r++) {
-            const x = c * wide, y = r * tall;
-            if (!drawn) {
-              ctx.fillStyle = `rgba(${ink},0.035)`;
-              ctx.fillRect(x, y, wide - 1, tall - 1);
-              continue;
-            }
-            // (Behind: the darker half of the ramp, faint where few blocks land, every square at least a little.)
-            const v3 = mostFar ? (far[c][r] / mostFar) ** 0.6 : 0;
-            ctx.fillStyle = `rgba(${ramp(0.08 + 0.4 * v3)},${(0.15 + 0.4 * v3).toFixed(3)})`;
-            ctx.fillRect(x, y, wide - 1, tall - 1);
-            // (Near: the brighter half, lifted along the line.)
-            const v0 = mostNear ? (near[c][r] / mostNear) ** 0.7 : 0, u = Number.isNaN(middle) ? 0 : Math.exp(-((r + 0.5 - middle) ** 2) / 0.8);
-            const v2 = Math.min(1, v0 + 0.4 * u * (1 - v0) + 0.15 * u);
-            if (v2 < 0.04) continue;
-            ctx.fillStyle = `rgba(${ramp(0.3 + 0.7 * v2)},${(0.12 + 0.88 * v2).toFixed(3)})`;
-            ctx.fillRect(x, y, wide - 1, tall - 1);
+            // A square no block is read in is gray; a read one, faint where few readings land, bright where most do,
+            // lifted softly around the line.
+            const t = most ? (sums[c][r] / most) ** 0.7 : 0, u = picks[c] ? lift[c][r] / picks[c] : 0;
+            const v = Math.min(1, t + 0.4 * u * (1 - t) + 0.15 * u);
+            ctx.fillStyle = seen[c] ? fills[Math.round(v * 255)] : gray;
+            ctx.fillRect(c * width, r * side, width - 1, side - 1);
           }
         }
       }
@@ -1688,8 +1666,8 @@
       function frame() {
         const w = chart.clientWidth, h = chart.clientHeight, n = points.length, words = wordsOver();
         const values = points.map((pt) => pt.v), lo = Math.min(...values), hi = Math.max(...values);
-        // (The scale wide enough for most of the blocks behind the line too, once read.)
-        const low = Math.min(lo, wide?.lo ?? lo), high = Math.max(hi, wide?.hi ?? hi);
+        // (The line's values, as Bitview's; for the price, its readings' too, the cost under its floor.)
+        const low = Math.min(lo, readings.spread?.lo ?? lo), high = Math.max(hi, readings.spread?.hi ?? hi);
         const log = MEASURES[measure].log && high / low >= 4;
         const f = (/** @type {number} */ v) => (log ? Math.log(v) : v);
         const top = words.top + CLEAR, bottom = Math.max(top + 40, words.bottom - CLEAR);
@@ -1698,7 +1676,7 @@
         // (Its last point a little in from the right edge, its dot whole.)
         const x = (/** @type {number} */ k) => (n > 1 ? (k / (n - 1)) * (w - 16) + 1 : w / 2);
         const y = (/** @type {number} */ v) => bottom - ((f(v) - a) / (b - a)) * (bottom - top);
-        return { w, h, n, x, y, lo, hi, top, bottom };
+        return { w, h, n, x, y, lo, hi, top, bottom, log, a, b };
       }
 
       /** The line, its light under it, its ends: pointing tells a moment and its value; the crosshair kept where it was. */
@@ -1709,7 +1687,7 @@
         if (!points.length) {
           svg.innerHTML = "";
           framed = null;
-          drawHeat({ w: chart.clientWidth, h: chart.clientHeight, n: 0, x: () => 0, y: () => 0, lo: 0, hi: 0, top: 0, bottom: 0 });
+          drawHeat({ w: chart.clientWidth, h: chart.clientHeight, n: 0, x: () => 0, y: () => 0, lo: 0, hi: 0, top: 0, bottom: 0, log: false, a: 0, b: 1 });
           return;
         }
         const f = (framed = frame());
@@ -1818,8 +1796,7 @@
         showChoices();
         remember();
         points = [];
-        behind = [];
-        wide = null;
+        readings = NONE;
         draw();
         tell(null);
         refresh();
