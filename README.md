@@ -4,8 +4,9 @@ On-chain analytics for the DebitMyData (DMD) chain, at
 [analytics.debitmydata.io](https://analytics.debitmydata.io): thousands of ready-made charts
 (**Studio**), the network's hashrate, reference price and difficulty on one screen (**Oracle**),
 every block, transaction and address (**Explorer**), where DMD stands against what its holders paid
-(**Compass**), each day's blocks and pools (**Calendar**), every series browsed like files
-(**Catalog**), and every series, block and address as data through an open **API**.
+(**Compass**), where the blocks are mined, by each pool's country (**Globe**), each day's blocks
+and pools (**Calendar**), every series browsed like files (**Catalog**), and every series, block and
+address as data through an open **API**.
 
 It is a fork of [Bitview](https://github.com/bitcoinresearchkit/mono), the Bitcoin Research Kit,
 adapted to the DebitMyData chain. Bitview's own documentation is in [docs/](docs/README.md).
@@ -25,17 +26,21 @@ adapted to the DebitMyData chain. Bitview's own documentation is in [docs/](docs
   It is shown everywhere as the reference price, not a market price. Prices are counted in
   millionths of a dollar ($0.001 is a tenth of a cent; up to $4,294.97 on the charts of what
   holders paid). `GET /api/price` gives the latest.
-- **Mining.** DebitMyData's pool (its coinbase text, `Official`) instead of Bitcoin's pools; the
-  difficulty adjusts at every block (LWMA): Bitview's 2,016-block periods are kept for charts.
+- **Mining.** DebitMyData's mining pools instead of Bitcoin's: the list in
+  [DebitMyData-PoW/mining-pools](https://github.com/DebitMyData-PoW/mining-pools) (`pools-v2.json`:
+  each pool's number, name, the text it writes in its blocks, its addresses and its country) and
+  the logos in [DebitMyData-PoW/mining-pool-logos](https://github.com/DebitMyData-PoW/mining-pool-logos),
+  read from GitHub every day (see *The mining pools* below). The difficulty adjusts at every block
+  (LWMA): Bitview's 2,016-block periods are kept for charts.
 - **Left out.** Bitview's Bedrock and Rarity Meter models (calibrated on Bitcoin's market history),
   its Miners and Ledger pages, its benchmarks, its MCP server and its plugin for assistants, and its
-  terms, privacy and support pages (Bitview's own). Stack, Globe and the Satoshi Trail are not on
-  the site yet.
+  terms, privacy and support pages (Bitview's own). Stack and the Satoshi Trail are not on the site
+  yet.
 - **The Oracle.** Bitview's Oracle reads Bitcoin's price from round-dollar payments; here its design
   shows the network instead: hashrate (the default), the reference price or the difficulty, a
   switch at the top, over 7, 30 or 90 days or the whole chain.
 - **The website.** DebitMyData's name and colors, its coin with the analytics badge at the top
-  left; the home page, Studio, Oracle, Explorer, Compass, Calendar, Catalog, the API's
+  left; the home page, Studio, Oracle, Explorer, Compass, Globe, Calendar, Catalog, the API's
   documentation and every series' description speak of DMD. The API keeps Bitview's
   names (`btc`, `sats`, `cents`: DMD, its 10^-8 unit, millionths of a dollar), so that Bitview's
   clients and charts work unchanged.
@@ -126,6 +131,8 @@ systemctl restart dmd-analytics
 curl -s https://analytics.debitmydata.io/api/price   # the reference price now
 dmd-tor-check --status                     # Tor: running, its version, connected, the node through it
 journalctl -u dmd-tor-check                # what the Tor check found and repaired
+sudo systemctl start dmd-pools             # the mining pools and their logos from GitHub now
+journalctl -u dmd-pools                    # what it read
 ```
 
 ## Updating
@@ -141,6 +148,28 @@ differently, bitviewd reads the chain again by itself.
 When the gateway's price settings change (electricity, machines' efficiency, the minimum rate),
 add an entry from that date in `crates/bitview_plugin_price/src/reference.rs` (`SETTINGS`): the
 blocks before it keep their prices.
+
+## The mining pools
+
+The pools come from two GitHub repositories, read every day by `dmd-pools.timer`
+([`deploy/debitmydata/pools.sh`](deploy/debitmydata/pools.sh)):
+
+- **The list**, [DebitMyData-PoW/mining-pools](https://github.com/DebitMyData-PoW/mining-pools)
+  (`pools-v2.json`). Each pool: `id` (1 to 255, never changed once given), `name`, `tags` (text its
+  blocks' coinbase holds), `addresses` (where its blocks pay), `link` and `country` (two letters,
+  `US`, or the country's English name, `Turkey`: Globe places the pool there). A block is the first
+  pool, by number, whose tag its coinbase holds or whose address it pays. When the list changes,
+  bitviewd restarts and attributes every block again (a few minutes).
+- **The logos**, [DebitMyData-PoW/mining-pool-logos](https://github.com/DebitMyData-PoW/mining-pool-logos):
+  one SVG per pool, named as its name in lowercase letters and digits (`Coin-Miners`:
+  `coinminers.svg`; `coin-miners.svg` is read too), and `default.svg` for a pool without one.
+  Only plain pictures are kept (no script, no link out); a heavy one is made small (96 pixels).
+  nginx serves them at `/assets/pools/`.
+
+Nothing else from GitHub reaches the server. A pool's slug (in its address on the site and its
+series' names, `pool_coinminers_…`) is its name in lowercase letters and digits, so renaming a pool
+renames its series. The generated API clients list the pools as they were when they were made
+(`cargo run -p bitview_devtools --bin bitview-bindgen`); the server answers for the current list.
 
 ## After the first sync (optional)
 

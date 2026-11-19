@@ -117,9 +117,11 @@ pub(crate) fn compute(
         };
         // A day without blocks ranks nothing and pushes zeros; its range is empty.
         for (height, &slug) in (start..next).zip(&slugs[start - first_block..next - first_block]) {
-            counts[slug as usize] += 1;
+            counts[slug.index()] += 1;
+            // (No DebitMyData pool is in AntPool's group: each counts as itself.)
             let in_group = in_antpool_group(slug, height);
-            grouped_counts[if in_group { PoolSlug::AntPool } else { slug } as usize] += 1;
+            debug_assert!(!in_group);
+            grouped_counts[slug.index()] += 1;
         }
         collect_counts(&mut counts, &mut blocks);
         plain.push_day(&mut blocks);
@@ -138,7 +140,7 @@ pub(crate) fn compute(
 /// Moves the nonzero `counts` into `blocks`, but the blocks no pool claims, and clears `counts`.
 fn collect_counts(counts: &mut [u32; 256], blocks: &mut Vec<u32>) {
     blocks.clear();
-    counts[PoolSlug::Unknown as usize] = 0;
+    counts[PoolSlug::Unknown.index()] = 0;
     for count in counts.iter_mut().filter(|count| **count > 0) {
         blocks.push(std::mem::take(count));
     }

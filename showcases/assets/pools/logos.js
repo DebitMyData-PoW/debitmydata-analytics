@@ -4,7 +4,8 @@
 
 /** The pools with a logo (`<slug>.svg`). */
 export const LOGOS = new Set([
-  "debitmydata", "default", "unknown",
+  "altpool", "coinminers", "cyberpool", "default", "kriptokyng", "minorpool", "official", "pep", "trrxitte",
+  "unknown",
 ]);
 /** Those with one of their own for a light ground (`<slug>.light.svg`), a dark ground's not showing on it. */
 export const LIGHT = new Set([

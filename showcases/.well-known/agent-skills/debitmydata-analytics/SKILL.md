@@ -9,7 +9,7 @@ DebitMyData (DMD) chain data API at https://analytics.debitmydata.io, read from 
 
 ## Series
 
-17239 time series, each read at an index: `GET /api/series/{series}/{index}` returns the values in `data` and their unit in `type`. `start`: Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. `end`: Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+17673 time series, each read at an index: `GET /api/series/{series}/{index}` returns the values in `data` and their unit in `type`. `start`: Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. `end`: Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
 
 Ids are snake_case metric names: request a likely one directly, as an unknown id returns 404 with the nearest ids and a wrong index 400 with the valid ones. Otherwise:
 

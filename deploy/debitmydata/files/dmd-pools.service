@@ -1,0 +1,13 @@
+[Unit]
+Description=DebitMyData's mining pools: their list and logos from GitHub (pools.sh)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/debitmydata-analytics/deploy/debitmydata/pools.sh
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/debitmydata-analytics/pools
+NoNewPrivileges=yes

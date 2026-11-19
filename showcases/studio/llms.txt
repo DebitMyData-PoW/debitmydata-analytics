@@ -148,12 +148,12 @@ Each section's page lists its charts; each chart's own address is in https://ana
   - By balance (315): https://analytics.debitmydata.io/studio/presets/addresses/by-balance/
   - At or above each address balance (310): https://analytics.debitmydata.io/studio/presets/addresses/over-a-balance/
   - Under each address balance (310): https://analytics.debitmydata.io/studio/presets/addresses/under-a-balance/
-- Mining (37): https://analytics.debitmydata.io/studio/presets/mining/
+- Mining (79): https://analytics.debitmydata.io/studio/presets/mining/
   - Hashing (6): https://analytics.debitmydata.io/studio/presets/mining/hashing/
   - Difficulty (3): https://analytics.debitmydata.io/studio/presets/mining/difficulty/
   - Halvings (2): https://analytics.debitmydata.io/studio/presets/mining/halvings/
   - Rewards (12): https://analytics.debitmydata.io/studio/presets/mining/rewards/
-  - Pools (14): https://analytics.debitmydata.io/studio/presets/mining/pools/
+  - Pools (56): https://analytics.debitmydata.io/studio/presets/mining/pools/
 - Network (1056): https://analytics.debitmydata.io/studio/presets/network/
   - Blocks (20): https://analytics.debitmydata.io/studio/presets/network/blocks/
   - Transactions (303): https://analytics.debitmydata.io/studio/presets/network/transactions/

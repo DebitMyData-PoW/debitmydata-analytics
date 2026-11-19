@@ -1,6 +1,6 @@
 # Bitview series by topic
 
-17239 series. Find one with `GET https://analytics.debitmydata.io/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
+17673 series. Find one with `GET https://analytics.debitmydata.io/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
 
 ## Branches
 
@@ -129,7 +129,6 @@
 
 - `pools.block_pool` (1): `block_pool`
 - `pools.unknown` (62): `pool_unknown_block_count_cumulative`, `pool_unknown_block_count_sum_24h`, `pool_unknown_block_count_sum_1w`, `pool_unknown_block_count_sum_1m`, `pool_unknown_block_count_sum_1y`
-- `pools.debitmydata` (62): `pool_debitmydata_block_count_cumulative`, `pool_debitmydata_block_count_sum_24h`, `pool_debitmydata_block_count_sum_1w`, `pool_debitmydata_block_count_sum_1m`, `pool_debitmydata_block_count_sum_1y`
 - `pools.concentration` (5): `top_2_pools_block_count`, `top_3_pools_block_count`, `top_4_pools_block_count`, `top_5_pools_block_count`, `top_6_pools_block_count`
 - `pools.concentration_grouped` (5): `top_2_pools_antpool_group_as_one_block_count`, `top_3_pools_antpool_group_as_one_block_count`, `top_4_pools_antpool_group_as_one_block_count`, `top_5_pools_antpool_group_as_one_block_count`, `top_6_pools_antpool_group_as_one_block_count`
 - `pools.groups` (5): `pool_antpool_group_block_count_cumulative`, `pool_antpool_group_block_count_sum_24h`, `pool_antpool_group_block_count_sum_1w`, `pool_antpool_group_block_count_sum_1m`, `pool_antpool_group_block_count_sum_1y`
@@ -274,14 +273,7 @@ Each member holds the family's series, its ids built on the member's base (`key 
 - `outputs.count` (4 series each): `sum` → `output_count_sum`, `avg` → `output_count_avg`, `min` → `output_count_min`, `max` → `output_count_max`, `p10` → `output_count_p10`, `p25` → `output_count_p25`, `median` → `output_count_median`, `p75` → `output_count_p75`, `p90` → `output_count_p90`
 - `outputs.op_return_value.sum` (2 series each): `24h` → `op_return_value_sum_24h`, `1w` → `op_return_value_sum_1w`, `1m` → `op_return_value_sum_1m`, `1y` → `op_return_value_sum_1y`
 - `outputs.types` (34 series each): `p2pk` → `p2pk_output`, `p2pkh` → `p2pkh_output`, `p2ms` → `p2ms_output`, `p2sh` → `p2sh_output`, `p2wpkh` → `p2wpkh_output`, `p2wsh` → `p2wsh_output`, `p2tr` → `p2tr_output`, `p2a` → `p2a_output`, `empty_script` → `empty_script_output`, `unknown_script` → `unknown_script_output`
-- `pools.debitmydata` (5 series each): `block_count` → `pool_debitmydata_block_count`, `empty_block_count` → `pool_debitmydata_empty_block_count`, `bip54_coinbase_locktime_block_count` → `pool_debitmydata_bip54_coinbase_locktime_block_count`, `nonzero_coinbase_locktime_block_count` → `pool_debitmydata_nonzero_coinbase_locktime_block_count`, `fee_rate_under_0p1_sat_vb_tx_count` → `pool_debitmydata_fee_rate_under_0p1_sat_vb_tx_count`
-- `pools.debitmydata.coinbase.sum` (2 series each): `24h` → `pool_debitmydata_coinbase_sum_24h`, `1w` → `pool_debitmydata_coinbase_sum_1w`, `1m` → `pool_debitmydata_coinbase_sum_1m`, `1y` → `pool_debitmydata_coinbase_sum_1y`
-- `pools.debitmydata.fees.avg` (2 series each): `24h` → `pool_debitmydata_fees_avg_24h`, `1w` → `pool_debitmydata_fees_avg_1w`, `1m` → `pool_debitmydata_fees_avg_1m`, `1y` → `pool_debitmydata_fees_avg_1y`
-- `pools.debitmydata.fees.sum` (2 series each): `24h` → `pool_debitmydata_fees_sum_24h`, `1w` → `pool_debitmydata_fees_sum_1w`, `1m` → `pool_debitmydata_fees_sum_1m`, `1y` → `pool_debitmydata_fees_sum_1y`
-- `pools.unknown` (5 series each): `block_count` → `pool_unknown_block_count`, `empty_block_count` → `pool_unknown_empty_block_count`, `bip54_coinbase_locktime_block_count` → `pool_unknown_bip54_coinbase_locktime_block_count`, `nonzero_coinbase_locktime_block_count` → `pool_unknown_nonzero_coinbase_locktime_block_count`, `fee_rate_under_0p1_sat_vb_tx_count` → `pool_unknown_fee_rate_under_0p1_sat_vb_tx_count`
-- `pools.unknown.coinbase.sum` (2 series each): `24h` → `pool_unknown_coinbase_sum_24h`, `1w` → `pool_unknown_coinbase_sum_1w`, `1m` → `pool_unknown_coinbase_sum_1m`, `1y` → `pool_unknown_coinbase_sum_1y`
-- `pools.unknown.fees.avg` (2 series each): `24h` → `pool_unknown_fees_avg_24h`, `1w` → `pool_unknown_fees_avg_1w`, `1m` → `pool_unknown_fees_avg_1m`, `1y` → `pool_unknown_fees_avg_1y`
-- `pools.unknown.fees.sum` (2 series each): `24h` → `pool_unknown_fees_sum_24h`, `1w` → `pool_unknown_fees_sum_1w`, `1m` → `pool_unknown_fees_sum_1m`, `1y` → `pool_unknown_fees_sum_1y`
+- `pools` (62 series each): `unknown` → `pool_unknown`, `official` → `pool_official`, `coinminers` → `pool_coinminers`, `minorpool` → `pool_minorpool`, `altpool` → `pool_altpool`, `kriptokyng` → `pool_kriptokyng`, `cyberpool` → `pool_cyberpool`, `pep` → `pool_pep`, `trrxitte` → `pool_trrxitte`
 - `profitability` (175 series each): `all` → (none), `sth` → `sth`, `lth` → `lth`
 - `supply.burned.sum` (2 series each): `24h` → `burned_sum_24h`, `1w` → `burned_sum_1w`, `1m` → `burned_sum_1m`, `1y` → `burned_sum_1y`
 - `transactions.count` (4 series each): `sum` → `tx_count_sum`, `avg` → `tx_count_avg`, `min` → `tx_count_min`, `max` → `tx_count_max`, `p10` → `tx_count_p10`, `p25` → `tx_count_p25`, `median` → `tx_count_median`, `p75` → `tx_count_p75`, `p90` → `tx_count_p90`

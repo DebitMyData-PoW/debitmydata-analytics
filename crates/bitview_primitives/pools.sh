@@ -1,42 +1,24 @@
 #!/usr/bin/env bash
-# Refreshes the mining pool list and the showcases' pool logos from mempool.
+# Refreshes this build's copy of DebitMyData's pool list (pools-v2.json, read when the server is given
+# none: BITVIEW_POOLS) and the showcases' pool logos, from DebitMyData-PoW/mining-pools and
+# DebitMyData-PoW/mining-pool-logos, as the server does every day (deploy/debitmydata/pools.sh).
 set -euo pipefail
 
 cd "$(dirname "$0")"
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+DMD_POOLS_DIR="$WORK" ../../deploy/debitmydata/pools.sh
+cp "$WORK/pools-v2.json" pools-v2.json
+cp "$WORK"/site/assets/pools/*.svg ../../showcases/assets/pools/
 
-curl -fL \
-  https://raw.githubusercontent.com/mempool/mining-pools/refs/heads/master/pools-v2.json \
-  -o pools-v2.json
-
-# Logos are named like the showcases' pool slug: the name's lowercase letters and digits. The pages draw only the logos
-# assets/pools/logos.js lists, written here from the folder (a logo added by hand too: run again).
+# The pages draw only the logos assets/pools/logos.js lists, written here from the folder (a logo
+# added by hand too: run again).
 python3 - <<'PY'
-import json, os, re, textwrap, urllib.request
+import os, re, textwrap
 
 ASSETS = "../../showcases/assets/pools"
-BASE = "https://mempool.space/resources/mining-pools"
-
-def fetch(name):
-    try:
-        with urllib.request.urlopen(f"{BASE}/{name}", timeout=20) as response:
-            if response.headers.get("Content-Type", "").startswith("image/svg"):
-                return response.read()
-    except Exception:
-        pass
-    return None
-
-default = fetch("default.svg")
-saved = 0
-for pool in json.load(open("pools-v2.json")):
-    slug = re.sub(r"[^a-z0-9]", "", pool["name"].lower())
-    logo = fetch(f"{slug}.svg")
-    if logo and logo != default:
-        open(f"{ASSETS}/{slug}.svg", "wb").write(logo)
-        saved += 1
-print(f"{saved} pool logos")
-
-# Each list a line of slugs filled to the width before the next.
 files = sorted(name for name in os.listdir(ASSETS) if name.endswith(".svg"))
+# Each list a line of slugs filled to the width before the next.
 lists = {
     "LOGOS": [name[: -len(".svg")] for name in files if not name.endswith(".light.svg")],
     "LIGHT": [name[: -len(".light.svg")] for name in files if name.endswith(".light.svg")],

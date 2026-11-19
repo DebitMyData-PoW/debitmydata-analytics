@@ -46,7 +46,7 @@ impl Query {
             .enumerate()
             .map(|(idx, (pool, block_count))| {
                 let share = block_count as f64 / total_blocks as f64;
-                let empty_blocks = empty_blocks[pool.slug as usize];
+                let empty_blocks = empty_blocks[pool.slug.index()];
                 PoolStats::new(pool, block_count, empty_blocks, (idx + 1) as u32, share)
             })
             .collect();
@@ -98,7 +98,7 @@ impl Query {
         let mut tally = |tx_count: usize| {
             let slug = slugs.next().expect("a pool per block");
             if tx_count == 1 {
-                empty[slug as usize] += 1;
+                empty[slug.index()] += 1;
             }
         };
         let first = first_tx_index.collect_one_at(start).data()?;

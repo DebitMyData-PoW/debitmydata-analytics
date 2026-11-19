@@ -11,29 +11,13 @@ use brk_exit::Exit;
 use brk_types::Height;
 use vecdb::{AnyVec, BytesVec, ReadableVec, VecIndex, Version};
 
-/// Below this height Braiins shared AntPool's block templates: from it, stratum observers see it
-/// building its own.
-const BRAIINS_LEFT_ANTPOOL_GROUP: usize = 956_057;
-
 /// Raised whenever the group's members or dates change, so the series that count it are computed again.
-pub(crate) const ANTPOOL_GROUP_VERSION: Version = Version::new(1);
+pub(crate) const ANTPOOL_GROUP_VERSION: Version = Version::new(2);
 
-/// A pool counted with AntPool: those sharing its block templates, Braiins only while it did.
-pub(crate) fn in_antpool_group(pool: PoolSlug, height: usize) -> bool {
-    match pool {
-        PoolSlug::AntPool
-        | PoolSlug::Poolin
-        | PoolSlug::UltimusPool
-        | PoolSlug::SecPool
-        | PoolSlug::SigmapoolCom
-        | PoolSlug::BinancePool
-        | PoolSlug::Rawpool
-        | PoolSlug::Luxor
-        | PoolSlug::CloverPool
-        | PoolSlug::MiningSquared => true,
-        PoolSlug::BraiinsPool => height < BRAIINS_LEFT_ANTPOOL_GROUP,
-        _ => false,
-    }
+/// A pool counted with AntPool: those sharing its block templates. Bitcoin's group: none of
+/// DebitMyData's pools is in it, so it counts no block (its series kept, for Bitview's format).
+pub(crate) fn in_antpool_group(_pool: PoolSlug, _height: usize) -> bool {
+    false
 }
 
 /// The group's blocks, added up from `from`.

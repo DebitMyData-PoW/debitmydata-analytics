@@ -6,7 +6,7 @@ use bitview_primitives::{Hashrate, POOL_ATTRIBUTION_VERSION, pools};
 use bitview_vecs::{CumulativeRolling, LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::Height;
-use vecdb::{BytesVec, ImportableVec, ReadableCloneableVec, Version};
+use vecdb::{BytesVec, ImportableVec, ReadableCloneableVec};
 
 use crate::{Concentration, STORAGE, Vecs, pool::PoolVecs, pool_heights::PoolHeights};
 
@@ -23,7 +23,7 @@ impl Vecs {
         let pools = pools();
 
         let version =
-            STORAGE.schema_version() + POOL_ATTRIBUTION_VERSION + Version::new(pools.len() as u32);
+            STORAGE.schema_version() + POOL_ATTRIBUTION_VERSION + pools.version();
 
         let block_pool = BytesVec::import(&db, "block_pool", version)?;
         let heights = PoolHeights::build(&block_pool);

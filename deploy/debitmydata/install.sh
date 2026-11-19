@@ -19,6 +19,7 @@
 #   Rust                   the version the repository names (rust-toolchain.toml), in /opt/rust
 #   bitviewd               built from this repository when it changed, in /usr/local/bin
 #   dmd-analytics.service  bitviewd on 127.0.0.1:3110, its data in /var/lib/debitmydata-analytics
+#   dmd-pools.timer        the mining pools' list and logos from GitHub, every day (pools.sh)
 #   nginx                  the website, behind Cloudflare
 #   ufw                    SSH, and ports 80 and 443 for Cloudflare only
 #
@@ -80,7 +81,7 @@ chmod 600 "$CERT_KEY"
 step "Installing packages"
 export DEBIAN_FRONTEND=noninteractive NEEDRESTART_SUSPEND=1
 apt-get update -q
-apt-get install -y -q --no-install-recommends nginx ufw acl curl git ca-certificates \
+apt-get install -y -q --no-install-recommends nginx ufw acl curl git ca-certificates librsvg2-bin webp \
     build-essential pkg-config \
     libevent-core-2.1-7t64 libevent-extra-2.1-7t64 libevent-pthreads-2.1-7t64 libsqlite3-0 libzmq5 >/dev/null
 missing="$(ldd /usr/local/bin/debitmydatad | grep 'not found' || true)"
@@ -179,6 +180,17 @@ if [ "$(cat "$CONF/built" 2>/dev/null)" != "$COMMIT" ] || [ ! -x /usr/local/bin/
 else
     echo "bitviewd is already built from $COMMIT."
 fi
+
+# ------------------------------------------------------------------ the mining pools
+step "The mining pools"
+# The list bitviewd reads (BITVIEW_POOLS) and the logos nginx serves, from DebitMyData-PoW's
+# repositories, every day; bitviewd's own copy until then.
+install -d -o root -g root -m 755 "$DATA/pools"
+install -m 644 "$HERE/files/dmd-pools.service" /etc/systemd/system/dmd-pools.service
+install -m 644 "$HERE/files/dmd-pools.timer" /etc/systemd/system/dmd-pools.timer
+systemctl daemon-reload
+systemctl enable --now dmd-pools.timer >/dev/null
+"$HERE/pools.sh" || echo "The pools couldn't be read from GitHub now: bitviewd's own list is used, and dmd-pools.timer tries again."
 
 # ------------------------------------------------------------------ the analytics service
 step "The analytics service"

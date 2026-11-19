@@ -6,7 +6,7 @@ use bitcoin::{
     hex::DisplayHex,
     io::FromStd,
 };
-use bitview_primitives::{Bytes32, Difficulty, Lengths, PoolSlug, pools};
+use bitview_primitives::{Bytes32, Difficulty, Lengths, pools};
 use bitview_types::{BlockExtras, BlockHeader, BlockInfo, BlockInfoV1, BlockPool};
 use brk_types::{
     BlkPosition, BlockHash, CheckedSub, Dollars, FeeRate, Height, Hex, Sats, Timestamp, TxIndex,
@@ -211,7 +211,7 @@ impl Query {
                     addresses: coinbase_addresses,
                     payout_asm: coinbase_signature,
                     scriptsig_ascii: coinbase_signature_ascii,
-                    scriptsig_bytes,
+                    scriptsig_bytes: _,
                     total_size: coinbase_total_size,
                     weight: coinbase_weight,
                     lock_time: coinbase_lock_time,
@@ -239,11 +239,8 @@ impl Query {
                 let non_coinbase_size =
                     (size as usize).saturating_sub(HEADER_SIZE + varint_len + coinbase_total_size);
 
-                let miner_names = if pool_slug == PoolSlug::Ocean {
-                    Coinbase::datum_miner_names(&scriptsig_bytes)
-                } else {
-                    None
-                };
+                // (Bitcoin's Ocean names its miners in its coinbase; no DebitMyData pool does.)
+                let miner_names: Option<Vec<String>> = None;
 
                 let total_input_amt = input_volumes[i];
                 // Non-coinbase output value: input value minus fees.

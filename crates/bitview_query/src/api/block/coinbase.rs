@@ -18,6 +18,8 @@ pub(super) struct Coinbase {
     /// Scriptsig bytes as chars, one per byte (U+0000 to U+00FF).
     pub(super) scriptsig_ascii: String,
     /// Raw scriptsig bytes (used for Datum miner-name parsing).
+    // (Read for Bitcoin's Ocean pool's miner names; no DebitMyData pool writes them.)
+    #[allow(dead_code)]
     pub(super) scriptsig_bytes: Vec<u8>,
     /// On-disk total size of the coinbase tx.
     pub(super) total_size: usize,
@@ -93,6 +95,8 @@ impl Coinbase {
     ///
     /// Any structural mismatch (truncation, missing fields) returns `None`.
     /// `OP_PUSHDATA2`/`OP_PUSHDATA4` are not handled: OCEAN's tag lists fit in 255 bytes.
+    // (Bitcoin's Ocean pool writes them; no DebitMyData pool does, so the server doesn't read them.)
+    #[allow(dead_code)]
     pub(super) fn datum_miner_names(scriptsig: &[u8]) -> Option<Vec<String>> {
         if scriptsig.is_empty() {
             return None;

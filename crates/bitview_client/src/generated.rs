@@ -854,12 +854,12 @@ pub mod tree {
         _1m: Value = "*_1m",
         _1y: Value = "*_1y",
     } }
-    shape! { PoolFees at "series().pools.debitmydata.fees" {
+    shape! { PoolFees at "series().pools.altpool.fees" {
         cumulative: Value = "*_cumulative",
         sum: OpReturnWindows = "*_sum",
         avg: OpReturnWindows = "*_avg",
     } }
-    shape! { Amount at "series().pools.debitmydata.coinbase" {
+    shape! { Amount at "series().pools.altpool.coinbase" {
         cumulative: Value = "*_cumulative",
         sum: OpReturnWindows = "*_sum",
     } }
@@ -1738,7 +1738,7 @@ pub mod tree {
     shape! { Groups at "series().pools.groups" {
         antpool: Antpool = "*",
     } }
-    shape! { Pool at "series().pools.debitmydata" {
+    shape! { Pool at "series().pools.altpool" {
         block_count: CumulativeFlow = "*_block_count",
         block_share: Share = "*_block_share",
         coinbase: Amount = "*_coinbase",
@@ -1752,7 +1752,14 @@ pub mod tree {
     shape! { Pools at "series().pools" {
         block_pool: SeriesPattern19<PoolSlug> = "block_*",
         unknown: Pool = "*_unknown",
-        debitmydata: Pool = "*_debitmydata",
+        official: Pool = "*_official",
+        coinminers: Pool = "*_coinminers",
+        minorpool: Pool = "*_minorpool",
+        altpool: Pool = "*_altpool",
+        kriptokyng: Pool = "*_kriptokyng",
+        cyberpool: Pool = "*_cyberpool",
+        pep: Pool = "*_pep",
+        trrxitte: Pool = "*_trrxitte",
         concentration: Concentration = "pools_block_count",
         concentration_grouped: Concentration = "pools_antpool_group_as_one_block_count",
         groups: Groups = "*_antpool_group_block_count",

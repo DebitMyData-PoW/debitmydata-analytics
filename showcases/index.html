@@ -2330,7 +2330,7 @@
     <main id="shelves">
       <section class="shelf" aria-labelledby="apps-title"><h2 id="apps-title">Apps</h2></section>
       <section class="shelf" aria-labelledby="blocks-title"><h2 id="blocks-title">Latest blocks <span class="live">Live</span> <a href="/explorer/">Explorer<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
-      <section class="shelf" aria-labelledby="pools-title"><h2 id="pools-title">Top 10 pools this week <a href="/calendar/">Calendar<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
+      <section class="shelf" aria-labelledby="pools-title"><h2 id="pools-title">Top 10 pools this week <a href="/globe/">Globe<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
       <section class="shelf" aria-labelledby="charts-title"><h2 id="charts-title">Popular charts <a href="/studio/presets/">All charts<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
       <section class="shelf" aria-labelledby="topics-title"><h2 id="topics-title">Browse charts by topic <small id="topics-count"></small></h2></section>
       <section class="shelf" aria-labelledby="dev-title"><h2 id="dev-title">For developers</h2></section>
@@ -2421,6 +2421,7 @@
         { id: "oracle", kind: "Mining", line: "Hashrate, DMD's reference price and difficulty, live.", href: "/oracle/", live: true, made: "Each block's difficulty and time, and the reference price" },
         { id: "explorer", kind: "Blocks", line: "Every block, transaction and address, and what gets you in.", href: "/explorer/", live: true, made: "Each block, the mempool and every transaction's coins" },
         { id: "compass", kind: "Market", line: "Where DMD stands, and which way it's heading.", href: "/compass/", made: "The reference price, and long- and short-term holders' cost basis" },
+        { id: "globe", kind: "Mining", line: "Where blocks are mined, live and since the first block.", href: "/globe/", live: true, made: "Each block's mining pool and its home country" },
         { id: "calendar", kind: "Mining", line: "Every day's leading pool, every block of any day.", href: "/calendar/", live: true, made: "Each block's mining pool" },
       ]);
       // (The developers' named by what they're for, here; their words their pages'.)
@@ -2436,6 +2437,7 @@
         "/oracle/": { "name": "Oracle", "about": "The DebitMyData network on one screen: its hashrate, DMD's reference price and the difficulty, block by block and day by day, live from the chain." },
         "/explorer/": { "name": "Explorer", "about": "What it takes to get into the next DebitMyData block, and every block, transaction and address: where a payment is, when it gets in and what it paid, read exactly from the chain." },
         "/compass/": { "name": "Compass", "about": "Where DebitMyData stands, day by day since its first block: DMD's reference price against its long-term and short-term holders' cost basis, and which way their trends point: nine moods, from Fear to Optimism, and how long each has lasted." },
+        "/globe/": { "name": "Globe", "about": "Where DebitMyData's blocks are mined: every block by its mining pool's home country, live on a globe, and how that map has moved since the first block." },
         "/calendar/": { "name": "Calendar", "about": "Every day since the first DebitMyData block, the mining pool that found the most blocks, and every block of any day." },
         "/api/": { "about": "Free on-chain analytics API for the DebitMyData (DMD) chain: thousands of time series, blocks, transactions, addresses, the mempool and mining. No key, no account." },
         "/catalog/": { "about": "Every series computed from the DebitMyData chain, browsed like files: what each one is, its intervals, its history drawn, and how to fetch it." },
@@ -2445,7 +2447,7 @@
       for (const t of APPS) t.face = t.id;
       const ALL = [...APPS, ...DEV], byId = new Map(ALL.map((t) => [t.id, t]));
       /** The billboard's titles, in turn. */
-      const FEATURED = ["studio", "oracle", "calendar"].map((id) => /** @type {Title} */ (byId.get(id)));
+      const FEATURED = ["studio", "oracle", "globe", "calendar"].map((id) => /** @type {Title} */ (byId.get(id)));
 
       /** When each title was last opened on this device (ms), as stored now (another tab's opens kept; an earlier
        * page's { n, at } read as its at; anything else that isn't a finite number left out, on its own). */
@@ -2818,7 +2820,7 @@
           // (Its share against the leader's, a bar along its foot: the ranking seen at once.)
           const bar = el("span", { className: "bar", ariaHidden: "true" });
           bar.style.setProperty("--of", String(p.blockCount / d.pools[0].blockCount));
-          const tile = el("a", { className: "rank", href: "/calendar/" }, el("span", { className: "n", ariaHidden: "true" }, String(i + 1)), el("span", { className: "portrait" }, logo(p.slug, p.name), el("b", {}, p.name), el("small", {}, share, el("span", { className: "blocks" }, ` · ${grouped(p.blockCount)} blocks`)), bar));
+          const tile = el("a", { className: "rank", href: "/globe/" }, el("span", { className: "n", ariaHidden: "true" }, String(i + 1)), el("span", { className: "portrait" }, logo(p.slug, p.name), el("b", {}, p.name), el("small", {}, share, el("span", { className: "blocks" }, ` · ${grouped(p.blockCount)} blocks`)), bar));
           tile.dataset.open = "calendar";
           tile.setAttribute("aria-label", `${i + 1}: ${p.name}, ${share} of this week's blocks`);
           return el("li", {}, tile);

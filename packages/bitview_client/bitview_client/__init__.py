@@ -144,8 +144,8 @@ RawLockTime = int
 Ratio = float
 # A positional index, YYYY-MM-DD date, or ISO 8601 timestamp.
 RangeIndex = Union[int, str, str]
-# A mining pool's identifier, as written in URLs.
-PoolSlug = Literal["unknown", "blockfills", "ultimuspool", "terrapool", "luxor", "1thash", "cloverpool", "bitfarms", "huobipool", "wayicn", "canoepool", "btctop", "bitcoincom", "175btc", "gbminers", "axbt", "asicminer", "bitminter", "bitcoinrussia", "btcserv", "simplecoinus", "btcguild", "eligius", "ozcoin", "eclipsemc", "maxbtc", "triplemining", "coinlab", "50btc", "ghashio", "stminingcorp", "bitparking", "mmpool", "polmine", "kncminer", "bitalo", "f2pool", "hhtt", "megabigpower", "mtred", "nmcbit", "yourbtcnet", "givemecoins", "braiinspool", "antpool", "multicoinco", "bcpoolio", "cointerra", "kanopool", "solock", "ckpool", "nicehash", "bitclub", "bitcoinaffiliatenetwork", "btcc", "bwpool", "exxbw", "bitsolo", "bitfury", "21inc", "digitalbtc", "8baochi", "mybtccoinpool", "tbdice", "hashpool", "nexious", "bravomining", "hotpool", "okexpool", "bcmonster", "1hash", "bixin", "tatmaspool", "viabtc", "connectbtc", "batpool", "waterhole", "dcexploration", "dcex", "btpool", "58coin", "bitcoinindia", "shawnp0wers", "phashio", "rigpool", "haozhuzhu", "7pool", "miningkings", "hashbx", "dpool", "rawpool", "haominer", "helix", "bitcoinukraine", "poolin", "secretsuperstar", "tigerpoolnet", "sigmapoolcom", "okpooltop", "hummerpool", "tangpool", "bytepool", "spiderpool", "novablock", "miningcity", "binancepool", "minerium", "lubiancom", "okkong", "aaopool", "emcdpool", "foundryusa", "sbicrypto", "arkpool", "purebtccom", "marapool", "kucoinpool", "entrustcharitypool", "okminer", "titan", "pegapool", "btcnuggets", "cloudhashing", "digitalxmintsy", "telco214", "btcpoolparty", "multipool", "transactioncoinmining", "btcdig", "trickysbtcpool", "btcmp", "eobot", "unomp", "patels", "gogreenlight", "bitcoinindiapool", "ekanembtc", "canoe", "tiger", "1m1x", "zulupool", "secpool", "ocean", "whitepool", "wiz", "wk057", "futurebitapollosolo", "carbonnegative", "portlandhodl", "phoenix", "neopool", "maxipool", "bitfufupool", "gdpool", "miningdutch", "publicpool", "miningsquared", "innopolistech", "btclab", "parasite", "redrockpool", "est3lar", "braiinssolo", "solopoolcom", "noderunners", "dmnd", "trustpool", "debitmydata"]
+# A mining pool's identifier, as written in URLs: its name in lowercase letters and digits.
+PoolSlug = Literal["unknown", "official", "coinminers", "minorpool", "altpool", "kriptokyng", "cyberpool", "pep", "trrxitte"]
 # A percentage: a ratio times 100.
 Percent = float
 # Events per second.
@@ -542,15 +542,21 @@ class PoolsSummary(TypedDict):
     lastEstimatedHashrate3d: int
     lastEstimatedHashrate1w: int
 
-class PoolInfo(TypedDict):
+class _PoolInfoRequired(TypedDict):
+    name: str
+    slug: PoolSlug
+    unique_id: int
+
+class PoolInfo(_PoolInfoRequired, total=False):
     """
     Attributes:
         slug: URL-friendly pool identifier
         unique_id: Zero-based pool ID, matching mempool.space's `unique_id`
+        link: The pool's website, if the pool list has one
+        country: Where the pool is run from (ISO 3166-1 alpha-2, as "US"), if the pool list says
     """
-    name: str
-    slug: PoolSlug
-    unique_id: int
+    link: Optional[str]
+    country: Optional[str]
 
 class _BlockPoolRequired(TypedDict):
     id: int
@@ -4409,7 +4415,14 @@ class Pool(_Node):
 class Pools(_Node):
     block_pool: SeriesPattern19[PoolSlug] = _at(SeriesPattern19, 'block_*')
     unknown: Pool = _at(Pool, '*_unknown')
-    debitmydata: Pool = _at(Pool, '*_debitmydata')
+    official: Pool = _at(Pool, '*_official')
+    coinminers: Pool = _at(Pool, '*_coinminers')
+    minorpool: Pool = _at(Pool, '*_minorpool')
+    altpool: Pool = _at(Pool, '*_altpool')
+    kriptokyng: Pool = _at(Pool, '*_kriptokyng')
+    cyberpool: Pool = _at(Pool, '*_cyberpool')
+    pep: Pool = _at(Pool, '*_pep')
+    trrxitte: Pool = _at(Pool, '*_trrxitte')
     concentration: Concentration = _at(Concentration, 'pools_block_count')
     concentration_grouped: Concentration = _at(Concentration, 'pools_antpool_group_as_one_block_count')
     groups: Groups = _at(Groups, '*_antpool_group_block_count')
@@ -4923,7 +4936,14 @@ class BitviewClient(BitviewClientBase):
     ]
 
     POOL_SLUG_TO_NAME = {
-      "debitmydata": "DebitMyData Pool",
+      "altpool": "AltPool",
+      "coinminers": "Coin-Miners",
+      "cyberpool": "CyberPool",
+      "kriptokyng": "KriptoKyng",
+      "minorpool": "MinorPool",
+      "official": "Official",
+      "pep": "Pep",
+      "trrxitte": "trrxitte",
       "unknown": "Unknown"
     }
 

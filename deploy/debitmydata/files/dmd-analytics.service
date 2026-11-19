@@ -9,6 +9,8 @@ Group=analytics
 # Reads the node's block files and its cookie (group dmd, read only)
 SupplementaryGroups=dmd
 Environment=HOME=/var/lib/debitmydata-analytics
+# DebitMyData's pools, as dmd-pools.timer keeps them (bitviewd's own list if the file isn't there)
+Environment=BITVIEW_POOLS=/var/lib/debitmydata-analytics/pools/pools-v2.json
 ExecStart=/usr/local/bin/bitviewd --bitviewdir /var/lib/debitmydata-analytics/data --bitcoindir /var/lib/debitmydata --rpcport 18557 --serverbind 127.0.0.1 --serverport 3110
 Restart=always
 RestartSec=10

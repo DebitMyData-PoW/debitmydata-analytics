@@ -2,11 +2,11 @@ use std::str::FromStr;
 
 use crate::PoolSlug;
 
-/// A slug newer than this build reads as `Unknown` through serde, never through `FromStr`.
+/// A slug this server doesn't know reads as `Unknown` through serde, never through `FromStr`.
 #[test]
 fn unknown_pool_slugs() {
     let read = |json: &str| serde_json::from_str::<PoolSlug>(json).unwrap();
-    assert_eq!(read("\"foundryusa\""), PoolSlug::FoundryUsa);
+    assert_eq!(read("\"coinminers\"").as_str(), "coinminers");
     assert_eq!(read("\"a_pool_from_the_future\""), PoolSlug::Unknown);
     assert_eq!(
         serde_json::to_string(&PoolSlug::Unknown).unwrap(),
@@ -32,29 +32,38 @@ fn cents_compact_saturates() {
     assert_eq!(CentsCompact::from(Cents::from(12_345_u64)).inner(), 12_345);
 }
 
-/// DebitMyData's pool is known by the text it writes in its blocks' coinbase.
+/// DebitMyData's pools, from DebitMyData-PoW/mining-pools: the official pool known by the text it
+/// writes in its blocks' coinbase, each pool's slug its name's letters and digits.
 #[test]
-fn the_debitmydata_pool() {
+fn the_debitmydata_pools() {
     let pools = crate::pools();
+    assert_eq!(pools.source, "built in");
     let pool = pools.find_from_coinbase_tag("/YiiMP/ Official").unwrap();
-    assert_eq!(
-        (pool.slug, pool.name),
-        (PoolSlug::DebitMyData, "DebitMyData Pool")
-    );
-    assert_eq!(
-        pools.get(PoolSlug::DebitMyData).link(),
-        "https://pool.debitmydata.io"
-    );
+    assert_eq!((pool.key, pool.name), ("official", "Official"));
+    assert_eq!(pool.link(), "https://pool.debitmydata.io/");
     assert!(
         pools
             .find_from_coinbase_tag("/Foundry USA Pool #dropgold/")
             .is_none()
     );
-    assert_eq!(pools.len(), 2); // with Unknown
-    assert_eq!(
-        PoolSlug::from_str("debitmydata").unwrap(),
-        PoolSlug::DebitMyData
-    );
+    let slug = PoolSlug::from_str("coinminers").unwrap();
+    assert_eq!((u8::from(slug), pools.get(slug).name), (2, "Coin-Miners"));
+    assert_eq!(PoolSlug::from_str("unknown").unwrap(), PoolSlug::Unknown);
+    assert!(pools.len() >= 7);
+    // (A slot no pool has keeps a spelling of its own, never another pool's.)
+    assert_eq!(PoolSlug::from(200).as_str(), "pool200");
+}
+
+/// The slug rule, and a country by its code or its name.
+#[test]
+fn pool_slugs_and_countries() {
+    assert_eq!(crate::country_code("us").as_deref(), Some("US"));
+    assert_eq!(crate::country_code("Turkey").as_deref(), Some("TR"));
+    assert_eq!(crate::country_code("United Arab Emirates").as_deref(), Some("AE"));
+    assert_eq!(crate::country_code("Atlantis"), None);
+    assert_eq!(crate::slug_of("Coin-Miners"), "coinminers");
+    assert_eq!(crate::slug_of("KriptoKyng"), "kriptokyng");
+    assert_eq!(crate::slug_of("Mined by pep!"), "minedbypep");
 }
 
 /// Five bytes hold values below 2^40 - 1 as they are, and all ones stand for `u64::MAX`, the

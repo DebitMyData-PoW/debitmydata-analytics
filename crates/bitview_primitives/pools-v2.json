@@ -1,11 +1,82 @@
 [
   {
-    "id": 255,
-    "name": "DebitMyData Pool",
-    "addresses": [],
-    "tags": [
-      "Official"
+    "id": 1,
+    "name": "Official",
+    "addresses": [
+      "DHa5vRtz46ENeVdLFjjDSwvWirEejuZrkZ"
     ],
-    "link": "https://pool.debitmydata.io"
+    "tags": ["Official"],
+    "link": "https://pool.debitmydata.io/",
+    "country": "US"
+  },
+  {
+    "id": 2,
+    "name": "Coin-Miners",
+    "addresses": [
+      "DGabFztP4EYnynR7Xe1g2RDDjzDDM6822a"
+    ],
+    "tags": [],
+    "link": "https://pool.coin-miners.info/",
+    "country": "US"
+  },
+  {
+    "id": 3,
+    "name": "MinorPool",
+    "addresses": [
+      "DHWaU1S9mCs142hsVvcJeTYG6VTycYLrvn"
+    ],
+    "tags": [],
+    "link": "https://minorpool.com/#Debitmydata",
+    "country": "Turkey"
+  },
+  {
+    "id": 4,
+    "name": "AltPool",
+    "addresses": [
+      "DJioEAu5bfeVXm43K6ErfFE3ms2kjd5sVT"
+    ],
+    "tags": ["AltPool"],
+    "link": "https://altcoinspool.cc",
+    "country": "US"
+  },
+  {
+    "id": 5,
+    "name": "KriptoKyng",
+    "addresses": [
+      "D6okdBoai4iaBYbRfr61pxJ3vGEeXrrfHd"
+    ],
+    "tags": ["KriptoKyng Pool"],
+    "link": "https://kriptokyng.com/pools/dmd",
+    "country": "US"
+  },
+  {
+    "id": 6,
+    "name": "CyberPool",
+    "addresses": [
+      "dm1q2qq63g00kertw7qq7a5jzhp6ve7npuljyr82t7"
+    ],
+    "tags": ["CyberPool"],
+    "link": "https://cyberpool.pro",
+    "country": "US"
+  },
+  {
+    "id": 7,
+    "name": "Pep",
+    "addresses": [
+      "DFKd1D68pAEeHv1F5xMoernj87QoYQqVZu"
+    ],
+    "tags": ["Mined by pep"],
+    "link": "",
+    "country": "US"
+  },
+  {
+    "id": 8,
+    "name": "trrxitte",
+    "addresses": [
+      "DHap4pEV5gdky8hZ8c5Yw5zgD2u7Q5Znp3"
+    ],
+    "tags": ["sha256 TRRXITTE"],
+    "link": "https://sha256.ae/#DMD_solo",
+    "country": "United Arab Emirates"
   }
 ]

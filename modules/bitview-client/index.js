@@ -1125,11 +1125,13 @@
  * @property {string} name
  * @property {PoolSlug} slug - URL-friendly pool identifier
  * @property {number} uniqueId - Zero-based pool ID, matching mempool.space's `unique_id`
+ * @property {?string=} link - The pool's website, if the pool list has one
+ * @property {?string=} country - Where the pool is run from (ISO 3166-1 alpha-2, as "US"), if the pool list says
  */
 /**
- * A mining pool's identifier, as written in URLs.
+ * A mining pool's identifier, as written in URLs: its name in lowercase letters and digits.
  *
- * @typedef {("unknown"|"blockfills"|"ultimuspool"|"terrapool"|"luxor"|"1thash"|"cloverpool"|"bitfarms"|"huobipool"|"wayicn"|"canoepool"|"btctop"|"bitcoincom"|"175btc"|"gbminers"|"axbt"|"asicminer"|"bitminter"|"bitcoinrussia"|"btcserv"|"simplecoinus"|"btcguild"|"eligius"|"ozcoin"|"eclipsemc"|"maxbtc"|"triplemining"|"coinlab"|"50btc"|"ghashio"|"stminingcorp"|"bitparking"|"mmpool"|"polmine"|"kncminer"|"bitalo"|"f2pool"|"hhtt"|"megabigpower"|"mtred"|"nmcbit"|"yourbtcnet"|"givemecoins"|"braiinspool"|"antpool"|"multicoinco"|"bcpoolio"|"cointerra"|"kanopool"|"solock"|"ckpool"|"nicehash"|"bitclub"|"bitcoinaffiliatenetwork"|"btcc"|"bwpool"|"exxbw"|"bitsolo"|"bitfury"|"21inc"|"digitalbtc"|"8baochi"|"mybtccoinpool"|"tbdice"|"hashpool"|"nexious"|"bravomining"|"hotpool"|"okexpool"|"bcmonster"|"1hash"|"bixin"|"tatmaspool"|"viabtc"|"connectbtc"|"batpool"|"waterhole"|"dcexploration"|"dcex"|"btpool"|"58coin"|"bitcoinindia"|"shawnp0wers"|"phashio"|"rigpool"|"haozhuzhu"|"7pool"|"miningkings"|"hashbx"|"dpool"|"rawpool"|"haominer"|"helix"|"bitcoinukraine"|"poolin"|"secretsuperstar"|"tigerpoolnet"|"sigmapoolcom"|"okpooltop"|"hummerpool"|"tangpool"|"bytepool"|"spiderpool"|"novablock"|"miningcity"|"binancepool"|"minerium"|"lubiancom"|"okkong"|"aaopool"|"emcdpool"|"foundryusa"|"sbicrypto"|"arkpool"|"purebtccom"|"marapool"|"kucoinpool"|"entrustcharitypool"|"okminer"|"titan"|"pegapool"|"btcnuggets"|"cloudhashing"|"digitalxmintsy"|"telco214"|"btcpoolparty"|"multipool"|"transactioncoinmining"|"btcdig"|"trickysbtcpool"|"btcmp"|"eobot"|"unomp"|"patels"|"gogreenlight"|"bitcoinindiapool"|"ekanembtc"|"canoe"|"tiger"|"1m1x"|"zulupool"|"secpool"|"ocean"|"whitepool"|"wiz"|"wk057"|"futurebitapollosolo"|"carbonnegative"|"portlandhodl"|"phoenix"|"neopool"|"maxipool"|"bitfufupool"|"gdpool"|"miningdutch"|"publicpool"|"miningsquared"|"innopolistech"|"btclab"|"parasite"|"redrockpool"|"est3lar"|"braiinssolo"|"solopoolcom"|"noderunners"|"dmnd"|"trustpool"|"debitmydata")} PoolSlug
+ * @typedef {("unknown"|"official"|"coinminers"|"minorpool"|"altpool"|"kriptokyng"|"cyberpool"|"pep"|"trrxitte")} PoolSlug
  */
 /**
  * Mining pool with block statistics for a time period
@@ -5063,7 +5065,14 @@ const _Pool = _s({
  * @typedef {{
  *   blockPool: SeriesPattern19<PoolSlug>,
  *   unknown: Pool,
- *   debitmydata: Pool,
+ *   official: Pool,
+ *   coinminers: Pool,
+ *   minorpool: Pool,
+ *   altpool: Pool,
+ *   kriptokyng: Pool,
+ *   cyberpool: Pool,
+ *   pep: Pool,
+ *   trrxitte: Pool,
  *   concentration: Concentration,
  *   concentrationGrouped: Concentration,
  *   groups: Groups,
@@ -5072,7 +5081,14 @@ const _Pool = _s({
 const _Pools = _s({
   blockPool: [_i19, 'block_*'],
   unknown: [_Pool, '*_unknown'],
-  debitmydata: [_Pool, '*_debitmydata'],
+  official: [_Pool, '*_official'],
+  coinminers: [_Pool, '*_coinminers'],
+  minorpool: [_Pool, '*_minorpool'],
+  altpool: [_Pool, '*_altpool'],
+  kriptokyng: [_Pool, '*_kriptokyng'],
+  cyberpool: [_Pool, '*_cyberpool'],
+  pep: [_Pool, '*_pep'],
+  trrxitte: [_Pool, '*_trrxitte'],
   concentration: [_Concentration, 'pools_block_count'],
   concentrationGrouped: [_Concentration, 'pools_antpool_group_as_one_block_count'],
   groups: [_Groups, '*_antpool_group_block_count'],
@@ -6091,7 +6107,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "c4c6e54b7f75b5160bc0a7deb90273330adf13eb96717f1b16c3937eb750a8bb";
+  static HASH = "aa65f790abfe678dcc83c352ad58634b62ccecf29dbd93c88b6f7afe165acfb8";
 
   INDEXES = /** @type {const} */ ([
     "minute10",
@@ -6128,7 +6144,14 @@ class BitviewClient extends BitviewClientBase {
   ]);
 
   POOL_SLUG_TO_NAME = /** @type {const} */ ({
-    "debitmydata": "DebitMyData Pool",
+    "altpool": "AltPool",
+    "coinminers": "Coin-Miners",
+    "cyberpool": "CyberPool",
+    "kriptokyng": "KriptoKyng",
+    "minorpool": "MinorPool",
+    "official": "Official",
+    "pep": "Pep",
+    "trrxitte": "trrxitte",
     "unknown": "Unknown"
   });
 

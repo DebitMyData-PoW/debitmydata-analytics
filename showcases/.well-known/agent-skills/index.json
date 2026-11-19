@@ -6,7 +6,7 @@
       "type": "skill-md",
       "description": "Fetches live and historical DebitMyData (DMD) chain data from DebitMyData Analytics, read from a full node: on-chain metrics (realized price, holder cohorts, supply by age), blocks, transactions, addresses, mempool and fees, mining, hashrate and difficulty, and DMD's reference price in US dollars, computed from the chain since its first block in February 2026. Use when a question needs DebitMyData on-chain, price, mempool, fee, mining or holder-cohort data.",
       "url": "debitmydata-analytics/SKILL.md",
-      "digest": "sha256:79aba0285a8fca9dfcb385736715beaf1eafe73e9eb0689df3b1c42294456cf0"
+      "digest": "sha256:b79478beffbcfc04a499dca7d9e01006dbf0a3b0ee877dec6974c95792f084bd"
     }
   ]
 }
