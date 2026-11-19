@@ -170,8 +170,10 @@ The pools come from two GitHub repositories, read every day by `dmd-pools.timer`
 
 Nothing else from GitHub reaches the server. A pool's slug (in its address on the site and its
 series' names, `pool_coinminers_…`) is its name in lowercase letters and digits, so renaming a pool
-renames its series. The generated API clients list the pools as they were when they were made
-(`cargo run -p bitview_devtools --bin bitview-bindgen`); the server answers for the current list.
+renames its series. The server answers for the current list at once, and so do Globe, the Explorer,
+the Calendar and the home page. The generated API clients, and with them Studio's charts of each
+pool, list the pools as they were when they were made (`BITVIEW_POOLS=<the list> cargo run -p
+bitview_devtools --bin bitview-bindgen`): a pool added since is left out of Studio until then.
 
 ## After the first sync (optional)
 

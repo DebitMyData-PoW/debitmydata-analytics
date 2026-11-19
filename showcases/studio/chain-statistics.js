@@ -218,7 +218,9 @@ export function chainStatistics({ t, facts, chart, section, ramp, flowWindow, un
     ]),
     section("Mining pools", [
       poolLine("Unknown", pools.unknown),
-      percentLine("Current top 5 mining pools", (facts?.topPools ?? []).map((/** @type {string} */ slug) => [/** @type {Facts} */ (facts).names.get(slug) ?? slug, ofBlocks(daily(poolOf(slug).blockCount))]), 30),
+      // (DebitMyData: the server reads its pool list from GitHub every day, so it can name a pool these charts were made
+      // before: one they don't have is left out of the top 5, not a broken chart.)
+      percentLine("Current top 5 mining pools", (facts?.topPools ?? []).filter((/** @type {string} */ slug) => poolOf(slug)).map((/** @type {string} */ slug) => [/** @type {Facts} */ (facts).names.get(slug) ?? slug, ofBlocks(daily(poolOf(slug).blockCount))]), 30),
       centralization("Mining centralization index", pools.concentration),
       centralization("Mining centralization index (with proxy pools)", pools.concentrationGrouped),
     ]),

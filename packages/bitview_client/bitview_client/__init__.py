@@ -145,7 +145,7 @@ Ratio = float
 # A positional index, YYYY-MM-DD date, or ISO 8601 timestamp.
 RangeIndex = Union[int, str, str]
 # A mining pool's identifier, as written in URLs: its name in lowercase letters and digits.
-PoolSlug = Literal["unknown", "official", "coinminers", "minorpool", "altpool", "kriptokyng", "cyberpool", "pep", "trrxitte"]
+PoolSlug = Literal["unknown", "official", "coinminers", "minorpool", "altpool", "kriptokyng", "cyberpool", "pep", "trrxitte", "shears", "goslimstratum"]
 # A percentage: a ratio times 100.
 Percent = float
 # Events per second.
@@ -4491,6 +4491,8 @@ class Pools(_Node):
     cyberpool: Pool = _at(Pool, '*_cyberpool')
     pep: Pool = _at(Pool, '*_pep')
     trrxitte: Pool = _at(Pool, '*_trrxitte')
+    shears: Pool = _at(Pool, '*_shears')
+    goslimstratum: Pool = _at(Pool, '*_goslimstratum')
     concentration: Concentration = _at(Concentration, 'pools_block_count')
     concentration_grouped: Concentration = _at(Concentration, 'pools_antpool_group_as_one_block_count')
     groups: Groups = _at(Groups, '*_antpool_group_block_count')
@@ -5008,11 +5010,13 @@ class BitviewClient(BitviewClientBase):
       "altpool": "AltPool",
       "coinminers": "Coin-Miners",
       "cyberpool": "CyberPool",
+      "goslimstratum": "GoSlimStratum",
       "kriptokyng": "KriptoKyng",
       "minorpool": "MinorPool",
       "official": "Official",
       "pep": "Pep",
-      "trrxitte": "trrxitte",
+      "shears": "Shears",
+      "trrxitte": "Trrxitte",
       "unknown": "Unknown"
     }
 

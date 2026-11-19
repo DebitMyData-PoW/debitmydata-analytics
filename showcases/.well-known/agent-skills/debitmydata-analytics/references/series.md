@@ -1,6 +1,6 @@
 # Bitview series by topic
 
-17790 series. Find one with `GET https://analytics.debitmydata.io/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
+17914 series. Find one with `GET https://analytics.debitmydata.io/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
 
 ## Branches
 
@@ -278,7 +278,7 @@ Each member holds the family's series, its ids built on the member's base (`key 
 - `outputs.count` (4 series each): `sum` → `output_count_sum`, `avg` → `output_count_avg`, `min` → `output_count_min`, `max` → `output_count_max`, `p10` → `output_count_p10`, `p25` → `output_count_p25`, `median` → `output_count_median`, `p75` → `output_count_p75`, `p90` → `output_count_p90`
 - `outputs.op_return_value.sum` (2 series each): `24h` → `op_return_value_sum_24h`, `1w` → `op_return_value_sum_1w`, `1m` → `op_return_value_sum_1m`, `1y` → `op_return_value_sum_1y`
 - `outputs.types` (34 series each): `p2pk` → `p2pk_output`, `p2pkh` → `p2pkh_output`, `p2ms` → `p2ms_output`, `p2sh` → `p2sh_output`, `p2wpkh` → `p2wpkh_output`, `p2wsh` → `p2wsh_output`, `p2tr` → `p2tr_output`, `p2a` → `p2a_output`, `empty_script` → `empty_script_output`, `unknown_script` → `unknown_script_output`
-- `pools` (62 series each): `unknown` → `pool_unknown`, `official` → `pool_official`, `coinminers` → `pool_coinminers`, `minorpool` → `pool_minorpool`, `altpool` → `pool_altpool`, `kriptokyng` → `pool_kriptokyng`, `cyberpool` → `pool_cyberpool`, `pep` → `pool_pep`, `trrxitte` → `pool_trrxitte`
+- `pools` (62 series each): `unknown` → `pool_unknown`, `official` → `pool_official`, `coinminers` → `pool_coinminers`, `minorpool` → `pool_minorpool`, `altpool` → `pool_altpool`, `kriptokyng` → `pool_kriptokyng`, `cyberpool` → `pool_cyberpool`, `pep` → `pool_pep`, `trrxitte` → `pool_trrxitte`, `shears` → `pool_shears`, `goslimstratum` → `pool_goslimstratum`
 - `profitability` (175 series each): `all` → (none), `sth` → `sth`, `lth` → `lth`
 - `supply.burned.sum` (2 series each): `24h` → `burned_sum_24h`, `1w` → `burned_sum_1w`, `1m` → `burned_sum_1m`, `1y` → `burned_sum_1y`
 - `transactions.count` (4 series each): `sum` → `tx_count_sum`, `avg` → `tx_count_avg`, `min` → `tx_count_min`, `max` → `tx_count_max`, `p10` → `tx_count_p10`, `p25` → `tx_count_p25`, `median` → `tx_count_median`, `p75` → `tx_count_p75`, `p90` → `tx_count_p90`

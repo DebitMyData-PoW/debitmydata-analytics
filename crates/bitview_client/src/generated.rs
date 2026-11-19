@@ -1819,6 +1819,8 @@ pub mod tree {
         cyberpool: Pool = "*_cyberpool",
         pep: Pool = "*_pep",
         trrxitte: Pool = "*_trrxitte",
+        shears: Pool = "*_shears",
+        goslimstratum: Pool = "*_goslimstratum",
         concentration: Concentration = "pools_block_count",
         concentration_grouped: Concentration = "pools_antpool_group_as_one_block_count",
         groups: Groups = "*_antpool_group_block_count",

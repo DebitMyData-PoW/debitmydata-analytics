@@ -1131,7 +1131,7 @@
 /**
  * A mining pool's identifier, as written in URLs: its name in lowercase letters and digits.
  *
- * @typedef {("unknown"|"official"|"coinminers"|"minorpool"|"altpool"|"kriptokyng"|"cyberpool"|"pep"|"trrxitte")} PoolSlug
+ * @typedef {("unknown"|"official"|"coinminers"|"minorpool"|"altpool"|"kriptokyng"|"cyberpool"|"pep"|"trrxitte"|"shears"|"goslimstratum")} PoolSlug
  */
 /**
  * Mining pool with block statistics for a time period
@@ -5223,6 +5223,8 @@ const _Pool = _s({
  *   cyberpool: Pool,
  *   pep: Pool,
  *   trrxitte: Pool,
+ *   shears: Pool,
+ *   goslimstratum: Pool,
  *   concentration: Concentration,
  *   concentrationGrouped: Concentration,
  *   groups: Groups,
@@ -5239,6 +5241,8 @@ const _Pools = _s({
   cyberpool: [_Pool, '*_cyberpool'],
   pep: [_Pool, '*_pep'],
   trrxitte: [_Pool, '*_trrxitte'],
+  shears: [_Pool, '*_shears'],
+  goslimstratum: [_Pool, '*_goslimstratum'],
   concentration: [_Concentration, 'pools_block_count'],
   concentrationGrouped: [_Concentration, 'pools_antpool_group_as_one_block_count'],
   groups: [_Groups, '*_antpool_group_block_count'],
@@ -6259,7 +6263,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "48e02ea049c4969811bbf563c9e09c30aa72399fd36409eaa7f9722f7fb13069";
+  static HASH = "10897d120ed9ca473456496a712c1fd0c221df7cb3cb91e5cc84e79efdc86fd7";
 
   INDEXES = /** @type {const} */ ([
     "minute10",
@@ -6299,11 +6303,13 @@ class BitviewClient extends BitviewClientBase {
     "altpool": "AltPool",
     "coinminers": "Coin-Miners",
     "cyberpool": "CyberPool",
+    "goslimstratum": "GoSlimStratum",
     "kriptokyng": "KriptoKyng",
     "minorpool": "MinorPool",
     "official": "Official",
     "pep": "Pep",
-    "trrxitte": "trrxitte",
+    "shears": "Shears",
+    "trrxitte": "Trrxitte",
     "unknown": "Unknown"
   });
 
