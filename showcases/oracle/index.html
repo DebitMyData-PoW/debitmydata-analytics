@@ -1318,9 +1318,16 @@
       const HOT = 1.5;
       /** The line's own light: how strong (Bitview's is 1), and how fast it fades either side of it, in rows. */
       const LIFT = 0.8, FADE = 2.5;
+      /** The glow's far reach: how bright it is at most beside the line (dim colors only), and how fast it fades, in
+       * rows: it burns into the background over a dozen rows either side, as Bitview's. */
+      const HALO = 0.45, REACH = 9;
+      /** The grid Bitview's has (its round bitcoin amounts read as round dollars draw rows at round prices; its blocks
+       * of many or few payments, brighter or darker columns): here faint rows at round values and columns at round
+       * times, GRID bright at most, and columns brighter where blocks came faster (their pace, to the STRIPE power). */
+      const GRID = 0.55, STRIPE = 1.5;
       /** The misreadings: from up to ECHO_BLOCKS blocks a column, each standing for the blocks around it; their squares
        * at most BACKGROUND bright, darker than the glow, so the line burns on them. */
-      const ECHO_BLOCKS = 12, BACKGROUND = 0.5;
+      const ECHO_BLOCKS = 12, BACKGROUND = 0.35;
       let readings = NONE;
       /** The most values a read is sent in: under the server's cap on a response. */
       const PIECE = 30_000;
@@ -1402,6 +1409,40 @@
       }
       /** How near the line a square is, `d` rows from it: 1 on it, fading either side. */
       const nearLine = (/** @type {number} */ d) => Math.exp(-Math.abs(d) / FADE);
+      /** A steady random number from 0 to 1 for a square. */
+      const noise = (/** @type {number} */ c, /** @type {number} */ r) => {
+        const s = Math.sin(c * 12.9898 + r * 78.233) * 43_758.5453;
+        return s - Math.floor(s);
+      };
+      /** Three or so round values between `lo` and `hi`: decades, then 1 and 3, 1-2-5, … finer, then even steps. */
+      function roundValues(/** @type {number} */ lo, /** @type {number} */ hi) {
+        if (!(lo > 0 && hi > lo)) return [];
+        let fewer = /** @type {number[]} */ ([]);
+        for (const set of [[1], [1, 3], [1, 2, 5], [1, 1.5, 2, 3, 5, 7], [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8]]) {
+          const out = [];
+          for (let e = Math.floor(Math.log10(lo)); e <= Math.ceil(Math.log10(hi)); e++) for (const m of set) if (m * 10 ** e > lo && m * 10 ** e < hi) out.push(m * 10 ** e);
+          // (Three or four; two rather than five or more.)
+          if (out.length >= 3) return out.length > 4 && fewer.length >= 2 ? fewer : out;
+          fewer = out;
+        }
+        const rough = (hi - lo) / 3, mag = 10 ** Math.floor(Math.log10(rough)), step = mag * ([1, 2, 2.5, 5, 10].find((m) => m * mag >= rough) ?? 10);
+        const out = [];
+        for (let v = Math.ceil(lo / step) * step; v < hi; v += step) out.push(v);
+        return out;
+      }
+      /** The points where round times fall, two or three over the range: hours, days, weeks, months. */
+      function roundTimes() {
+        if (points.length < 2) return [];
+        const t0 = points[0].t, t1 = points[points.length - 1].t, H = 3600, D = 86_400;
+        const step = [H, 3 * H, 6 * H, 12 * H, D, 2 * D, 7 * D, 14 * D, 30 * D, 61 * D, 91 * D, 182 * D, 365 * D].find((s) => (t1 - t0) / s <= 3.5) ?? 365 * D;
+        const out = [];
+        let k = 0;
+        for (let t = Math.ceil(t0 / step) * step; t < t1; t += step) {
+          while (k < points.length && points[k].t < t) k++;
+          if (k > 0 && k < points.length) out.push(k);
+        }
+        return out;
+      }
       /** The squares, over the whole chart, as Bitview's Oracle draws its: rows about 10px, columns as wide, each over the
        * points under it. A square is the readings it holds, brightest where its column's are densest, lifted softly
        * around the line; gray where no block is read (yet). */
@@ -1422,13 +1463,19 @@
         const fills = Array.from({ length: 256 }, (_, i) => `rgba(${ramp(i / 255)},${(0.06 + (0.94 * i) / 255).toFixed(3)})`), gray = `rgba(${ink},0.035)`;
         const rows = Math.max(3, Math.round(f.h / 10)), side = f.h / rows, cols = Math.max(3, Math.round(f.w / side)), width = f.w / cols;
         const colOf = (/** @type {number} */ k) => Math.max(0, Math.min(cols - 1, Math.floor(f.x(k) / width)));
-        const sums = Array.from({ length: cols }, () => new Float64Array(rows)), seen = new Uint8Array(cols);
+        const sums = Array.from({ length: cols }, () => new Float64Array(rows)), seen = new Float64Array(cols);
         // (How much each square is the line's: over the column's points, each its share.)
         const lift = Array.from({ length: cols }, () => new Float64Array(rows)), picks = new Float64Array(cols);
+        const halo = Array.from({ length: cols }, () => new Float64Array(rows)), reach = Math.ceil(REACH * 5);
+        // (Each column's first and last time, for how fast its blocks came.)
+        const first = new Float64Array(cols).fill(Infinity), last = new Float64Array(cols).fill(-Infinity);
         points.forEach((pt, k) => {
           const c = colOf(k), on = f.y(pt.v) / side;
           picks[c]++;
+          first[c] = Math.min(first[c], pt.t);
+          last[c] = Math.max(last[c], pt.t);
           for (let r = Math.max(0, Math.floor(on) - 10); r <= Math.min(rows - 1, Math.floor(on) + 10); r++) lift[c][r] += nearLine(r + 0.5 - on);
+          for (let r = Math.max(0, Math.floor(on) - reach); r <= Math.min(rows - 1, Math.floor(on) + reach); r++) halo[c][r] += Math.exp(-Math.abs(r + 0.5 - on) / REACH);
         });
         // (Each block in the column its point falls in. The frame's y over a row's height, of a logarithm, worked out
         // once for them all; the line's row at each point.)
@@ -1448,7 +1495,7 @@
         const typical = some.length ? some[Math.floor(some.length / 2)] : 0, shrink = typical > PULL ? PULL / typical : 1;
         for (let b = 0; b < at.length; b++) {
           const c = colOf(at[b]), sum = sums[c], echo = echoes[c], o = b * S, on = lineRow[at[b]], all = b % every === 0;
-          seen[c] = 1;
+          seen[c]++;
           for (let i = 0; i < S; i++) {
             const top = base - works[o + i] * per, d = top + times[o + i] * per - on;
             // (Its reading, half above the line, half under it, as far as it is from it.)
@@ -1464,14 +1511,37 @@
               }
           }
         }
+        // (Each column's pace, its blocks over its time, against the middle column's: the faster, the brighter behind.)
+        const step = points.length > 1 ? (points[points.length - 1].t - points[0].t) / (points.length - 1) : 1;
+        const pace = Float64Array.from(seen, (n, c) => (n && last[c] >= first[c] ? n / (last[c] - first[c] + step) : 0));
+        const paces = Array.from(pace).filter((x) => x > 0).sort((x, z) => x - z), middle = paces[Math.floor(paces.length / 2)] || 1;
+        const stripe = Float64Array.from(pace, (x) => (x > 0 ? Math.max(0.7, Math.min(1.3, (x / middle) ** STRIPE)) : 1));
+        // (The grid: rows at round values, columns at round times.)
+        const gridRow = new Uint8Array(rows), gridCol = new Uint8Array(cols);
+        const valueAt = (/** @type {number} */ y) => {
+          const g = f.a + ((f.bottom - y) / (f.bottom - f.top)) * (f.b - f.a);
+          return f.log ? Math.exp(g) : g;
+        };
+        for (const v of roundValues(valueAt(f.h), valueAt(0))) {
+          const r = Math.floor(f.y(v) / side);
+          if (r >= 0 && r < rows) gridRow[r] = 1;
+        }
+        for (const k of roundTimes()) gridCol[colOf(k)] = 1;
         for (let c = 0; c < cols; c++) {
           let most = 0, mostEcho = 0;
           for (let r = 0; r < rows; r++) (most = Math.max(most, sums[c][r])), (mostEcho = Math.max(mostEcho, echoes[c][r]));
           for (let r = 0; r < rows; r++) {
             // A square no block is read in is gray; a read one, as bright as its share of its column's most readings
-            // (the glow: brightest on the line, fading out), the misreadings darker behind, lifted around the line.
-            const own = most ? (sums[c][r] / most) ** HOT : 0, behind = mostEcho ? BACKGROUND * (echoes[c][r] / mostEcho) ** 0.7 : 0;
-            const t = own + behind * (1 - own), u = picks[c] ? lift[c][r] / picks[c] : 0;
+            // (the glow: brightest on the line, fading out), the misreadings and the grid darker behind, the glow's
+            // far reach over them, lifted around the line.
+            const own = most ? (sums[c][r] / most) ** HOT : 0;
+            let behind = mostEcho ? BACKGROUND * stripe[c] * (echoes[c][r] / mostEcho) ** 0.7 : 0;
+            if (gridRow[r] || gridCol[c]) {
+              const h = noise(c, r);
+              if (h > 0.12) behind = Math.max(behind, GRID * (0.55 + 0.45 * h));
+            }
+            const glow = picks[c] ? HALO * (halo[c][r] / picks[c]) : 0, under = own + behind * (1 - own);
+            const t = under + glow * (1 - under), u = picks[c] ? lift[c][r] / picks[c] : 0;
             const v = Math.min(1, t + LIFT * (0.4 * u * (1 - t) + 0.15 * u));
             ctx.fillStyle = seen[c] ? fills[Math.round(v * 255)] : gray;
             ctx.fillRect(c * width, r * side, width - 1, side - 1);
@@ -1720,7 +1790,22 @@
         const f = (framed = frame());
         drawHeat(f);
         svg.setAttribute("viewBox", `0 0 ${f.w} ${f.h}`);
-        const path = points.map((pt, k) => `${k ? "L" : "M"}${f.x(k).toFixed(1)},${f.y(pt.v).toFixed(1)}`).join("");
+        // (About a point every pixel and a half, each the middle of those it stands for, so a line of thousands of
+        // blocks stays as fine as Bitview's week; its first and last points its own.)
+        const drawn = [];
+        let group = -1, sx = 0, sy = 0, m = 0;
+        points.forEach((pt, k) => {
+          const x = f.x(k), y = f.y(pt.v), g = Math.floor(x / 1.5);
+          if (g !== group && m) drawn.push([sx / m, sy / m]), (sx = sy = m = 0);
+          group = g;
+          sx += x;
+          sy += y;
+          m++;
+        });
+        if (m) drawn.push([sx / m, sy / m]);
+        drawn[0] = [f.x(0), f.y(points[0].v)];
+        drawn[drawn.length - 1] = [f.x(f.n - 1), f.y(points[f.n - 1].v)];
+        const path = drawn.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join("");
         const endX = f.x(f.n - 1), endY = f.y(points[f.n - 1].v);
         const write = MEASURES[measure].write;
         const hiK = points.findIndex((pt) => pt.v === f.hi), loK = points.findIndex((pt) => pt.v === f.lo);
