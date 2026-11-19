@@ -993,7 +993,7 @@
         <section class="chapter" aria-labelledby="h3">
           <header><span class="n">03</span><h2 id="h3">Many say much</h2></header>
           <div>
-            <p>So it's averaged: the line above is the work of the last 24 hours' blocks, over 24 hours. Behind it, each block's last six hours, a little noisier, and further out their spread, magnified. Longer, steadier still:</p>
+            <p>So it's averaged: the line above is the work of the last 24 hours' blocks, over 24 hours. Behind it, each block read over 19 spans, from its own to its last 10,000 blocks': the glow is brightest where most agree with the line. Longer, steadier still:</p>
             <dl class="facts" id="h-windows" aria-label="The hashrate over each window"></dl>
           </div>
         </section>
@@ -1136,9 +1136,9 @@
 
       /** The three measures: their series, how a value is written, and what the top says of them. */
       const MEASURES = /** @type {const} */ ({
-        hashrate: { series: "hashrate", kicker: "Hashrate · the DebitMyData network", write: (/** @type {number} */ v) => ((s) => `${s.figure} ${s.prefix}H/s`)(si(v)), about: "about-hashrate", log: true, legend: "Behind the line, blocks read over 19 spans: brighter where more imply that hashrate" },
-        price: { series: "price", kicker: "DMD/USD · reference price, the cost of mining one DMD", write: dollars, about: "about-price", log: true, legend: "Behind the line, mining's cost read over 19 spans: the price is never under $0.001" },
-        difficulty: { series: "difficulty", kicker: "Difficulty · set again at every block", write: (/** @type {number} */ v) => ((s) => `${s.figure}${s.prefix ? ` ${s.prefix}` : ""}`)(si(v)), about: "about-difficulty", log: true, legend: "Behind the line, blocks read over 19 spans: brighter where more imply that difficulty" },
+        hashrate: { series: "hashrate", kicker: "Hashrate · the DebitMyData network", write: (/** @type {number} */ v) => ((s) => `${s.figure} ${s.prefix}H/s`)(si(v)), about: "about-hashrate", log: true, legend: "Behind the line, blocks read over 19 spans: brightest where most agree with it" },
+        price: { series: "price", kicker: "DMD/USD · reference price, the cost of mining one DMD", write: dollars, about: "about-price", log: true, legend: "Behind the line, mining's cost read over 19 spans; the price is never under $0.001" },
+        difficulty: { series: "difficulty", kicker: "Difficulty · set again at every block", write: (/** @type {number} */ v) => ((s) => `${s.figure}${s.prefix ? ` ${s.prefix}` : ""}`)(si(v)), about: "about-difficulty", log: true, legend: "Behind the line, blocks' pace read over 19 spans: brightest where most agree with it" },
       });
       /** How far back: blocks (a block each 150 seconds, a few more for a fast stretch) or days. */
       const RANGES = /** @type {const} */ ({
@@ -1293,21 +1293,34 @@
 
       // ── Behind the line: each block read 19 ways ──
 
-      // (As Bitview's Oracle draws its price over each block's payments, every one read as 19 round-dollar amounts and
-      // counted where the price it implies lands: most land on the price, the rest fill the background. Here each block
-      // is read over 19 spans instead, from its own solve time to its last 10,000 blocks: the hashrate their work in
-      // their time says, the difficulty that pace calls for, or what their work costs a DMD (the reference price, but
-      // under its $0.001 floor too). The middle spans land on the line; the short ones scatter wide of it (a block found
-      // in 15 seconds says ten times the hashrate, one found in ten minutes a quarter of it); the long ones trail it,
-      // smoothed: the line again, at a larger scale.)
+      // (As Bitview's Oracle draws its price over each block's payments, every one read as each of 19 round-dollar
+      // amounts and counted where the price it implies lands: the readings that agree make a glow around the line,
+      // the misreadings ($50 read as $100: twice the price) fill the whole background. Here each block is read over 19
+      // spans instead, from its own solve time to its last 10,000 blocks, each span's work over each span's time: the
+      // hashrate that says, the difficulty that pace calls for, or what the work costs a DMD. A span's work over its
+      // own time is a reading, drawn either side of the line as far as it is from it (shrunk to a few rows: the short
+      // spans, a block found in 15 seconds or in ten minutes, sit farther than the long ones), so the glow is
+      // brightest where most agree with the line. Over another span's time it's a misreading (the work of two blocks in
+      // the time of one: twice the hashrate), drawn where its value lands, darker: the line again, higher and lower,
+      // and scatter.)
       const SPANS = [1, 2, 3, 5, 10, 15, 20, 25, 30, 50, 100, 150, 200, 300, 500, 1000, 2000, 5000, 10_000];
       const LONGEST = SPANS[SPANS.length - 1];
       /** The blocks read for behind the line: for which range, the first shown, and from LONGEST blocks before it on,
        * each one's difficulty and time. Read again only from the last one read, at each new block. */
       let raw = { key: "", first: 0, from: 0, diffs: /** @type {number[]} */ ([]), times: /** @type {number[]} */ ([]) };
-      /** The readings behind the line: each block's point, then its readings, SPANS of them a block (NaN: none), and
-       * their logarithms, for a log scale. */
-      const NONE = { at: new Int32Array(0), values: new Float64Array(0), logs: new Float32Array(0), spread: /** @type {{ lo: number, hi: number } | null} */ (null) };
+      /** The readings behind the line: each block's point, then for each of its SPANS the logarithms of its work and
+       * of its time (NaN: none). */
+      const NONE = { at: new Int32Array(0), works: new Float32Array(0), times: new Float32Array(0) };
+      /** How far from the line a block's typical reading is drawn, in rows (the others as far as they are, in step):
+       * the hottest squares, a row or two either side of it. */
+      const PULL = 0.8;
+      /** A square's share of its column's most readings, to this power: only the closest burn, the rest fade. */
+      const HOT = 1.5;
+      /** The line's own light: how strong (Bitview's is 1), and how fast it fades either side of it, in rows. */
+      const LIFT = 0.8, FADE = 2.5;
+      /** The misreadings: from up to ECHO_BLOCKS blocks a column, each standing for the blocks around it; their squares
+       * at most BACKGROUND bright, darker than the glow, so the line burns on them. */
+      const ECHO_BLOCKS = 12, BACKGROUND = 0.5;
       let readings = NONE;
       /** The most values a read is sent in: under the server's cap on a response. */
       const PIECE = 30_000;
@@ -1350,17 +1363,18 @@
         const kwh = (work(difficulty) / 1e12) * 20 / 3_600_000, reward = 35 / 2 ** (Math.floor(height / 300_000) % 32);
         return (kwh * 0.06) / reward;
       }
-      /** Each block shown read over SPANS, as the measure shown: over the span's blocks up to it (their work and the
-       * time they took), the hashrate, the difficulty that would have brought them each 150 seconds, or what their
-       * average work costs a DMD (under the floor too: how far the cost is from it). None for a span reaching before
-       * the first block, or a time that runs backwards. For the price, how far most readings spread, for the frame. */
+      /** Each block shown read over SPANS, as the measure shown: for each span, the blocks' work up to it (as the
+       * hashes they took, the difficulty that would bring them each 150 seconds, or the electricity they cost a DMD's
+       * worth of reward) and the time they took (for the price, how many blocks it's shared over), as logarithms: a
+       * reading is a work over a time. NaN for a span reaching before the first block, or a time that runs backwards. */
       function readingsOf(/** @type {typeof raw} */ got) {
         const n = Math.min(got.diffs.length, got.times.length), S = SPANS.length, sums = new Float64Array(n + 1);
         for (let i = 0; i < n; i++) sums[i + 1] = sums[i] + got.diffs[i];
         // (A block at its point: its own, by block; its day's, by day.)
         const byHeight = RANGES[range].index === "height", dayOf = (/** @type {number} */ t) => Math.floor((t - DAY_ZERO) / 86400);
         const index = new Map(points.map((pt, k) => [byHeight ? pt.h : Math.round((pt.t - DAY_ZERO) / 86400), k]));
-        const start = Math.max(0, got.first - got.from), at = new Int32Array(Math.max(0, n - start)), values = new Float64Array(at.length * S);
+        const start = Math.max(0, got.first - got.from), at = new Int32Array(Math.max(0, n - start));
+        const works = new Float32Array(at.length * S), times = new Float32Array(at.length * S);
         let b = 0;
         for (let i = start; i < n; i++) {
           const h = got.from + i, t = got.times[i], k = index.get(byHeight ? h : dayOf(t));
@@ -1368,21 +1382,12 @@
           at[b] = k;
           for (let s = 0; s < S; s++) {
             const j = i - SPANS[s], d = j >= 0 ? sums[i + 1] - sums[j + 1] : 0, dt = j >= 0 ? t - got.times[j] : 0;
-            values[b * S + s] = !(d > 0) ? NaN : measure === "price" ? costOf(d / SPANS[s], h) : !(dt > 0) ? NaN : measure === "hashrate" ? work(d) / dt : (d * 150) / dt;
+            works[b * S + s] = !(d > 0) ? NaN : Math.log(measure === "price" ? costOf(d, h) : measure === "hashrate" ? work(d) : d * 150);
+            times[b * S + s] = measure === "price" ? Math.log(SPANS[s]) : dt > 0 ? Math.log(dt) : NaN;
           }
           b++;
         }
-        const kept = values.subarray(0, b * S), logs = new Float32Array(kept.length);
-        for (let i = 0; i < kept.length; i++) logs[i] = kept[i] > 0 ? Math.log(kept[i]) : NaN;
-        const out = { at: at.subarray(0, b), values: kept, logs, spread: /** @type {{ lo: number, hi: number } | null} */ (null) };
-        if (measure === "price") {
-          // (From a sample of them: up to 50,000.)
-          const step = Math.max(1, Math.floor(out.values.length / 50_000)), some = [];
-          for (let i = 0; i < out.values.length; i += step) if (out.values[i] > 0) some.push(out.values[i]);
-          some.sort((a, z) => a - z);
-          if (some.length >= 20) out.spread = { lo: some[Math.floor(some.length * 0.02)], hi: some[Math.floor(some.length * 0.98)] };
-        }
-        return out;
+        return { at: at.subarray(0, b), works: works.subarray(0, b * S), times: times.subarray(0, b * S) };
       }
 
       const heat = /** @type {HTMLCanvasElement} */ ($("heat"));
@@ -1395,8 +1400,8 @@
         probe.remove();
         return rgb;
       }
-      /** How near the line a square is, `d` rows from it: 1 on it, fading over a row or two. */
-      const nearLine = (/** @type {number} */ d) => Math.exp(-(d ** 2) / 2);
+      /** How near the line a square is, `d` rows from it: 1 on it, fading either side. */
+      const nearLine = (/** @type {number} */ d) => Math.exp(-Math.abs(d) / FADE);
       /** The squares, over the whole chart, as Bitview's Oracle draws its: rows about 10px, columns as wide, each over the
        * points under it. A square is the readings it holds, brightest where its column's are densest, lifted softly
        * around the line; gray where no block is read (yet). */
@@ -1423,28 +1428,51 @@
         points.forEach((pt, k) => {
           const c = colOf(k), on = f.y(pt.v) / side;
           picks[c]++;
-          for (let r = Math.max(0, Math.floor(on) - 4); r <= Math.min(rows - 1, Math.floor(on) + 4); r++) lift[c][r] += nearLine(r + 0.5 - on);
+          for (let r = Math.max(0, Math.floor(on) - 10); r <= Math.min(rows - 1, Math.floor(on) + 10); r++) lift[c][r] += nearLine(r + 0.5 - on);
         });
-        // (Each block in the column its point falls in, each of its readings in the row its value puts it: the frame's
-        // y over a row's height, worked out once for them all.)
-        const { at } = readings, S = SPANS.length, scaled = f.log ? readings.logs : readings.values;
+        // (Each block in the column its point falls in. The frame's y over a row's height, of a logarithm, worked out
+        // once for them all; the line's row at each point.)
+        const { at, works, times } = readings, S = SPANS.length;
         const per = (f.bottom - f.top) / (f.b - f.a) / side, base = f.bottom / side + f.a * per;
+        const lineRow = Float64Array.from(points, (pt) => f.y(pt.v) / side);
+        // (Misreadings from one block in `every`, each counted as that many.)
+        const every = Math.max(1, Math.round(at.length / cols / ECHO_BLOCKS)), echoes = Array.from({ length: cols }, () => new Float64Array(rows));
+        // (How far a block's own readings typically sit from the line, in rows: the middle of a sample. Shrunk to PULL.)
+        const some = [];
+        for (let b = 0; b < at.length; b += every)
+          for (let i = 0; i < S; i++) {
+            const d = base - (works[b * S + i] - times[b * S + i]) * per - lineRow[at[b]];
+            if (d === d) some.push(Math.abs(d));
+          }
+        some.sort((a, z) => a - z);
+        const typical = some.length ? some[Math.floor(some.length / 2)] : 0, shrink = typical > PULL ? PULL / typical : 1;
         for (let b = 0; b < at.length; b++) {
-          const c = colOf(at[b]), sum = sums[c];
+          const c = colOf(at[b]), sum = sums[c], echo = echoes[c], o = b * S, on = lineRow[at[b]], all = b % every === 0;
           seen[c] = 1;
-          for (let s = 0; s < S; s++) {
-            const r = Math.floor(base - scaled[b * S + s] * per);
-            if (r >= 0 && r < rows) sum[r]++;
+          for (let i = 0; i < S; i++) {
+            const top = base - works[o + i] * per, d = top + times[o + i] * per - on;
+            // (Its reading, half above the line, half under it, as far as it is from it.)
+            if (d === d) {
+              const far = Math.abs(d) * shrink, above = Math.floor(on - far), under = Math.floor(on + far);
+              if (above >= 0 && above < rows) sum[above] += 0.5;
+              if (under >= 0 && under < rows) sum[under] += 0.5;
+            }
+            if (all)
+              for (let j = 0; j < S; j++) {
+                const r = Math.floor(top + times[o + j] * per);
+                if (j !== i && r >= 0 && r < rows) echo[r] += every;
+              }
           }
         }
         for (let c = 0; c < cols; c++) {
-          let most = 0;
-          for (let r = 0; r < rows; r++) most = Math.max(most, sums[c][r]);
+          let most = 0, mostEcho = 0;
+          for (let r = 0; r < rows; r++) (most = Math.max(most, sums[c][r])), (mostEcho = Math.max(mostEcho, echoes[c][r]));
           for (let r = 0; r < rows; r++) {
-            // A square no block is read in is gray; a read one, faint where few readings land, bright where most do,
-            // lifted softly around the line.
-            const t = most ? (sums[c][r] / most) ** 0.7 : 0, u = picks[c] ? lift[c][r] / picks[c] : 0;
-            const v = Math.min(1, t + 0.4 * u * (1 - t) + 0.15 * u);
+            // A square no block is read in is gray; a read one, as bright as its share of its column's most readings
+            // (the glow: brightest on the line, fading out), the misreadings darker behind, lifted around the line.
+            const own = most ? (sums[c][r] / most) ** HOT : 0, behind = mostEcho ? BACKGROUND * (echoes[c][r] / mostEcho) ** 0.7 : 0;
+            const t = own + behind * (1 - own), u = picks[c] ? lift[c][r] / picks[c] : 0;
+            const v = Math.min(1, t + LIFT * (0.4 * u * (1 - t) + 0.15 * u));
             ctx.fillStyle = seen[c] ? fills[Math.round(v * 255)] : gray;
             ctx.fillRect(c * width, r * side, width - 1, side - 1);
           }
@@ -1665,10 +1693,9 @@
       /** The frame: x of a point's index, y of a value (log when the range spans a factor of 4 or more). */
       function frame() {
         const w = chart.clientWidth, h = chart.clientHeight, n = points.length, words = wordsOver();
-        const values = points.map((pt) => pt.v), lo = Math.min(...values), hi = Math.max(...values);
-        // (The line's values, as Bitview's; for the price, its readings' too, the cost under its floor.)
-        const low = Math.min(lo, readings.spread?.lo ?? lo), high = Math.max(hi, readings.spread?.hi ?? hi);
-        const log = MEASURES[measure].log && high / low >= 4;
+        const values = points.map((pt) => pt.v), lo = Math.min(...values), hi = Math.max(...values), low = lo, high = hi;
+        // (A log scale, as Bitview's: a reading twice another is as far from it anywhere.)
+        const log = MEASURES[measure].log;
         const f = (/** @type {number} */ v) => (log ? Math.log(v) : v);
         const top = words.top + CLEAR, bottom = Math.max(top + 40, words.bottom - CLEAR);
         // (A flat range drawn at mid-height, a hair of room either side.)

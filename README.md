@@ -43,10 +43,12 @@ adapted to the DebitMyData chain. Bitview's own documentation is in [docs/](docs
 - **The Oracle.** Bitview's Oracle reads Bitcoin's price from round-dollar payments; here its design
   shows the network instead: hashrate (the default), the reference price or the difficulty, a
   switch at the top, over 7, 30 or 90 days or the whole chain. Its grid of squares behind the line
-  is drawn as Bitview's: where Bitview reads each payment as 19 round-dollar amounts, each block is
-  read over 19 spans, from its own solve time to its last 10,000 blocks (the hashrate, the
-  difficulty that pace calls for, or what mining one DMD costs), brightest where most readings land.
-  Its chapters below show how each is worked out, with small live charts.
+  is drawn as Bitview's: where Bitview reads each payment as each of 19 round-dollar amounts, each
+  block is read over 19 spans, from its own solve time to its last 10,000 blocks, each span's work
+  over each span's time (the hashrate, the difficulty that pace calls for, or what mining one DMD
+  costs). The readings make a glow around the line, brightest where most agree with it; the
+  misreadings (two blocks' work in one block's time) fill the background, darker. Its chapters below
+  show how each is worked out, with small live charts.
 - **The Explorer** draws its blocks full at 2,000 weight units (500 vB): DebitMyData's blocks are
   small (a coinbase alone fills a third of a square), and a block drawn at Bitcoin's 4,000,000 would
   look empty. Each block says its size and transactions, its larger squares what they are, and the
