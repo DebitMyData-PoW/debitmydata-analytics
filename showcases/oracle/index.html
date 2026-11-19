@@ -1308,26 +1308,32 @@
       /** The blocks read for behind the line: for which range, the first shown, and from LONGEST blocks before it on,
        * each one's difficulty and time. Read again only from the last one read, at each new block. */
       let raw = { key: "", first: 0, from: 0, diffs: /** @type {number[]} */ ([]), times: /** @type {number[]} */ ([]) };
-      /** The readings behind the line: each block's point, then for each of its SPANS the logarithms of its work and
-       * of its time (NaN: none). */
-      const NONE = { at: new Int32Array(0), works: new Float32Array(0), times: new Float32Array(0) };
+      /** The readings behind the line: each block's point and where it falls between the points (by day, spread over
+       * its day), then for each of its SPANS the logarithms of its work and of its time (NaN: none). */
+      const NONE = { at: new Int32Array(0), along: new Float32Array(0), works: new Float32Array(0), times: new Float32Array(0) };
       /** How far from the line a block's typical reading is drawn, in rows (the others as far as they are, in step):
-       * the hottest squares, a row or two either side of it. */
-      const PULL = 0.8;
+       * the hottest squares, a few rows either side of it. */
+      const PULL = 1.5;
       /** A square's share of its column's most readings, to this power: only the closest burn, the rest fade. */
       const HOT = 1.5;
       /** The line's own light: how strong (Bitview's is 1), and how fast it fades either side of it, in rows. */
-      const LIFT = 0.8, FADE = 3.3;
+      const LIFT = 0.8, FADE = 6.2;
       /** The glow's far reach: how bright it is at most beside the line (dim colors only), and how fast it fades, in
-       * rows: it burns into the background over a dozen rows either side, as Bitview's. */
-      const HALO = 0.45, REACH = 12;
+       * rows: it burns into the background over some 80px either side, as Bitview's. */
+      const HALO = 0.45, REACH = 22;
       /** The grid Bitview's has (its round bitcoin amounts read as round dollars draw rows at round prices; its blocks
        * of many or few payments, brighter or darker columns): here faint rows at round values and columns at round
-       * times, GRID bright at most, and columns brighter where blocks came faster (their pace, to the STRIPE power). */
-      const GRID = 0.55, STRIPE = 1.5;
+       * times, GRID_WIDTH squares wide and GRID bright at most, and columns a little brighter where blocks came
+       * faster (their pace, to the STRIPE power). */
+      const GRID = 0.8, GRID_WIDTH = 2, STRIPE = 1;
+      /** The grid's columns at most this share of its rows' spacing apart: its boxes taller than wide. */
+      const TALL = 0.6;
       /** The misreadings: from up to ECHO_BLOCKS blocks a column, each standing for the blocks around it; their squares
        * at most BACKGROUND bright, darker than the glow, so the line burns on them. */
-      const ECHO_BLOCKS = 12, BACKGROUND = 0.35;
+      const ECHO_BLOCKS = 24, BACKGROUND = 0.4;
+      /** A column's misreadings are measured against the square a fifth of its lit ones outshine, not its brightest
+       * (a lone bright square doesn't dim the rest). */
+      const BRIGHT = 0.8;
       let readings = NONE;
       /** The most values a read is sent in: under the server's cap on a response. */
       const PIECE = 30_000;
@@ -1380,13 +1386,14 @@
         // (A block at its point: its own, by block; its day's, by day.)
         const byHeight = RANGES[range].index === "height", dayOf = (/** @type {number} */ t) => Math.floor((t - DAY_ZERO) / 86400);
         const index = new Map(points.map((pt, k) => [byHeight ? pt.h : Math.round((pt.t - DAY_ZERO) / 86400), k]));
-        const start = Math.max(0, got.first - got.from), at = new Int32Array(Math.max(0, n - start));
+        const start = Math.max(0, got.first - got.from), at = new Int32Array(Math.max(0, n - start)), along = new Float32Array(at.length);
         const works = new Float32Array(at.length * S), times = new Float32Array(at.length * S);
         let b = 0;
         for (let i = start; i < n; i++) {
           const h = got.from + i, t = got.times[i], k = index.get(byHeight ? h : dayOf(t));
           if (k === undefined) continue;
           at[b] = k;
+          along[b] = byHeight ? k : k - 0.5 + Math.min(1, Math.max(0, (t - points[k].t) / 86_400));
           for (let s = 0; s < S; s++) {
             const j = i - SPANS[s], d = j >= 0 ? sums[i + 1] - sums[j + 1] : 0, dt = j >= 0 ? t - got.times[j] : 0;
             works[b * S + s] = !(d > 0) ? NaN : Math.log(measure === "price" ? costOf(d, h) : measure === "hashrate" ? work(d) : d * 150);
@@ -1394,7 +1401,7 @@
           }
           b++;
         }
-        return { at: at.subarray(0, b), works: works.subarray(0, b * S), times: times.subarray(0, b * S) };
+        return { at: at.subarray(0, b), along: along.subarray(0, b), works: works.subarray(0, b * S), times: times.subarray(0, b * S) };
       }
 
       const heat = /** @type {HTMLCanvasElement} */ ($("heat"));
@@ -1407,8 +1414,8 @@
         probe.remove();
         return rgb;
       }
-      /** The squares' side, in CSS pixels: Bitview's are a little under 8. */
-      const SQUARE = 7.5;
+      /** The squares' side and the gap between them, in CSS pixels: half Bitview's, twice as many each way. */
+      const SQUARE = 3.75, GAP = 0.75;
       /** How near the line a square is, `d` rows from it: 1 on it, fading either side. */
       const nearLine = (/** @type {number} */ d) => Math.exp(-Math.abs(d) / FADE);
       /** A steady random number from 0 to 1 for a square. */
@@ -1416,27 +1423,29 @@
         const s = Math.sin(c * 12.9898 + r * 78.233) * 43_758.5453;
         return s - Math.floor(s);
       };
-      /** Three or so round values between `lo` and `hi`: decades, then 1 and 3, 1-2-5, … finer, then even steps. */
+      /** Two or three round values between `lo` and `hi`: decades, then 1 and 3, 1-2-5, … finer, then even steps. */
       function roundValues(/** @type {number} */ lo, /** @type {number} */ hi) {
         if (!(lo > 0 && hi > lo)) return [];
         let fewer = /** @type {number[]} */ ([]);
         for (const set of [[1], [1, 3], [1, 2, 5], [1, 1.5, 2, 3, 5, 7], [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8]]) {
           const out = [];
           for (let e = Math.floor(Math.log10(lo)); e <= Math.ceil(Math.log10(hi)); e++) for (const m of set) if (m * 10 ** e > lo && m * 10 ** e < hi) out.push(m * 10 ** e);
-          // (Three or four; two rather than five or more.)
-          if (out.length >= 3) return out.length > 4 && fewer.length >= 2 ? fewer : out;
+          // (Two or three; two rather than four or more.)
+          if (out.length >= 2) return out.length > 3 && fewer.length >= 2 ? fewer : out;
           fewer = out;
         }
-        const rough = (hi - lo) / 3, mag = 10 ** Math.floor(Math.log10(rough)), step = mag * ([1, 2, 2.5, 5, 10].find((m) => m * mag >= rough) ?? 10);
+        const rough = (hi - lo) / 2.5, mag = 10 ** Math.floor(Math.log10(rough)), step = mag * ([1, 2, 2.5, 5, 10].find((m) => m * mag >= rough) ?? 10);
         const out = [];
         for (let v = Math.ceil(lo / step) * step; v < hi; v += step) out.push(v);
         return out;
       }
-      /** The points where round times fall, two or three over the range: hours, days, weeks, months. */
-      function roundTimes() {
+      /** The points where round times fall (hours, days, weeks, months), the widest step that puts them no more than
+       * `apart` pixels apart in frame `f`. */
+      function roundTimes(/** @type {number} */ apart, /** @type {ReturnType<typeof frame>} */ f) {
         if (points.length < 2) return [];
-        const t0 = points[0].t, t1 = points[points.length - 1].t, H = 3600, D = 86_400;
-        const step = [H, 3 * H, 6 * H, 12 * H, D, 2 * D, 7 * D, 14 * D, 30 * D, 61 * D, 91 * D, 182 * D, 365 * D].find((s) => (t1 - t0) / s <= 3.5) ?? 365 * D;
+        const t0 = points[0].t, t1 = points[points.length - 1].t, H = 3600, D = 86_400, perSecond = (f.x(points.length - 1) - f.x(0)) / Math.max(1, t1 - t0);
+        const steps = [H, 2 * H, 3 * H, 6 * H, 12 * H, D, 2 * D, 3 * D, 7 * D, 14 * D, 30 * D, 61 * D, 91 * D, 182 * D, 365 * D];
+        const step = steps.findLast((s) => s * perSecond <= apart) ?? H;
         const out = [];
         let k = 0;
         for (let t = Math.ceil(t0 / step) * step; t < t1; t += step) {
@@ -1453,50 +1462,64 @@
         heat.width = Math.round(f.w * ratio);
         heat.height = Math.round(f.h * ratio);
         const ctx = /** @type {CanvasRenderingContext2D} */ (heat.getContext("2d"));
-        ctx.scale(ratio, ratio);
         if (!f.n) return;
         // (The ramp's three stops as the scheme resolves them; a square's color and strength both from its score.)
-        const stops = ["var(--heat-lo)", "var(--heat-mid)", "var(--heat-hi)"].map((c) => resolved(c).split(",").map(Number)), ink = resolved("var(--ink)");
+        const stops = ["var(--heat-lo)", "var(--heat-mid)", "var(--heat-hi)"].map((c) => resolved(c).split(",").map(Number)), ink = resolved("var(--ink)").split(",").map(Number);
         const ramp = (/** @type {number} */ v) => {
           const k = v < 0.5 ? 0 : 1, u = v < 0.5 ? v * 2 : (v - 0.5) * 2;
-          return stops[k].map((a, i) => Math.round(a + (stops[k + 1][i] - a) * u)).join(",");
+          return stops[k].map((a, i) => Math.round(a + (stops[k + 1][i] - a) * u));
         };
-        // (Its 256 steps written once.)
-        const fills = Array.from({ length: 256 }, (_, i) => `rgba(${ramp(i / 255)},${(0.06 + (0.94 * i) / 255).toFixed(3)})`), gray = `rgba(${ink},0.035)`;
+        // (Its 256 steps written once, as the canvas's pixels hold them: red, green, blue and alpha, a byte each.)
+        const pixel = (/** @type {number[]} */ [r, g, b], /** @type {number} */ alpha) => ((Math.round(alpha * 255) << 24) | (b << 16) | (g << 8) | r) >>> 0;
+        const fills = Uint32Array.from({ length: 256 }, (_, i) => pixel(ramp(i / 255), 0.06 + (0.94 * i) / 255)), gray = pixel(ink, 0.035);
         const rows = Math.max(3, Math.round(f.h / SQUARE)), side = f.h / rows, cols = Math.max(3, Math.round(f.w / side)), width = f.w / cols;
         const colOf = (/** @type {number} */ k) => Math.max(0, Math.min(cols - 1, Math.floor(f.x(k) / width)));
         const sums = Array.from({ length: cols }, () => new Float64Array(rows)), seen = new Float64Array(cols);
         // (How much each square is the line's: over the column's points, each its share.)
         const lift = Array.from({ length: cols }, () => new Float64Array(rows)), picks = new Float64Array(cols);
-        const halo = Array.from({ length: cols }, () => new Float64Array(rows)), reach = Math.ceil(REACH * 4);
+        const halo = Array.from({ length: cols }, () => new Float64Array(rows)), reach = Math.ceil(REACH * 4), lit = Math.ceil(FADE * 4);
         // (Each column's first and last time, for how fast its blocks came.)
         const first = new Float64Array(cols).fill(Infinity), last = new Float64Array(cols).fill(-Infinity);
+        // (The light from up to eight points a column: a line of thousands of blocks lights as one of hundreds.)
+        const stride = Math.max(1, Math.floor(points.length / cols / 8));
         points.forEach((pt, k) => {
-          const c = colOf(k), on = f.y(pt.v) / side;
-          picks[c]++;
+          const c = colOf(k);
           first[c] = Math.min(first[c], pt.t);
           last[c] = Math.max(last[c], pt.t);
-          for (let r = Math.max(0, Math.floor(on) - 14); r <= Math.min(rows - 1, Math.floor(on) + 14); r++) lift[c][r] += nearLine(r + 0.5 - on);
+          if (k % stride) return;
+          const on = f.y(pt.v) / side;
+          picks[c]++;
+          for (let r = Math.max(0, Math.floor(on) - lit); r <= Math.min(rows - 1, Math.floor(on) + lit); r++) lift[c][r] += nearLine(r + 0.5 - on);
           for (let r = Math.max(0, Math.floor(on) - reach); r <= Math.min(rows - 1, Math.floor(on) + reach); r++) halo[c][r] += Math.exp(-Math.abs(r + 0.5 - on) / REACH);
         });
+        // (A column no point falls in, as a range of days has more columns than days: the line where it crosses it.)
+        for (let c = 0; c < cols; c++) {
+          if (picks[c] || points.length < 2) continue;
+          const k = Math.max(0, Math.min(points.length - 1, (((c + 0.5) * width - 1) / (f.w - 16)) * (points.length - 1))), k0 = Math.floor(k), k1 = Math.min(points.length - 1, k0 + 1);
+          const on = (f.y(points[k0].v) * (1 - (k - k0)) + f.y(points[k1].v) * (k - k0)) / side;
+          picks[c] = 1;
+          for (let r = Math.max(0, Math.floor(on) - lit); r <= Math.min(rows - 1, Math.floor(on) + lit); r++) lift[c][r] += nearLine(r + 0.5 - on);
+          for (let r = Math.max(0, Math.floor(on) - reach); r <= Math.min(rows - 1, Math.floor(on) + reach); r++) halo[c][r] += Math.exp(-Math.abs(r + 0.5 - on) / REACH);
+        }
         // (Each block in the column its point falls in. The frame's y over a row's height, of a logarithm, worked out
         // once for them all; the line's row at each point.)
-        const { at, works, times } = readings, S = SPANS.length;
+        const { at, along, works, times } = readings, S = SPANS.length;
         const per = (f.bottom - f.top) / (f.b - f.a) / side, base = f.bottom / side + f.a * per;
         const lineRow = Float64Array.from(points, (pt) => f.y(pt.v) / side);
         // (Misreadings from one block in `every`, each counted as that many.)
         const every = Math.max(1, Math.round(at.length / cols / ECHO_BLOCKS)), echoes = Array.from({ length: cols }, () => new Float64Array(rows));
         // (How far a block's own readings typically sit from the line, in rows: the middle of a sample. Shrunk to PULL.)
-        const some = [];
-        for (let b = 0; b < at.length; b += every)
-          for (let i = 0; i < S; i++) {
-            const d = base - (works[b * S + i] - times[b * S + i]) * per - lineRow[at[b]];
-            if (d === d) some.push(Math.abs(d));
-          }
-        some.sort((a, z) => a - z);
-        const typical = some.length ? some[Math.floor(some.length / 2)] : 0, shrink = typical > PULL ? PULL / typical : 1;
+        const sample = new Float64Array(Math.min(20_000, at.length * S));
+        let n = 0;
+        for (let k = 0; k < sample.length; k++) {
+          const i = Math.floor((k * at.length * S) / sample.length), b = Math.floor(i / S);
+          const d = base - (works[i] - times[i]) * per - lineRow[at[b]];
+          if (d === d) sample[n++] = Math.abs(d);
+        }
+        const some = sample.subarray(0, n).sort();
+        const typical = n ? some[Math.floor(n / 2)] : 0, shrink = typical > PULL ? PULL / typical : 1;
         for (let b = 0; b < at.length; b++) {
-          const c = colOf(at[b]), sum = sums[c], echo = echoes[c], o = b * S, on = lineRow[at[b]], all = b % every === 0;
+          const c = colOf(along[b]), sum = sums[c], echo = echoes[c], o = b * S, on = lineRow[at[b]], all = b % every === 0;
           seen[c]++;
           for (let i = 0; i < S; i++) {
             const top = base - works[o + i] * per, d = top + times[o + i] * per - on;
@@ -1517,27 +1540,35 @@
         const step = points.length > 1 ? (points[points.length - 1].t - points[0].t) / (points.length - 1) : 1;
         const pace = Float64Array.from(seen, (n, c) => (n && last[c] >= first[c] ? n / (last[c] - first[c] + step) : 0));
         const paces = Array.from(pace).filter((x) => x > 0).sort((x, z) => x - z), middle = paces[Math.floor(paces.length / 2)] || 1;
-        const stripe = Float64Array.from(pace, (x) => (x > 0 ? Math.max(0.7, Math.min(1.3, (x / middle) ** STRIPE)) : 1));
+        const stripe = Float64Array.from(pace, (x) => (x > 0 ? Math.max(0.8, Math.min(1.2, (x / middle) ** STRIPE)) : 1));
         // (The grid: rows at round values, columns at round times.)
         const gridRow = new Uint8Array(rows), gridCol = new Uint8Array(cols);
         const valueAt = (/** @type {number} */ y) => {
           const g = f.a + ((f.bottom - y) / (f.bottom - f.top)) * (f.b - f.a);
           return f.log ? Math.exp(g) : g;
         };
-        for (const v of roundValues(valueAt(f.h), valueAt(0))) {
-          const r = Math.floor(f.y(v) / side);
-          if (r >= 0 && r < rows) gridRow[r] = 1;
+        const levels = roundValues(valueAt(f.h), valueAt(0)).map((v) => f.y(v));
+        for (const y of levels) {
+          const r = Math.floor(y / side);
+          for (let d = 0; d < GRID_WIDTH; d++) if (r + d >= 0 && r + d < rows) gridRow[r + d] = 1;
         }
-        for (const k of roundTimes()) gridCol[colOf(k)] = 1;
+        // (The columns TALL as far apart as the rows, or less: its boxes stand taller than they're wide.)
+        const apart = levels.length > 1 ? Math.abs(levels[0] - levels[levels.length - 1]) / (levels.length - 1) : f.h / 3;
+        for (const k of roundTimes(apart * TALL, f)) for (let d = 0; d < GRID_WIDTH; d++) gridCol[Math.min(cols - 1, colOf(k) + d)] = 1;
+        // (Each square's pixels, its gap left clear: where its column and row start and end on the canvas.)
+        const W = heat.width, image = ctx.createImageData(W, heat.height), out = new Uint32Array(image.data.buffer);
+        const x0 = Int32Array.from({ length: cols }, (_, c) => Math.round(c * width * ratio)), x1 = Int32Array.from({ length: cols }, (_, c) => Math.max(x0[c] + 1, Math.round(((c + 1) * width - GAP) * ratio)));
+        const y0 = Int32Array.from({ length: rows }, (_, r) => Math.round(r * side * ratio)), y1 = Int32Array.from({ length: rows }, (_, r) => Math.max(y0[r] + 1, Math.round(((r + 1) * side - GAP) * ratio)));
         for (let c = 0; c < cols; c++) {
-          let most = 0, mostEcho = 0;
-          for (let r = 0; r < rows; r++) (most = Math.max(most, sums[c][r])), (mostEcho = Math.max(mostEcho, echoes[c][r]));
+          let most = 0;
+          for (let r = 0; r < rows; r++) most = Math.max(most, sums[c][r]);
+          const any = Array.from(echoes[c]).filter((e) => e > 0).sort((x, z) => x - z), mostEcho = any.length ? any[Math.floor((any.length - 1) * BRIGHT)] : 0;
           for (let r = 0; r < rows; r++) {
             // A square no block is read in is gray; a read one, as bright as its share of its column's most readings
             // (the glow: brightest on the line, fading out), the misreadings and the grid darker behind, the glow's
             // far reach over them, lifted around the line.
             const own = most ? (sums[c][r] / most) ** HOT : 0;
-            let behind = mostEcho ? BACKGROUND * stripe[c] * (echoes[c][r] / mostEcho) ** 0.7 : 0;
+            let behind = mostEcho ? BACKGROUND * stripe[c] * Math.min(1, echoes[c][r] / mostEcho) ** 0.7 : 0;
             if (gridRow[r] || gridCol[c]) {
               const h = noise(c, r);
               if (h > 0.12) behind = Math.max(behind, GRID * (0.55 + 0.45 * h));
@@ -1545,10 +1576,11 @@
             const glow = picks[c] ? HALO * (halo[c][r] / picks[c]) : 0, under = own + behind * (1 - own);
             const t = under + glow * (1 - under), u = picks[c] ? lift[c][r] / picks[c] : 0;
             const v = Math.min(1, t + LIFT * (0.4 * u * (1 - t) + 0.15 * u));
-            ctx.fillStyle = seen[c] ? fills[Math.round(v * 255)] : gray;
-            ctx.fillRect(c * width, r * side, width - 1, side - 1);
+            const color = seen[c] ? fills[Math.round(v * 255)] : gray;
+            for (let y = y0[r]; y < y1[r]; y++) out.fill(color, y * W + x0[c], y * W + x1[c]);
           }
         }
+        ctx.putImageData(image, 0, 0);
       }
 
       // ── The chapters: the measure shown's, read live ──
@@ -1935,7 +1967,12 @@
 
       // ── Start, and each new block ──
 
-      new ResizeObserver(() => draw()).observe(chart);
+      // (Drawn again once a resize settles: the squares of a long range take a moment.)
+      let resizing = 0;
+      new ResizeObserver(() => {
+        clearTimeout(resizing);
+        resizing = setTimeout(draw, 60);
+      }).observe(chart);
       // (The theme switched: the squares and the pools' logos in its colors.)
       dark.addEventListener("change", () => {
         draw();
