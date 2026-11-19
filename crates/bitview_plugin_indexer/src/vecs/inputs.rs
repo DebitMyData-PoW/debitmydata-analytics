@@ -66,7 +66,7 @@ pub struct InputsVecs<M: StorageMode = Rw> {
     /// outputs in canonical order.
     // Stored as `u32::MAX` for a coinbase input.
     pub type_index: Compact<PcoVec<TxInIndex, TypeIndex>, Option<TypeIndex>, M>,
-    /// Value of the output the input spends, in satoshis; 0 for a coinbase input, which
+    /// Value of the output the input spends, in data; 0 for a coinbase input, which
     /// spends none.
     // Stored as `Sats::MAX` for a coinbase input, which the stored vec's readers rely on.
     #[traversable(accumulation = Flow)]

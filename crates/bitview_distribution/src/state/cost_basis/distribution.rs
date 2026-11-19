@@ -13,7 +13,7 @@ use super::{CostBasisOps, UnrealizedState, unrealized::CachedUnrealizedState};
 #[derive(Clone, Debug, Default)]
 pub struct CostBasisDistribution {
     map: BTreeMap<CentsCompact, Sats>,
-    /// Net sats per price since the last apply, wrapping like the signed deltas they are.
+    /// Net data per price since the last apply, wrapping like the signed deltas they are.
     pending: FxHashMap<CentsCompact, i64>,
     cache: Option<CachedUnrealizedState>,
 }

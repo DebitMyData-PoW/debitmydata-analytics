@@ -11,9 +11,9 @@ where
     S: VecValue,
     C: AmountType,
 {
-    /// Reported in DMD; one DMD equals 100,000,000 satoshis.
+    /// Reported in DMD; one DMD equals 100,000,000 data.
     pub(crate) btc: LazyPerBlock<Bitcoin, C>,
-    /// Reported in satoshis.
+    /// Reported in data.
     #[traversable(hidden)]
     pub(crate) sats: LazyDeltaFromHeight<S, C, DeltaChange>,
 }

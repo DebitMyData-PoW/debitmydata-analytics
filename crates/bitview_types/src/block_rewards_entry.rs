@@ -12,7 +12,7 @@ pub struct BlockRewardsEntry {
     /// Average block timestamp in this bucket
     #[schemars(example = 1743631892)]
     pub timestamp: Timestamp,
-    /// Mean coinbase reward (subsidy + fees) per block in this bucket, rounded half up (sats)
+    /// Mean coinbase reward (subsidy + fees) per block in this bucket, rounded half up (data)
     #[schemars(example = 315715861)]
     pub avg_rewards: Sats,
     /// Mean DMD/USD reference price over the bucket's blocks (the price, not the rewards in USD)

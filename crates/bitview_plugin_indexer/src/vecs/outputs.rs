@@ -13,7 +13,7 @@ pub struct OutputsVecs<M: StorageMode = Rw> {
     /// of outputs in preceding blocks; at `tx_index`, it identifies the
     /// transaction's first output.
     pub first_txout_index: M::Stored<PcoVec<Height, TxOutIndex, Budgeted>>,
-    /// Value of the output, in satoshis.
+    /// Value of the output, in data.
     #[traversable(accumulation = Flow)]
     pub value: M::Stored<OverflowVec<TxOutIndex, Sats>>,
     /// Bitview's locking-script classification of an output. At `txout_index`, this

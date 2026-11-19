@@ -31,7 +31,7 @@ pub struct ConfirmedCpfp {
     pub ancestors: Vec<CpfpEntry>,
     pub descendants: Vec<CpfpEntry>,
     /// Feerate of the chunk holding the transaction when its block's relatives are linearized
-    /// (sat/vB).
+    /// (data/vB).
     pub effective_fee_per_vsize: FeeRate,
     /// The transaction's relatives in its block.
     pub cluster: CpfpCluster,

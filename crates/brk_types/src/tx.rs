@@ -55,7 +55,7 @@ pub struct Transaction {
     #[serde(rename = "sigops")]
     pub total_sigop_cost: SigOps,
 
-    /// Transaction fee in satoshis
+    /// Transaction fee in data
     #[cfg_attr(feature = "schemars", schemars(example = Sats::new(31)))]
     pub fee: Sats,
 

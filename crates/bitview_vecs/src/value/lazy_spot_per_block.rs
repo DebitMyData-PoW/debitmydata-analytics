@@ -5,7 +5,7 @@ use vecdb::{Convert, Ident, ReadableCloneableVec};
 
 use crate::{IndexSources, LazyIndexedVec, LazyPerBlock, SpotValue};
 
-/// Point-in-time value of one sats source; USD is the sats at the spot price.
+/// Point-in-time value of one data source; USD is the data at the spot price.
 pub type LazySpotValuePerBlock =
     SpotValue<LazyPerBlock<Sats>, LazyPerBlock<Bitcoin, Sats>, LazyPerBlock<Dollars>>;
 

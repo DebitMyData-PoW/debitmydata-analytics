@@ -9,7 +9,7 @@ use super::{Cents, Sats};
 #[cfg(feature = "storage")]
 use vecdb::Bytes;
 
-/// Cents × Sats (u128) - price in cents multiplied by amount in sats.
+/// Cents × Sats (u128) - price in cents multiplied by amount in data.
 /// Uses u128 because large amounts at any price can overflow u64.
 #[derive(
     Debug,
@@ -41,7 +41,7 @@ impl CentsSats {
         Self(value)
     }
 
-    /// Compute from price and sats using widening multiplication
+    /// Compute from price and data using widening multiplication
     #[inline(always)]
     pub fn from_price_sats(price: Cents, sats: Sats) -> Self {
         Self(price.inner() as u128 * sats.as_u128())
@@ -58,8 +58,8 @@ impl CentsSats {
         Cents::from(div_round(self.0, Sats::ONE_BTC_U128))
     }
 
-    /// The realized price (millionths of a dollar per DMD) given the sats amount, rounded to the nearest millionth of a dollar;
-    /// undefined (NaN) without sats.
+    /// The realized price (millionths of a dollar per DMD) given the data amount, rounded to the nearest millionth of a dollar;
+    /// undefined (NaN) without data.
     #[inline(always)]
     pub fn realized_price(self, sats: Sats) -> Cents {
         if sats.is_zero() {

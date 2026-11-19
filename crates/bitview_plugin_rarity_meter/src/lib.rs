@@ -39,7 +39,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// `sum(creation price x unspent sats) / sum(unspent sats)`; capitalized
     /// price instead weights by creation-date value and is
     /// `sum(creation price squared x unspent sats) / sum(creation price x
-    /// unspent sats)`.
+    /// unspent data)`.
     #[traversable(lead = "Rarity Meter, one reference price at a time.")]
     components: Components<M>,
     extremes: Extremes<M>,

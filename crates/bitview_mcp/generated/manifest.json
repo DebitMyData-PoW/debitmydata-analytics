@@ -453,7 +453,7 @@
       "tool": {
         "name": "get_block_fee_rates_precise",
         "title": "Block fee rates (precise)",
-        "description": "DebitMyData: Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each in sat/vB to 3 decimals.",
+        "description": "DebitMyData: Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each in data/vB to 3 decimals.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -1791,7 +1791,7 @@
       "tool": {
         "name": "get_precise_fees",
         "title": "Recommended fee rates (precise)",
-        "description": "DebitMyData: Recommended fee rates by confirmation target, with up to three decimal places and support for sub-sat/vB rates.",
+        "description": "DebitMyData: Recommended fee rates by confirmation target, with up to three decimal places and support for sub-data/vB rates.",
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -3043,7 +3043,7 @@
       "tool": {
         "name": "get_urpd",
         "title": "URPD at block height or date",
-        "description": "DebitMyData: URPD (UTXO realized price distribution: how much supply last moved at each price) for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is DMD. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.",
+        "description": "DebitMyData: URPD (UTXO realized price distribution: how much supply last moved at each price) for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is DMD. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole data) and the bucket values follow it.",
         "inputSchema": {
           "type": "object",
           "properties": {

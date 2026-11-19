@@ -94,7 +94,7 @@ scalar! {
 }
 
 scalar! {
-    /// Satoshis per PH/s of hash rate per day.
+    /// Data per PH/s of hash rate per day.
     float HashValue(f32)
 }
 

@@ -10,7 +10,7 @@ use vecdb::{Database, Rw, StorageMode, WritableVec};
 #[derive(Traversable)]
 pub struct CohortCostBasis<M: StorageMode = Rw> {
     /// Creation prices (spot when each output was created) of the cohort's unspent outputs,
-    /// weighted by satoshis.
+    /// weighted by data.
     by_coin: ByCoin,
     #[traversable(hidden)]
     stored: CachedSeries<Height, Cents, M>,

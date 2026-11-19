@@ -4,7 +4,7 @@ use crate::PERCENTILES_LEN;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct CostBasisByPercentile {
-    /// Price percentiles weighted by satoshis.
+    /// Price percentiles weighted by data.
     pub by_coin: [Cents; PERCENTILES_LEN],
     /// Price percentiles weighted by acquisition value.
     pub by_dollar: [Cents; PERCENTILES_LEN],

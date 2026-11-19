@@ -18,7 +18,7 @@ use crate::columns::Columns;
 #[derive(Traversable)]
 pub struct CostBasis<M: StorageMode = Rw> {
     /// Creation prices (spot when each output was created) of the cohort's unspent outputs,
-    /// weighted by satoshis.
+    /// weighted by data.
     pub by_coin: CostBasisByCoin<M>,
     /// Creation prices (spot when each output was created) of the cohort's unspent outputs,
     /// weighted by each output's USD value at creation.
@@ -39,7 +39,7 @@ pub struct CostBasis<M: StorageMode = Rw> {
         lead = "Supply near the price: the share of coins that last moved within 5% of the price of the day."
     )]
     pub supply_density: Density<LazyPercentPerBlock<PartsPerMillion32>>,
-    /// Share of the cohort's capital (satoshis times creation price) with a creation
+    /// Share of the cohort's capital (data times creation price) with a creation
     /// price near spot; undefined (null) without capital or a positive spot price.
     #[traversable(
         lead = "Capital near the price: the share of the capital whose coins last moved within 5% of the price of the day."

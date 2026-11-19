@@ -25,10 +25,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// revenue per PH/s of mining hash rate, before costs.
     #[traversable(lead = "Hashprice: what a unit of hash rate earns miners in a day, in dollars.")]
     pub hash_price: HashPriceValueVecs<HashPrice, M>,
-    /// Coinbase output value in satoshis over the trailing 24-hour window,
+    /// Coinbase output value in data over the trailing 24-hour window,
     /// divided by the represented block's estimated network hash rate. It
-    /// estimates daily revenue in satoshis per PH/s of mining hash rate, before
+    /// estimates daily revenue in data per PH/s of mining hash rate, before
     /// costs.
-    #[traversable(lead = "Hash value: what a unit of hash rate earns miners in a day, in sats.")]
+    #[traversable(lead = "Hash value: what a unit of hash rate earns miners in a day, in data.")]
     pub hash_value: HashPriceValueVecs<HashValue, M>,
 }

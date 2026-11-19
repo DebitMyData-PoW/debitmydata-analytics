@@ -9,7 +9,7 @@ use crate::{
 };
 
 impl UTXOStates {
-    /// Returns satoshi-blocks destroyed while applying each spent origin.
+    /// Returns data-blocks destroyed while applying each spent origin.
     pub fn send_origins(
         &mut self,
         height_to_sent: impl IntoIterator<Item = (Height, SupplyState)>,

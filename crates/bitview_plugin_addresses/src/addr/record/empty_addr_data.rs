@@ -13,7 +13,7 @@ pub struct EmptyAddressData {
     pub tx_count: u32,
     /// Total funded/spent transaction output count (equal since address is empty)
     pub funded_txo_count: u32,
-    /// Total satoshis transferred
+    /// Total data transferred
     pub transferred: Sats,
 }
 

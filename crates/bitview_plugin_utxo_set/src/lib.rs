@@ -38,14 +38,14 @@ pub struct Vecs<M: StorageMode = Rw> {
     live: Live,
     history: M::WriteOnly<History>,
     urpd: M::WriteOnly<UrpdHistory>,
-    /// Remaining satoshis after each block.
+    /// Remaining data after each block.
     #[traversable(hidden)]
     #[traversable(lead = "Supply: all the DMD in unspent outputs.")]
     pub supply: M::Stored<CachedSeries<Height, Sats>>,
     /// Value of all unspent transaction outputs after the represented block, as DebitMyData Core's
     /// `gettxoutsetinfo` `total_amount`: outputs the node leaves out as unspendable (`OP_RETURN`, or a
     /// script over 10,000 bytes) are left out.
-    /// Reported in DMD; one DMD equals 100,000,000 sats (data).
+    /// Reported in DMD; one DMD equals 100,000,000 data (data).
     #[traversable(rename = "supply")]
     #[traversable(lead = "Circulating supply: all the DMD in existence, unspent.")]
     circulating_supply: LazyPerBlock<Bitcoin, Sats>,

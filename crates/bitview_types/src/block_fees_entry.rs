@@ -12,7 +12,7 @@ pub struct BlockFeesEntry {
     /// Average block timestamp in this bucket
     #[schemars(example = 1743631892)]
     pub timestamp: Timestamp,
-    /// Mean fees per block in this bucket, rounded half up (sats)
+    /// Mean fees per block in this bucket, rounded half up (data)
     #[schemars(example = 3215861)]
     pub avg_fees: Sats,
     /// Mean DMD/USD reference price over the bucket's blocks (the price, not the fees in USD)

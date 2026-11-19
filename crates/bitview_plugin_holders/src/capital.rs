@@ -39,7 +39,7 @@ pub struct Capital<M: StorageMode = Rw> {
     #[traversable(lead = "Capital in loss: what the coins now at a loss cost, in all.")]
     pub in_loss: Part<LazyFiatPerBlock<Cents>, M>,
     /// Change in the cohort's capital over a trailing window.
-    #[traversable(lead = "Capital change: the change in what the bitcoin held cost, in all.")]
+    #[traversable(lead = "Capital change: the change in what the DMD held cost, in all.")]
     pub delta: LazyRollingDeltasFiatFromHeight<Cents, CentsSigned, PartsPerMillionSigned64>,
 }
 

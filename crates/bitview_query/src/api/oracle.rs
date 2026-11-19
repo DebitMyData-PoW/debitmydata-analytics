@@ -50,7 +50,7 @@ impl Query {
 
     /// The chunk's blocks' payments (from `start`, a multiple of [`ORACLE_PAYMENTS_CHUNK`] past
     /// [`START_HEIGHT_FAST`], else an invalid request), each read as each of the oracle's
-    /// round-dollar amounts at its exact amount in sats, counted by the price each reading implies,
+    /// round-dollar amounts at its exact amount in data, counted by the price each reading implies,
     /// in buckets of [`PAYMENT_STEP`] bins over the block's search window. The chunk at the tip
     /// holds the blocks so far. Also whether the chunk is complete and settled.
     pub fn oracle_payments_chunk(&self, start: usize) -> Result<(Arc<OraclePayments>, bool)> {

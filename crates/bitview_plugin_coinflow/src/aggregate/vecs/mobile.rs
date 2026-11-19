@@ -8,7 +8,7 @@ use vecdb::{Rw, StorageMode};
 #[derive(Traversable)]
 pub struct MobileVecs<M: StorageMode = Rw> {
     /// Sum of supply multiplied by mobility across the cohort's UTXO age
-    /// ranges, rounded once to the nearest satoshi.
+    /// ranges, rounded once to the nearest data.
     #[traversable(wrap = "supply", rename = "total")]
     #[traversable(lead = "Mobile supply: the coins, each age weighted by how likely it is to be spent.")]
     pub supply: LazySpotValuePerBlock,

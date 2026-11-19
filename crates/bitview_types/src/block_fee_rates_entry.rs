@@ -6,7 +6,7 @@ use crate::FeeRatePercentiles;
 
 /// One time bucket of blocks. Each `avgFee_*` field is the bucket's mean of its blocks' own
 /// percentile of their non-coinbase transactions' effective fee rates, weighted by vsize (a block
-/// without such transactions counts as 0), rounded to a whole sat/vB.
+/// without such transactions counts as 0), rounded to a whole data/vB.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockFeeRatesEntry {

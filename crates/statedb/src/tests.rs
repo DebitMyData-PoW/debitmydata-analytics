@@ -110,7 +110,7 @@ impl Model {
         }
         (amounts, total)
     }
-    /// Removes part of what `origin` holds now: spending its last output takes all its sats.
+    /// Removes part of what `origin` holds now: spending its last output takes all its data.
     fn take(&mut self, origin: usize) -> Option<Amount> {
         let held = self.amounts[origin];
         if held.count == 0 {

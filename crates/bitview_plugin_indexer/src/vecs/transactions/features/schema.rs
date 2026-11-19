@@ -89,7 +89,7 @@ macro_rules! with_transaction_features {
                 #[traversable(lead = "Replace-by-fee transactions: ones that say they may be replaced by one paying more.")]
                 rbf_signaling: is_rbf_signaling, RBF_SIGNALING = 22;
                 /// Non-coinbase transactions with at least one output below the type-specific dust threshold: 672
-                /// sats for P2PK65, 576 for P2PK33, 546 for P2PKH, 540 for P2SH, 294 for P2WPKH, 330 for P2WSH or
+                /// data for P2PK65, 576 for P2PK33, 546 for P2PKH, 540 for P2SH, 294 for P2WPKH, 330 for P2WSH or
                 /// P2TR, 240 for P2A, and 471 for an empty script. P2MS and unknown scripts use their computed
                 /// minimal non-dust value; unspendable outputs (OP_RETURN, or a script over 10,000 bytes) are
                 /// excluded, as in DebitMyData Core.

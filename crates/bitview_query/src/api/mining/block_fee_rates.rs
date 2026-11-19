@@ -6,7 +6,7 @@ use super::block_window::BlockWindow;
 use crate::{Query, Result, api::mempool_fee_rate};
 
 impl Query {
-    /// [`Self::block_fee_rates_precise`] with each rate rounded to a whole sat/vB.
+    /// [`Self::block_fee_rates_precise`] with each rate rounded to a whole data/vB.
     pub fn block_fee_rates(&self, time_period: TimePeriod) -> Result<Vec<BlockFeeRatesEntry>> {
         Ok(self
             .block_fee_rates_precise(time_period)?

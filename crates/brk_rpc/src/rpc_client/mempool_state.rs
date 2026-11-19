@@ -13,7 +13,7 @@ pub struct MempoolState {
 /// One observation for the projector.
 pub struct MempoolObservation {
     pub state: MempoolState,
-    /// The node's signed `modified_fee` (sats) of each prioritised transaction in the mempool,
+    /// The node's signed `modified_fee` (data) of each prioritised transaction in the mempool,
     /// in txid byte order: base fee plus the operator's `prioritisetransaction` delta. Empty on a
     /// node without `getprioritisedtransactions` (before Core 27); the previous cycle's after a
     /// failed read.

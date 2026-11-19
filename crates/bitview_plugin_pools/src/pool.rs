@@ -40,8 +40,8 @@ pub struct PoolVecs {
     #[traversable(lead = "The pool's blocks with a locktime set on the coinbase.")]
     nonzero_coinbase_locktime_block_count: LazyCumulativeRolling<Count>,
     /// Non-coinbase transactions in the pool's blocks paying a fee whose own fee divided by their
-    /// virtual size is under 0.1 sat/vB (zero-fee ones are not counted).
-    #[traversable(lead = "Transactions under 0.1 sat/vB in the pool's blocks.")]
+    /// virtual size is under 0.1 data/vB (zero-fee ones are not counted).
+    #[traversable(lead = "Transactions under 0.1 data/vB in the pool's blocks.")]
     fee_rate_under_0p1_sat_vb_tx_count: LazyCumulativeRolling<Count>,
     /// Estimated hash rate over a trailing window, in hashes per second: the pool's share of the
     /// window's blocks times the network hash-rate estimate for the same window.

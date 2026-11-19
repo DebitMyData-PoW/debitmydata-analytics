@@ -5,7 +5,7 @@ use bitview_vecs::LazySpotValuePerBlock;
 #[derive(Clone, Traversable)]
 pub struct SideVecs {
     /// Supply in the age range: the awake side is the supply times the wakefulness, rounded half
-    /// up to the nearest satoshi, and the dormant side holds the rest. While the wakefulness is
+    /// up to the nearest data, and the dormant side holds the rest. While the wakefulness is
     /// undefined, the dormant side holds the range's whole supply.
     pub supply: LazySpotValuePerBlock,
 }

@@ -17,7 +17,7 @@ pub(super) struct CohortBlock {
     pub capital_density: Density<PartsPerMillion32>,
 }
 
-/// One block's projected buckets in price order: each bucket's weighted sats per cohort, kept
+/// One block's projected buckets in price order: each bucket's weighted data per cohort, kept
 /// compact so the statistics sweep stays in cache, plus every cohort's totals.
 #[derive(Default)]
 pub(super) struct MetricBuckets {

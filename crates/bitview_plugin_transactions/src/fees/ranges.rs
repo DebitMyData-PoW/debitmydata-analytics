@@ -10,7 +10,7 @@ use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
 macro_rules! define_ranges {
     ($($field:ident,)+) => {
-        /// One value per fee-rate range, in sat/vB: each range holds its lower edge.
+        /// One value per fee-rate range, in data/vB: each range holds its lower edge.
         #[derive(Traversable)]
         pub struct ByRange<T> {
             $(pub $field: T,)+
@@ -49,12 +49,12 @@ define_ranges! {
 
 const RANGES: usize = 14;
 
-/// The ranges' upper edges, in twentieths of a sat/vB: a fee and a size compare against them
+/// The ranges' upper edges, in twentieths of a data/vB: a fee and a size compare against them
 /// exactly.
 const EDGES_TWENTIETHS: [u64; RANGES - 1] = [
     2, 5, 10, 20, 40, 100, 200, 500, 1_000, 2_000, 5_000, 10_000, 20_000,
 ];
-/// The same edges in sat/vB, for effective rates.
+/// The same edges in data/vB, for effective rates.
 const EDGES: [f64; RANGES - 1] = {
     let mut edges = [0.0; RANGES - 1];
     let mut i = 0;

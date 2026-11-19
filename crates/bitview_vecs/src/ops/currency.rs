@@ -1,7 +1,7 @@
 use brk_types::{Cents, Sats};
 use vecdb::UnaryTransform;
 
-/// A price (millionths of a dollar per DMD) to the whole sats one dollar buys: none at a zero price.
+/// A price (millionths of a dollar per DMD) to the whole data one dollar buys: none at a zero price.
 pub struct CentsToSatsPerDollar;
 
 impl UnaryTransform<Cents, Option<Sats>> for CentsToSatsPerDollar {

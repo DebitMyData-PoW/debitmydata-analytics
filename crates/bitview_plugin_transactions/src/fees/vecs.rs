@@ -10,7 +10,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Coinbase output sum retained from the fee pass for mining rewards.
     #[traversable(hidden)]
     pub coinbase_value: M::Stored<PcoVec<Height, Sats>>,
-    /// Transaction fee in satoshis: input value minus output value; coinbase is
+    /// Transaction fee in data: input value minus output value; coinbase is
     /// zero. The statistics count each of the block's non-coinbase transactions
     /// equally, zero fees included, as mempool.space's fee percentiles: sorted,
     /// min the first, max the last and percentile `p` at
@@ -28,18 +28,18 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Fees of every block through this one: the denominator of fee chain shares.
     #[traversable(hidden)]
     pub total_cumulative: M::Stored<PcoVec<Height, Sats>>,
-    /// Raw transaction fee rate in sat/vB: fee divided by virtual size and
-    /// rounded upward to the nearest 0.001 sat/vB. Coinbase and zero-fee
+    /// Raw transaction fee rate in data/vB: fee divided by virtual size and
+    /// rounded upward to the nearest 0.001 data/vB. Coinbase and zero-fee
     /// transactions are zero.
     #[traversable(lead = "Fee rate: what transactions paid per virtual byte.")]
     pub(crate) fee_rate: M::Stored<PcoVec<TxIndex, FeeRate>>,
-    /// Effective transaction fee rate in sat/vB after linearizing each same-block
+    /// Effective transaction fee rate in data/vB after linearizing each same-block
     /// dependency component by ancestor set and chunking it so chunk feerates never
     /// increase. Every transaction in a chunk receives
     /// four times the chunk's combined fees divided by combined policy-adjusted weight:
     /// each transaction contributes max(weight, 20 * sigop cost). Rates use the exact
     /// quarter of that weight (no per-transaction vsize rounding), rounded upward to the
-    /// nearest 0.001 sat/vB. The statistics weight the block's
+    /// nearest 0.001 data/vB. The statistics weight the block's
     /// non-coinbase transactions, zero rates included, by virtual size, with
     /// Bitcoin Core's `getblockstats` rank rule (the first rate whose cumulative
     /// vsize reaches the percentile); min is the lower of the 1st percentile and

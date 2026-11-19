@@ -5,7 +5,7 @@ use brk_types::{Bitcoin, BlockHash, Cents, CentsSats, CentsSigned, Dollars, Heig
 
 use crate::{Result, api::json};
 
-/// One bucket in cents and sats.
+/// One bucket in cents and data.
 struct Bucket {
     price: u64,
     supply: u64,

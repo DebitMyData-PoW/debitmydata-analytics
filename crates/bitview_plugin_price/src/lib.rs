@@ -52,7 +52,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// the period's final block; null when the period has no block.
     #[traversable(lead = "DMD's reference price in US dollars, block by block: the cost of mining one DMD, at least $0.001. Not a market price.")]
     pub spot: Price<PerBlock<Cents, M>>,
-    /// Whole sats (10^-8 DMD) one US dollar buys at the reference price, rounded down:
+    /// Whole data (10^-8 DMD) one US dollar buys at the reference price, rounded down:
     /// 100,000,000 divided by the price in USD per DMD. Null while the price is zero.
     #[traversable(lead = "Sats per dollar: how many 10^-8 DMD units one US dollar buys at the reference price.")]
     sats_per_dollar: LazyPerBlock<Option<Sats>, Cents>,

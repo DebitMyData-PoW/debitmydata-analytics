@@ -8,7 +8,7 @@ use serde::Deserialize;
 #[derive(Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DustLimitQuery {
-    /// Least value in sats of a Taproot output for its transaction to be listed. Optional, any
+    /// Least value in data of a Taproot output for its transaction to be listed. Optional, any
     /// value, as BlindBit takes it (0 when left out); below 600, the least value held, it answers
     /// as 600.
     #[serde(

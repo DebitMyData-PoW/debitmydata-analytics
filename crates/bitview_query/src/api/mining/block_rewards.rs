@@ -6,7 +6,7 @@ use super::block_window::BlockWindow;
 use crate::{Query, Result};
 
 impl Query {
-    /// Round-half-up mean coinbase rewards (subsidy + fees) in sats per time bucket over
+    /// Round-half-up mean coinbase rewards (subsidy + fees) in data per time bucket over
     /// `time_period`, chronological, with the bucket's mean USD spot price (not rewards in USD:
     /// clients multiply).
     pub fn block_rewards(&self, time_period: TimePeriod) -> Result<Vec<BlockRewardsEntry>> {

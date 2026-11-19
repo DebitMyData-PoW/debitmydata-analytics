@@ -17,11 +17,11 @@
  * Based on mempool.space's format with type_index extension.
  *
  * @typedef {Object} AddressChainStats
- * @property {Sats} balance - Current confirmed balance in satoshis
+ * @property {Sats} balance - Current confirmed balance in data
  * @property {number} fundedTxoCount - Total number of transaction outputs that funded this address
- * @property {Sats} fundedTxoSum - Total amount in satoshis received by this address across all funded outputs
+ * @property {Sats} fundedTxoSum - Total amount in data received by this address across all funded outputs
  * @property {number} spentTxoCount - Total number of transaction outputs spent from this address
- * @property {Sats} spentTxoSum - Total amount in satoshis spent from this address
+ * @property {Sats} spentTxoSum - Total amount in data spent from this address
  * @property {number} txCount - Total number of confirmed transactions involving this address
  * @property {(TypeIndex|null)=} typeIndex - Index of this address within its type on the blockchain, null for an address without
  *   confirmed activity
@@ -38,11 +38,11 @@
  * Address statistics in the mempool (unconfirmed transactions only), in mempool.space's format.
  *
  * @typedef {Object} AddressMempoolStats
- * @property {SatsSigned} balanceDelta - Net pending (unconfirmed) balance change in satoshis; negative when pending spends exceed receipts
+ * @property {SatsSigned} balanceDelta - Net pending (unconfirmed) balance change in data; negative when pending spends exceed receipts
  * @property {number} fundedTxoCount - Number of unconfirmed transaction outputs funding this address
- * @property {Sats} fundedTxoSum - Total amount in satoshis being received in unconfirmed transactions
+ * @property {Sats} fundedTxoSum - Total amount in data being received in unconfirmed transactions
  * @property {number} spentTxoCount - Number of unconfirmed transaction inputs spending from this address
- * @property {Sats} spentTxoSum - Total amount in satoshis being spent in unconfirmed transactions
+ * @property {Sats} spentTxoSum - Total amount in data being spent in unconfirmed transactions
  * @property {number} txCount - Number of unconfirmed transactions involving this address
  */
 /**
@@ -58,7 +58,7 @@
  * @property {OutputType} addressType - Output script type
  * @property {AddressChainStats} chainStats - Statistics for confirmed transactions on the blockchain
  * @property {AddressMempoolStats} mempoolStats - Statistics for unconfirmed transactions in the mempool
- * @property {Sats} balance - Total current balance in satoshis, including pending (unconfirmed) mempool changes
+ * @property {Sats} balance - Total current balance in data, including pending (unconfirmed) mempool changes
  */
 /**
  * @typedef {Object} AddressValidation
@@ -74,7 +74,7 @@
  * @property {?string=} error - Error message for invalid addresses
  */
 /**
- * An amount in DMD, as a decimal number (1 DMD = 100,000,000 satoshis).
+ * An amount in DMD, as a decimal number (1 DMD = 100,000,000 data).
  *
  * @typedef {number} Bitcoin
  */
@@ -112,7 +112,7 @@
  * @property {Height} height - The last indexed block.
  * @property {boolean} tweaksOnly - Whether only tweaks are served: `false`, filters and UTXOs are too.
  * @property {boolean} tweaksFullBasic - Whether the full tweak index is served without dust limits: `false`, transactions whose
- *   Taproot outputs all hold less than 600 sats aren't held.
+ *   Taproot outputs all hold less than 600 data aren't held.
  * @property {boolean} tweaksFullWithDustFilter - Whether the full tweak index takes a dust limit: `true`.
  * @property {boolean} tweaksCutThroughWithDustFilter - Whether cut-through tweaks (of transactions with an unspent Taproot output) take a dust
  *   limit: `true`.
@@ -141,18 +141,18 @@
  * Extended block data matching mempool.space /api/v1/blocks extras
  *
  * @typedef {Object} BlockExtras
- * @property {Sats} totalFees - Total fees in satoshis
- * @property {FeeRate} medianFee - Median effective (CPFP) fee rate in sat/vB, by vsize: the rate half the block's space
+ * @property {Sats} totalFees - Total fees in data
+ * @property {FeeRate} medianFee - Median effective (CPFP) fee rate in data/vB, by vsize: the rate half the block's space
  *   paid at most (Bitcoin Core's `getblockstats` rule; mempool.space averages the middle
  *   0.25% of a 4M WU block instead)
- * @property {FeeRate[]} feeRange - Effective (CPFP) fee rate range in sat/vB: [min, 10%, 25%, 50%, 75%, 90%, max], the
+ * @property {FeeRate[]} feeRange - Effective (CPFP) fee rate range in data/vB: [min, 10%, 25%, 50%, 75%, 90%, max], the
  *   percentiles of block space (vsize-weighted, as `medianFee`; mempool.space ranks
  *   transactions by count), min and max the lower/higher of the 1st/99th percentile and the
  *   extreme rate in the block's last/first 2% of vsize
- * @property {Sats} reward - Total block reward (subsidy + fees) in satoshis
+ * @property {Sats} reward - Total block reward (subsidy + fees) in data
  * @property {BlockPool} pool
- * @property {Sats} avgFee - Mean fee per non-coinbase transaction in satoshis, rounded down (0 without any)
- * @property {FeeRate} avgFeeRate - Average fee rate in sat/vB
+ * @property {Sats} avgFee - Mean fee per non-coinbase transaction in data, rounded down (0 without any)
+ * @property {FeeRate} avgFeeRate - Average fee rate in data/vB
  * @property {Hex} coinbaseRaw - Raw coinbase transaction scriptsig as hex
  * @property {(Address|null)=} coinbaseAddress - Primary coinbase output address
  * @property {Address[]} coinbaseAddresses - All coinbase output addresses
@@ -162,9 +162,9 @@
  *   2 decimals
  * @property {number} totalInputs - Total number of inputs (excluding coinbase)
  * @property {number} totalOutputs
- * @property {Sats} totalOutputAmt - Total output amount in satoshis, coinbase excluded
- * @property {Sats} medianFeeAmt - Median fee amount in satoshis
- * @property {Sats[]} feePercentiles - Fee amount percentiles in satoshis: [min, 10%, 25%, 50%, 75%, 90%, max]
+ * @property {Sats} totalOutputAmt - Total output amount in data, coinbase excluded
+ * @property {Sats} medianFeeAmt - Median fee amount in data
+ * @property {Sats[]} feePercentiles - Fee amount percentiles in data: [min, 10%, 25%, 50%, 75%, 90%, max]
  * @property {number} segwitTotalTxs
  * @property {number} segwitTotalSize - Total size of segwit transactions in bytes
  * @property {Weight} segwitTotalWeight
@@ -172,7 +172,7 @@
  * @property {number} utxoSetChange - UTXO set change as mempool.space and bitcoin-cli report it: total outputs minus total
  *   inputs, unspendable outputs (OP_RETURN) included, unlike `utxoSetSize`
  * @property {number} utxoSetSize - Total spendable UTXO set size at this height (excludes OP_RETURN and other unspendable outputs)
- * @property {Sats} totalInputAmt - Total input amount in satoshis
+ * @property {Sats} totalInputAmt - Total input amount in data
  * @property {number} virtualSize - Virtual size in vbytes: weight / 4, unrounded
  * @property {?boolean=} coinbaseBip54 - Whether the coinbase follows BIP54 (its lock time is the height minus one and its input's
  *   sequence isn't final), from timestamp 1,771,507,776 on; null before
@@ -187,18 +187,18 @@
 /**
  * One time bucket of blocks. Each `avgFee_*` field is the bucket's mean of its blocks' own
  * percentile of their non-coinbase transactions' effective fee rates, weighted by vsize (a block
- * without such transactions counts as 0), rounded to a whole sat/vB.
+ * without such transactions counts as 0), rounded to a whole data/vB.
  *
  * @typedef {Object} BlockFeeRatesEntry
  * @property {Height} avgHeight - Average block height in this bucket
  * @property {Timestamp} timestamp - Average block timestamp in this bucket
- * @property {number} avgFee_0 - Mean of the blocks' minimum fee rate (sat/vB)
- * @property {number} avgFee_10 - Mean of the blocks' 10th percentile fee rate (sat/vB)
- * @property {number} avgFee_25 - Mean of the blocks' 25th percentile fee rate (sat/vB)
- * @property {number} avgFee_50 - Mean of the blocks' median fee rate (sat/vB)
- * @property {number} avgFee_75 - Mean of the blocks' 75th percentile fee rate (sat/vB)
- * @property {number} avgFee_90 - Mean of the blocks' 90th percentile fee rate (sat/vB)
- * @property {number} avgFee_100 - Mean of the blocks' maximum fee rate (sat/vB)
+ * @property {number} avgFee_0 - Mean of the blocks' minimum fee rate (data/vB)
+ * @property {number} avgFee_10 - Mean of the blocks' 10th percentile fee rate (data/vB)
+ * @property {number} avgFee_25 - Mean of the blocks' 25th percentile fee rate (data/vB)
+ * @property {number} avgFee_50 - Mean of the blocks' median fee rate (data/vB)
+ * @property {number} avgFee_75 - Mean of the blocks' 75th percentile fee rate (data/vB)
+ * @property {number} avgFee_90 - Mean of the blocks' 90th percentile fee rate (data/vB)
+ * @property {number} avgFee_100 - Mean of the blocks' maximum fee rate (data/vB)
  */
 /**
  * One time bucket of blocks, as [`BlockFeeRatesEntry`] with each `avgFee_*` field to 3
@@ -207,13 +207,13 @@
  * @typedef {Object} BlockFeeRatesPreciseEntry
  * @property {Height} avgHeight - Average block height in this bucket
  * @property {Timestamp} timestamp - Average block timestamp in this bucket
- * @property {FeeRate} avgFee_0 - Mean of the blocks' minimum fee rate (sat/vB)
- * @property {FeeRate} avgFee_10 - Mean of the blocks' 10th percentile fee rate (sat/vB)
- * @property {FeeRate} avgFee_25 - Mean of the blocks' 25th percentile fee rate (sat/vB)
- * @property {FeeRate} avgFee_50 - Mean of the blocks' median fee rate (sat/vB)
- * @property {FeeRate} avgFee_75 - Mean of the blocks' 75th percentile fee rate (sat/vB)
- * @property {FeeRate} avgFee_90 - Mean of the blocks' 90th percentile fee rate (sat/vB)
- * @property {FeeRate} avgFee_100 - Mean of the blocks' maximum fee rate (sat/vB)
+ * @property {FeeRate} avgFee_0 - Mean of the blocks' minimum fee rate (data/vB)
+ * @property {FeeRate} avgFee_10 - Mean of the blocks' 10th percentile fee rate (data/vB)
+ * @property {FeeRate} avgFee_25 - Mean of the blocks' 25th percentile fee rate (data/vB)
+ * @property {FeeRate} avgFee_50 - Mean of the blocks' median fee rate (data/vB)
+ * @property {FeeRate} avgFee_75 - Mean of the blocks' 75th percentile fee rate (data/vB)
+ * @property {FeeRate} avgFee_90 - Mean of the blocks' 90th percentile fee rate (data/vB)
+ * @property {FeeRate} avgFee_100 - Mean of the blocks' maximum fee rate (data/vB)
  */
 /**
  * One time bucket of blocks.
@@ -221,7 +221,7 @@
  * @typedef {Object} BlockFeesEntry
  * @property {Height} avgHeight - Average block height in this bucket
  * @property {Timestamp} timestamp - Average block timestamp in this bucket
- * @property {Sats} avgFees - Mean fees per block in this bucket, rounded half up (sats)
+ * @property {Sats} avgFees - Mean fees per block in this bucket, rounded half up (data)
  * @property {Dollars} USD - Mean DMD/USD reference price over the bucket's blocks (the price, not the fees in USD)
  */
 /**
@@ -299,7 +299,7 @@
  * @typedef {Object} BlockRewardsEntry
  * @property {Height} avgHeight - Average block height in this bucket
  * @property {Timestamp} timestamp - Average block timestamp in this bucket
- * @property {Sats} avgRewards - Mean coinbase reward (subsidy + fees) per block in this bucket, rounded half up (sats)
+ * @property {Sats} avgRewards - Mean coinbase reward (subsidy + fees) per block in this bucket, rounded half up (data)
  * @property {Dollars} USD - Mean DMD/USD reference price over the bucket's blocks (the price, not the rewards in USD)
  */
 /**
@@ -335,7 +335,7 @@
  * @property {BlockHash} previousblockhash
  * @property {BlockTemplateTransaction[]} transactions - The transactions, every parent before its children.
  * @property {{ [key: string]: string }} coinbaseaux - Data to put in the coinbase's script: none.
- * @property {Sats} coinbasevalue - What the coinbase may pay: the subsidy at `height` plus every transaction's fee (sats).
+ * @property {Sats} coinbasevalue - What the coinbase may pay: the subsidy at `height` plus every transaction's fee (data).
  * @property {string} target - The proof-of-work target, as 64 hex digits.
  * @property {Timestamp} mintime - The earliest valid `curtime`: the median time past plus one second.
  * @property {string[]} mutable - What the client may change: the time, the transactions, the previous block.
@@ -356,7 +356,7 @@
  * @property {Txid} txid
  * @property {string} hash - The witness transaction id.
  * @property {number[]} depends - The 1-based positions in `transactions` of the ones it spends.
- * @property {Sats} fee - Its fee (sats).
+ * @property {Sats} fee - Its fee (data).
  * @property {SigOps} sigops - Its signature-operation cost.
  * @property {Weight} weight
  */
@@ -429,7 +429,7 @@
  * @property {CpfpEntry[]} ancestors
  * @property {CpfpEntry[]} descendants
  * @property {FeeRate} effectiveFeePerVsize - Feerate of the chunk holding the transaction when its block's relatives are linearized
- *   (sat/vB).
+ *   (data/vB).
  * @property {CpfpCluster} cluster - The transaction's relatives in its block.
  */
 /**
@@ -505,13 +505,13 @@
  * @property {CpfpEntry[]} ancestors
  * @property {(CpfpEntry|null)=} bestDescendant - Best (highest fee rate) descendant, if any.
  * @property {CpfpEntry[]} descendants
- * @property {FeeRate} effectiveFeePerVsize - Effective fee rate considering CPFP relationships (sat/vB).
+ * @property {FeeRate} effectiveFeePerVsize - Effective fee rate considering CPFP relationships (data/vB).
  *   This is the seed's chunk feerate after lift-merging, i.e. the
  *   rate Core/mempool.space would surface for this tx.
  * @property {SigOps} sigops - BIP-141 sigop cost for the seed tx (witness sigops count as 1,
  *   legacy and P2SH-redeem sigops count as 4), counted from its body:
  *   at most a block's sigop budget.
- * @property {Sats} fee - Transaction fee (sats).
+ * @property {Sats} fee - Transaction fee (data).
  * @property {VSize} vsize - Virtual size of the seed tx (vbytes).
  * @property {VSize} adjustedVsize - Policy-adjusted virtual size: `max(vsize, sigops * 5)`.
  * @property {(CpfpCluster|null)=} cluster - Cluster the seed belongs to; omitted when the seed has no ancestors and no descendants
@@ -660,7 +660,7 @@
  * @typedef {number} ExpectedCount
  */
 /**
- * Fee rate stored in milli-sat/vB and exposed as sat/vB.
+ * Fee rate stored in milli-data/vB and exposed as data/vB.
  *
  * @typedef {number} FeeRate
  */
@@ -687,7 +687,7 @@
  * @typedef {number} HashPrice
  */
 /**
- * Satoshis per PH/s of hash rate per day.
+ * Data per PH/s of hash rate per day.
  *
  * @typedef {number} HashValue
  */
@@ -807,9 +807,9 @@
  *   or coinbase.
  * @property {number} blockVSize - The transactions' weight over 4, unrounded (mempool.space's): the block's virtual size
  * @property {number} nTx - Number of transactions in the projected block
- * @property {Sats} totalFees - Total fees in satoshis
- * @property {FeeRate} medianFee - Median fee rate in sat/vB
- * @property {FeeRate[]} feeRange - Vsize-weighted percentiles of the transactions' CPFP chunk fee rates, in sat/vB:
+ * @property {Sats} totalFees - Total fees in data
+ * @property {FeeRate} medianFee - Median fee rate in data/vB
+ * @property {FeeRate[]} feeRange - Vsize-weighted percentiles of the transactions' CPFP chunk fee rates, in data/vB:
  *   [0, 10, 25, 50, 75, 90, 100] for the first block, [5, 10, 25, 50, 75, 90, 95] for the
  *   later projected ones
  */
@@ -872,7 +872,7 @@
  * @property {number} count - Number of transactions in the mempool
  * @property {VSize} vsize - Total virtual size of all transactions in the mempool (vbytes), sigop-adjusted as Bitcoin
  *   Core's `getmempoolinfo` `bytes` and every fee rate measure it
- * @property {Sats} totalFee - Total fees of all transactions in the mempool (satoshis)
+ * @property {Sats} totalFee - Total fees of all transactions in the mempool (data)
  * @property {number[][]} feeHistogram - Fee histogram as Esplora bins it: `[[fee_rate, vsize], ...]` by descending fee rate, each
  *   entry the vsize of the transactions paying from its fee rate up to the previous entry's,
  *   a bin closing at the first fee rate change past 50,000 vB
@@ -883,9 +883,9 @@
  *
  * @typedef {Object} MempoolTxSummary
  * @property {Txid} txid
- * @property {Sats} fee - Transaction fee (sats)
+ * @property {Sats} fee - Transaction fee (data)
  * @property {VSize} vsize - Virtual size (vbytes)
- * @property {Sats} value - Total output value (sats)
+ * @property {Sats} value - Total output value (data)
  */
 /**
  * A merkle tree node: a double-SHA256 hash, hex-encoded in the usual display byte order.
@@ -1100,7 +1100,7 @@
  * @property {?number=} reportedHashrate - Self-reported hashrate (if available, H/s)
  * @property {?number=} avgBlockHealth - Mean health of the pool's blocks, from mempool.space's own audits (always null: it needs
  *   the mempool as it was)
- * @property {string} totalReward - Total reward earned by this pool: coinbase output value of every block it mined (sats),
+ * @property {string} totalReward - Total reward earned by this pool: coinbase output value of every block it mined (data),
  *   as a decimal string
  */
 /**
@@ -1160,7 +1160,7 @@
  * @property {number} lastEstimatedHashrate1w - Estimated network hashrate over last 1 week (H/s)
  */
 /**
- * Recommended fee rates in sat/vB, to the thousandth (`/api/v1/fees/precise`)
+ * Recommended fee rates in data/vB, to the thousandth (`/api/v1/fees/precise`)
  *
  * @typedef {Object} PreciseRecommendedFees
  * @property {FeeRate} fastestFee - Fee rate for fastest confirmation (next block)
@@ -1168,7 +1168,7 @@
  * @property {FeeRate} hourFee - Fee rate for confirmation within ~1 hour (third projected block)
  * @property {FeeRate} economyFee - Smoothed, fullness-adjusted third-block fee estimate, bounded by `minimumFee` and twice
  *   it; `minimumFee` when no third projected block exists
- * @property {FeeRate} minimumFee - The node's current mempool minimum fee rate, rounded up to 0.001 sat/vB (at least 0.001)
+ * @property {FeeRate} minimumFee - The node's current mempool minimum fee rate, rounded up to 0.001 data/vB (at least 0.001)
  */
 /**
  * A DMD/USD price at a time: the current price (`/api/v1/prices`) or one historical close
@@ -1219,7 +1219,7 @@
  * @property {?boolean=} mined - `true` when this transaction is confirmed; absent otherwise.
  */
 /**
- * Recommended fee rates in whole sat/vB (`/api/v1/fees/recommended`)
+ * Recommended fee rates in whole data/vB (`/api/v1/fees/recommended`)
  *
  * @typedef {Object} RecommendedFees
  * @property {number} fastestFee - Fee rate for fastest confirmation (next block)
@@ -1227,7 +1227,7 @@
  * @property {number} hourFee - Fee rate for confirmation within ~1 hour (third projected block)
  * @property {number} economyFee - Smoothed, fullness-adjusted third-block fee estimate, bounded by `minimumFee` and twice
  *   it; `minimumFee` when no third projected block exists
- * @property {number} minimumFee - The node's current mempool minimum fee rate, rounded up to a whole sat/vB (at least 1)
+ * @property {number} minimumFee - The node's current mempool minimum fee rate, rounded up to a whole data/vB (at least 1)
  */
 /**
  * One node in an RBF replacement tree. The node's `tx` replaced each
@@ -1259,17 +1259,17 @@
  * @typedef {Object} RewardStats
  * @property {Height} startBlock - First block in the range
  * @property {Height} endBlock - Last block in the range
- * @property {string} totalReward - Total coinbase rewards (subsidy + fees) in sats
- * @property {string} totalFee - Total transaction fees in sats
+ * @property {string} totalReward - Total coinbase rewards (subsidy + fees) in data
+ * @property {string} totalFee - Total transaction fees in data
  * @property {string} totalTx - Total transactions, coinbase included
  */
 /**
- * An amount in satoshis (100,000,000 to a DMD).
+ * An amount in data (100,000,000 to a DMD).
  *
  * @typedef {number} Sats
  */
 /**
- * A signed amount in satoshis.
+ * A signed amount in data.
  *
  * @typedef {number} SatsSigned
  */
@@ -1376,7 +1376,7 @@
  * @property {number} size - Transaction size in bytes
  * @property {Weight} weight
  * @property {SigOps} sigops - BIP-141 signature-operation cost
- * @property {Sats} fee - Transaction fee in satoshis
+ * @property {Sats} fee - Transaction fee in data
  * @property {TxStatus} status
  */
 /** @typedef {({ [key: string]: TreeNode }|SeriesLeafWithSchema)} TreeNode */
@@ -1416,7 +1416,7 @@
  * @property {string} scriptpubkeyAsm - Script pubkey in assembly format.
  * @property {OutputTypeNormalized} scriptpubkeyType - Esplora/mempool.space script type.
  * @property {Address=} scriptpubkeyAddress - DebitMyData address, omitted for scripts without an address (P2PK included, as Esplora).
- * @property {Sats} value - Value of the output in satoshis.
+ * @property {Sats} value - Value of the output in data.
  */
 /**
  * Index of a transaction output.
@@ -1499,7 +1499,7 @@
  * @property {Dollars[]} price - Each bucket's price, in USD: its lower bound when aggregated, and for `raw` the price its
  *   coins' creation prices round to (four significant digits of the price in millionths of a dollar).
  * @property {Bitcoin[]} supply - Supply held with a last-move price inside each bucket, in DMD. With a `wakefulness` or
- *   `mobility` weight, the weighted supply, floored to whole satoshis at each grid price.
+ *   `mobility` weight, the weighted supply, floored to whole data at each grid price.
  * @property {Dollars[]} realizedCap - Realized cap contribution in USD: `price * supply` summed over the coins in each bucket,
  *   each coin's creation price taken on the price grid (the `raw` bucket price, within 0.05%
  *   of the exact price), rounded to the cent: a bucket worth under half a cent shows 0. The
@@ -1513,7 +1513,7 @@
  * @typedef {("all"|"sth"|"lth"|"age_under_4m"|"age_under_6m"|"age_over_4m"|"age_over_6m"|"age_under_1h"|"age_1h_to_1d"|"age_1d_to_1w"|"age_1w_to_1m"|"age_1m_to_2m"|"age_2m_to_3m"|"age_3m_to_4m"|"age_4m_to_5m"|"age_5m_to_6m"|"age_6m_to_9m"|"age_9m_to_1y"|"age_1y_to_18m"|"age_18m_to_2y"|"age_2y_to_3y"|"age_3y_to_4y"|"age_4y_to_5y"|"age_5y_to_6y"|"age_6y_to_7y"|"age_7y_to_8y"|"age_8y_to_10y"|"age_10y_to_12y"|"age_12y_to_15y"|"age_over_15y")} UrpdCohort
  */
 /**
- * The weight applied to a URPD's age bands: `none` (every satoshi counts once), `wakefulness` (each band
+ * The weight applied to a URPD's age bands: `none` (every data counts once), `wakefulness` (each band
  * weighted by the share of its coin days already consumed, Cointime's; the distribution behind the
  * `*_awake_*` series) or `mobility` (each band weighted by the estimated probability its coins are ever
  * spent, Coinflow's; behind `*_mobile_*`).
@@ -1527,7 +1527,7 @@
  * @property {Txid} txid
  * @property {Vout} vout
  * @property {TxStatus} status
- * @property {Sats} value - Output value in satoshis
+ * @property {Sats} value - Output value in data
  */
 /**
  * Columnar counts and supplies by creation height.
@@ -6263,7 +6263,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "10897d120ed9ca473456496a712c1fd0c221df7cb3cb91e5cc84e79efdc86fd7";
+  static HASH = "400b3b651586e42ac1116c0d944d94e9045006d6dfd55e23590aa28a962c413a";
 
   INDEXES = /** @type {const} */ ([
     "minute10",
@@ -6644,43 +6644,43 @@ class BitviewClient extends BitviewClientBase {
   AMOUNT_RANGE_NAMES = /** @type {const} */ ({
     "_0Sats": {
       "id": "0_sats",
-      "short": "0 sats",
-      "long": "0 Sats"
+      "short": "0 data",
+      "long": "0 Data"
     },
     "_1To10Sats": {
       "id": "1_to_10_sats",
-      "short": "1-10 sats",
-      "long": "1-10 Sats"
+      "short": "1-10 data",
+      "long": "1-10 Data"
     },
     "_10To100Sats": {
       "id": "10_to_100_sats",
-      "short": "10-100 sats",
-      "long": "10-100 Sats"
+      "short": "10-100 data",
+      "long": "10-100 Data"
     },
     "_100To1kSats": {
       "id": "100_to_1k_sats",
-      "short": "100-1k sats",
-      "long": "100-1K Sats"
+      "short": "100-1k data",
+      "long": "100-1K Data"
     },
     "_1kTo10kSats": {
       "id": "1k_to_10k_sats",
-      "short": "1k-10k sats",
-      "long": "1K-10K Sats"
+      "short": "1k-10k data",
+      "long": "1K-10K Data"
     },
     "_10kTo100kSats": {
       "id": "10k_to_100k_sats",
-      "short": "10k-100k sats",
-      "long": "10K-100K Sats"
+      "short": "10k-100k data",
+      "long": "10K-100K Data"
     },
     "_100kTo1mSats": {
       "id": "100k_to_1m_sats",
-      "short": "100k-1M sats",
-      "long": "100K-1M Sats"
+      "short": "100k-1M data",
+      "long": "100K-1M Data"
     },
     "_1mTo10mSats": {
       "id": "1m_to_10m_sats",
-      "short": "1M-10M sats",
-      "long": "1M-10M Sats"
+      "short": "1M-10M data",
+      "long": "1M-10M Data"
     },
     "_10mTo100mSats": {
       "id": "10m_to_100m_sats",
@@ -6892,6 +6892,18 @@ class BitviewClient extends BitviewClientBase {
    */
   dateToIndex(index, d) {
     return dateToIndex(index, d);
+  }
+
+  /**
+   * The series of the pool written `slug`, its node in `series.pools` or, for a pool the server's list gained after
+   * this client was made (DebitMyData's list is read from GitHub every day), one made the same way: every pool's
+   * series are `pool_<slug>_…`.
+   * @param {string} slug
+   * @returns {Pool}
+   */
+  poolSeries(slug) {
+    const pools = /** @type {Record<string, Pool>} */ (/** @type {unknown} */ (this.series.pools));
+    return pools[slug] ?? pools[`_${slug}`] ?? _Pool(this, `pool_${slug}`);
   }
 
 
@@ -7362,7 +7374,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * URPD at block height or date
    *
-   * URPD (UTXO realized price distribution: how much supply last moved at each price) for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is DMD. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
+   * URPD (UTXO realized price distribution: how much supply last moved at each price) for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is DMD. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole data) and the bucket values follow it.
    *
    * Endpoint: `GET /api/urpd/{cohort}/{point}`
    *
@@ -8344,7 +8356,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Block fee rates
    *
-   * Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each a whole sat/vB (`/precise` for 3 decimals).
+   * Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each a whole data/vB (`/precise` for 3 decimals).
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
    *
@@ -8366,7 +8378,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Block fee rates (precise)
    *
-   * Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each in sat/vB to 3 decimals.
+   * Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each in data/vB to 3 decimals.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
    *
@@ -8430,7 +8442,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Recommended fees
    *
-   * Recommended fee rates by confirmation target, in whole sat/vB.
+   * Recommended fee rates by confirmation target, in whole data/vB.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*
    *
@@ -8450,7 +8462,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Recommended fee rates (precise)
    *
-   * Recommended fee rates by confirmation target, with up to three decimal places and support for sub-sat/vB rates.
+   * Recommended fee rates by confirmation target, with up to three decimal places and support for sub-data/vB rates.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*
    *
@@ -9032,13 +9044,13 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Tweak index
    *
-   * The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional and takes any value, as BlindBit takes it (0 when left out), but transactions whose Taproot outputs all hold less than 600 sats aren't held, so any limit below 600 answers as 600.
+   * The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` data, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional and takes any value, as BlindBit takes it (0 when left out), but transactions whose Taproot outputs all hold less than 600 data aren't held, so any limit below 600 answers as 600.
    *
    * Endpoint: `GET /blindbit/mainnet/tweak-index/{height}`
    *
    * @param {Height} height
    * @param {object} [options]
-   * @param {number} [options.dustLimit] - Least value in sats of a Taproot output for its transaction to be listed. Optional, any
+   * @param {number} [options.dustLimit] - Least value in data of a Taproot output for its transaction to be listed. Optional, any
    *   value, as BlindBit takes it (0 when left out); below 600, the least value held, it answers
    *   as 600.
    * @param {AbortSignal} [options.signal]
@@ -9058,13 +9070,13 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Cut-through tweaks
    *
-   * `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.
+   * `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` data, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.
    *
    * Endpoint: `GET /blindbit/mainnet/tweaks/{height}`
    *
    * @param {Height} height
    * @param {object} [options]
-   * @param {number} [options.dustLimit] - Least value in sats of a Taproot output for its transaction to be listed. Optional, any
+   * @param {number} [options.dustLimit] - Least value in data of a Taproot output for its transaction to be listed. Optional, any
    *   value, as BlindBit takes it (0 when left out); below 600, the least value held, it answers
    *   as 600.
    * @param {AbortSignal} [options.signal]

@@ -8,9 +8,9 @@ use crate::state::{CoreRealizedState, RealizedOps};
 #[derive(Default, Clone)]
 pub struct RealizedState {
     core: CoreRealizedState,
-    /// Raw capitalized cap: sum(price squared times sats).
+    /// Raw capitalized cap: sum(price squared times data).
     capitalized_cap_raw: CentsSquaredSats,
-    /// Raw realized peak regret: sum((peak minus spend price) times sats).
+    /// Raw realized peak regret: sum((peak minus spend price) times data).
     peak_regret_raw: u128,
     /// Sats spent at or above their creation price in the block.
     sent_in_profit: Sats,

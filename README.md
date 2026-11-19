@@ -5,9 +5,10 @@ On-chain analytics for the DebitMyData (DMD) chain, at
 (**Studio**), the network's hashrate, reference price and difficulty on one screen (**Oracle**),
 every block, transaction and address (**Explorer**), where DMD stands against what its holders paid
 (**Compass**), where the blocks are mined, by each pool's country (**Globe**), every DMD by the
-price it last moved at, as a terrain (**The Satoshi Trail**), a plan buying DMD on a schedule
-(**Stack**), each day's blocks and pools (**Calendar**), every series browsed like files
-(**Catalog**), and every series, block and address as data through an open **API**.
+price it last moved at, as a terrain (**Trail**), a plan buying DMD on a schedule
+(**Stack**), each day's blocks and pools (**Calendar**), which pool first did each new thing on the
+chain (**Miners**), every series browsed like files (**Catalog**), and every series, block and
+address as data through an open **API**.
 
 It is a fork of [Bitview](https://github.com/bitcoinresearchkit/mono), the Bitcoin Research Kit,
 adapted to the DebitMyData chain. Bitview's own documentation is in [docs/](docs/README.md).
@@ -36,13 +37,19 @@ adapted to the DebitMyData chain. Bitview's own documentation is in [docs/](docs
 - **Bedrock** (the price floors Stack buys at) reads DebitMyData's own history of holders' losses:
   it has floors once the chain has 52,560 blocks behind it (about three months of DebitMyData's).
 - **Left out.** Bitview's Rarity Meter model (calibrated on Bitcoin's history, 210,000 blocks from
-  its first halving), its Miners and Ledger pages, its benchmarks, its MCP server and its plugin for
+  its first halving), its Ledger page and the Miners page's BIP-110 table (a Bitcoin proposal), its
+  benchmarks, its MCP server and its plugin for
   assistants, and its terms, privacy and support pages (Bitview's own).
 - **The Oracle.** Bitview's Oracle reads Bitcoin's price from round-dollar payments; here its design
   shows the network instead: hashrate (the default), the reference price or the difficulty, a
-  switch at the top, over 7, 30 or 90 days or the whole chain.
+  switch at the top, over 7, 30 or 90 days or the whole chain. Its grid of squares behind the line
+  is DebitMyData's blocks, each block's own value (its last hour's hashrate, its reference price or
+  its difficulty), and its chapters below show how each is worked out, with small live charts.
+- **The Explorer** draws its blocks full at 100,000 weight units (25,000 vB), as DebitMyData's
+  mempool explorer does: its blocks are small, and a block drawn at Bitcoin's 4,000,000 would look
+  empty. Each block says its size and transactions.
 - **The website.** DebitMyData's name and colors, its coin with the analytics badge at the top
-  left; the home page, Studio, Oracle, Explorer, Compass, Globe, The Satoshi Trail, Stack, Calendar,
+  left; the home page, Studio, Oracle, Explorer, Compass, Globe, Trail, Stack, Calendar, Miners,
   Catalog, the API's documentation and every series' description speak of DMD, its amounts in DMD
   and data (10^-8 DMD) and fee rates in data/vB. The API keeps Bitview's names (`btc`, `sats`,
   `cents`: DMD, data, millionths of a dollar), so that Bitview's clients and charts work unchanged.
@@ -171,9 +178,10 @@ The pools come from two GitHub repositories, read every day by `dmd-pools.timer`
 Nothing else from GitHub reaches the server. A pool's slug (in its address on the site and its
 series' names, `pool_coinminers_…`) is its name in lowercase letters and digits, so renaming a pool
 renames its series. The server answers for the current list at once, and so do Globe, the Explorer,
-the Calendar and the home page. The generated API clients, and with them Studio's charts of each
-pool, list the pools as they were when they were made (`BITVIEW_POOLS=<the list> cargo run -p
-bitview_devtools --bin bitview-bindgen`): a pool added since is left out of Studio until then.
+the Calendar, the home page and Studio, whose charts of each pool include a pool added since (no
+rebuild). The generated API clients list the pools by name as they were when they were made
+(`BITVIEW_POOLS=<the list> cargo run -p bitview_devtools --bin bitview-bindgen`); `poolSeries(slug)`
+reaches any pool's series.
 
 ## After the first sync (optional)
 

@@ -113,11 +113,11 @@ impl<'de> Deserialize<'de> for CentsSats96 {
 #[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
 #[repr(C)]
 pub struct FundedAddressData {
-    /// Satoshis received by this address
+    /// Data received by this address
     pub received: Sats,
-    /// Satoshis sent by this address
+    /// Data sent by this address
     pub sent: Sats,
-    /// The realized capitalization: Σ(price × sats)
+    /// The realized capitalization: Σ(price × data)
     realized_cap_raw: CentsSats96,
     pub tx_count: u32,
     pub funded_txo_count: u32,

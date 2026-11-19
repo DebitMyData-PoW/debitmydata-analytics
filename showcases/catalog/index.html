@@ -1378,7 +1378,8 @@
 
       // ── Words: keys and ids as people write them (Studio's rules) ──
       const ACRONYMS = new Set(["sth", "lth", "mvrv", "sopr", "nupl", "usd", "btc", "ath", "atl", "sma", "ema", "utxo", "ohlc", "vocdd", "hodl", "rbf", "cpfp", "tx", "pnl", "aviv", "rsi", "macd", "epobc", "cdd"]);
-      const WORDS = /** @type {Record<string, string>} */ ({ addrs: "addresses", addr: "address", txs: "transactions", utxos: "UTXOs", avg: "average", opreturn: "OP_RETURN" });
+      // (DebitMyData's units by their names: an id's "sats" is data, a hundred-millionth of a DMD; its "btc", DMD.)
+      const WORDS = /** @type {Record<string, string>} */ ({ addrs: "addresses", addr: "address", txs: "transactions", utxos: "UTXOs", avg: "average", opreturn: "OP_RETURN", sats: "data", sat: "data", btc: "DMD" });
       /** A percentile's key as said, its decimal point an underscore: "p5" "5th percentile", "p0_1" "0.1st", "p99_5" "99.5th". */
       function percentileKey(/** @type {string} */ key) {
         const digits = /^p(\d+(?:_\d+)?)$/.exec(key)?.[1];

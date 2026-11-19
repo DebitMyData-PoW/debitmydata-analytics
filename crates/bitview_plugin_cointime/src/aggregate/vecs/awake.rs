@@ -8,7 +8,7 @@ use vecdb::{Rw, StorageMode};
 #[derive(Traversable)]
 pub struct AwakeVecs<M: StorageMode = Rw> {
     /// Sum of supply multiplied by wakefulness across the cohort's UTXO age
-    /// ranges, rounded once to the nearest satoshi.
+    /// ranges, rounded once to the nearest data.
     #[traversable(wrap = "supply", rename = "total")]
     #[traversable(lead = "Awake supply: the coins, each age weighted by how much of its holding time has been spent.")]
     pub supply: LazySpotValuePerBlock,

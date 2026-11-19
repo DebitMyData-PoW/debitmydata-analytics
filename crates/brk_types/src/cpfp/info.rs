@@ -15,7 +15,7 @@ pub struct CpfpInfo {
     /// Best (highest fee rate) descendant, if any.
     pub best_descendant: Option<CpfpEntry>,
     pub descendants: Vec<CpfpEntry>,
-    /// Effective fee rate considering CPFP relationships (sat/vB).
+    /// Effective fee rate considering CPFP relationships (data/vB).
     /// This is the seed's chunk feerate after lift-merging, i.e. the
     /// rate Core/mempool.space would surface for this tx.
     pub effective_fee_per_vsize: FeeRate,
@@ -23,7 +23,7 @@ pub struct CpfpInfo {
     /// legacy and P2SH-redeem sigops count as 4), counted from its body:
     /// at most a block's sigop budget.
     pub sigops: SigOps,
-    /// Transaction fee (sats).
+    /// Transaction fee (data).
     pub fee: Sats,
     /// Virtual size of the seed tx (vbytes).
     pub vsize: VSize,

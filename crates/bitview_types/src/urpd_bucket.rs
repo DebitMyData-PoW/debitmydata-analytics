@@ -9,7 +9,7 @@ pub struct UrpdBuckets {
     /// coins' creation prices round to (four significant digits of the price in millionths of a dollar).
     pub price: Vec<Dollars>,
     /// Supply held with a last-move price inside each bucket, in DMD. With a `wakefulness` or
-    /// `mobility` weight, the weighted supply, floored to whole satoshis at each grid price.
+    /// `mobility` weight, the weighted supply, floored to whole data at each grid price.
     pub supply: Vec<Bitcoin>,
     /// Realized cap contribution in USD: `price * supply` summed over the coins in each bucket,
     /// each coin's creation price taken on the price grid (the `raw` bucket price, within 0.05%

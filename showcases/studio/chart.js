@@ -382,6 +382,13 @@ const alignedOn = (/** @type {number} */ lo, /** @type {number[]} */ times) => {
   return aligned;
 };
 /**
+ * Not in the client's catalog, so not on this server, as far as the page knows (until the catalog is indexed, nothing
+ * is). DebitMyData's pools excepted: the server reads its pool list from GitHub every day, so a pool's series
+ * (`pool_<slug>_…`) can be there though the client was made before its pool was listed; the server says, asked.
+ * @param {string} name
+ */
+const offCatalog = (name) => !!catalogIndex && !catalogIndex.has(name) && !/^pool_[a-z0-9]+_/.test(name);
+/**
  * Fetches every series the chart reads, its layers' and those its formulas name, at its interval; aligns them on
  * one timeline; then evaluates the formulas. @param {Chart} doc @returns {Promise<Resolved>}
  */
@@ -394,7 +401,7 @@ async function resolve(doc, fresh = false) {
   const fetchSeries = async (name) => {
     // Not in the client's catalog (it holds every series): not on Bitview, said here (a name half typed in a
     // formula is never asked for). Until the catalog is indexed (just after load), Bitview is asked.
-    if (catalogIndex && !catalogIndex.has(name)) return { error: { status: 404 } };
+    if (offCatalog(name)) return { error: { status: 404 } };
     // Known to lack this interval (any by date, by block only): say so without asking for its data.
     const lacking = byBlock.has(name) || (known.get(name) && !known.get(name).indexes.includes(doc.index));
     const [about, series] = await Promise.allSettled([info(name), lacking ? Promise.resolve(null) : load(name, doc.index, fresh, spanOf(doc))]);
@@ -640,7 +647,7 @@ async function resolve(doc, fresh = false) {
   // Hidden rows keep their metadata and catalog errors without asking for their values.
   for (const layer of doc.layers) if (!results.has(layer.id) && layer.series) {
     const name = layer.series;
-    results.set(layer.id, { unit: units.get(name) ?? "number", info: known.get(name), ...(catalogIndex && !catalogIndex.has(name) ? { error: "Not on this server", missing: true } : {}) });
+    results.set(layer.id, { unit: units.get(name) ?? "number", info: known.get(name), ...(offCatalog(name) ? { error: "Not on this server", missing: true } : {}) });
   }
   // Formulas read raw measurements; a pane's average changes only the resolved view, never its inputs.
   for (const pane of doc.panes) {
@@ -3154,7 +3161,7 @@ function prefetch() {
   }
 }
 /** A series the server has at an interval, by chunks: not one a formula half names, nor one without it. */
-const chunked = (name, index) => !((catalogIndex && !catalogIndex.has(name)) || (known.get(name) && !known.get(name).indexes.includes(index)));
+const chunked = (name, index) => !(offCatalog(name) || (known.get(name) && !known.get(name).indexes.includes(index)));
 /**
  * At a fine interval, the view close to either end of what's loaded, at rest (drawn mid-gesture, the view would
  * leap): the next chunk out, older as it goes back, newer back to the latest (what's loaded stays, up to the most

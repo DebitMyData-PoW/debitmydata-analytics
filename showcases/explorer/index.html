@@ -872,6 +872,13 @@
           font-size: 11.5px;
           white-space: nowrap;
         }
+        /* (Its size and transactions, as DebitMyData's mempool explorer shows them.) */
+        .cs {
+          margin-top: 2px;
+          color: var(--soft);
+          font: 500 11px var(--mono);
+          white-space: nowrap;
+        }
       }
       .cell a:hover .box {
         box-shadow: 0 0 0 1px var(--soft);
@@ -1511,6 +1518,12 @@
       // ---------------------------------------------------------------- The DebitMyData chain.
       // A block every 2.5 minutes (150 seconds) on average; a halving every 300,000 blocks.
       const BLOCK = 150, HALVING = 300_000;
+      // (DebitMyData: a block's square stands for 25,000 vB, 100,000 weight units, as DebitMyData's mempool explorer
+      // draws its blocks (its BLOCK_WEIGHT_UNITS): its blocks are small, and at Bitcoin's 4,000,000 they'd show all but
+      // empty. A fuller block fills it, never past. Only the drawing: what's ahead in the queue counts real blocks.)
+      const SHOWN = 25_000;
+      // A block's size, as the mempool explorer writes it: "275 B", "1.2 kB", "1.05 MB".
+      const size = (b) => (b < 1000 ? `${int(b)} B` : b < 1e6 ? `${nf(1).format(b / 1e3)} kB` : `${nf(2).format(b / 1e6)} MB`);
 
       // ---------------------------------------------------------------- How numbers are written.
       const nf = (max, min = 0) => new Intl.NumberFormat("en-US", { maximumFractionDigits: max, minimumFractionDigits: min });
@@ -2027,8 +2040,8 @@
       function paintTxs(canvas, txs) {
         const D = canvas.width;
         const ctx = canvas.getContext("2d");
-        const k = Math.sqrt((D * D) / Math.max(1e6, txs.reduce((a, t) => a + t.vsize, 0))) * 0.94;
-        const r = placed(txs, D, 1e6, packAt(txs, D, k, 1));
+        const k = Math.sqrt((D * D) / Math.max(SHOWN, txs.reduce((a, t) => a + t.vsize, 0))) * 0.94;
+        const r = placed(txs, D, SHOWN, packAt(txs, D, k, 1));
         const miner = MINER();
         for (let i = 0; i < txs.length; i++) {
           ctx.fillStyle = txs[i].coinbase ? miner : feeColor(txs[i].rate);
@@ -2077,11 +2090,11 @@
           const on = p === at;
           if (p <= state.tip) {
             const b = known.get(p);
-            if (b) cells.push({ p, on, kind: "mined", b, href: url.block(p), fee: b.extras.medianFee, when: stamp(b.timestamp) });
+            if (b) cells.push({ p, on, kind: "mined", b, href: url.block(p), fee: b.extras.medianFee, when: stamp(b.timestamp), held: `${size(b.size)} · ${plural(b.tx_count, "tx")}` });
           } else {
             const i = p - state.tip - 1;
             const q = state.projected[i];
-            if (q) cells.push({ p, on, kind: i ? "ahead" : "next", i, href: url.ahead(i), fee: q.medianFee, when: i ? `~${clockTime(nowS() + (i + 1) * BLOCK)}` : "forming" });
+            if (q) cells.push({ p, on, kind: i ? "ahead" : "next", i, href: url.ahead(i), fee: q.medianFee, when: i ? `~${clockTime(nowS() + (i + 1) * BLOCK)}` : "forming", held: `${size(q.blockSize ?? q.blockVSize ?? 0)} · ${plural(q.nTx ?? 0, "tx")}` });
           }
         }
         return cells;
@@ -2091,7 +2104,7 @@
           .map(
             (c) => `${c.kind === "next" ? `<li class="nowline" aria-hidden="true"></li>` : ""}<li class="cell ${c.kind}${c.on ? " on" : ""}" data-p="${c.p}">
               <a href="${c.href}"${c.on ? ` aria-current="page"` : ""} aria-label="${c.kind === "mined" ? `Block ${int(c.p)}` : c.kind === "next" ? "The block forming now" : `The ${nth(c.i + 1)} block to come`}">
-                <span class="ch">${int(c.p)}</span><span class="box"></span><span class="cf">${rateU(c.fee)}</span><span class="cw">${c.when}</span>
+                <span class="ch">${int(c.p)}</span><span class="box"></span><span class="cf">${rateU(c.fee)}</span><span class="cs">${c.held}</span><span class="cw">${c.when}</span>
               </a></li>`,
           )
           .join("")}</ol></nav>`;
@@ -2157,7 +2170,7 @@
         let colors = [];
         let colorOf = (t) => feeColor(t.rate);
         let describe = null;
-        let capacity = 1e6;
+        let capacity = SHOWN;
         let onOpen = null;
         let glowing = false;
         let lit = -1;
@@ -2300,7 +2313,7 @@
             });
             new ResizeObserver(() => draw()).observe(canvas);
           },
-          set(list, size = 1e6) {
+          set(list, size = SHOWN) {
             txs = list;
             lit = -1;
             capacity = Math.max(size, list.reduce((s, t) => s + t.vsize, 0));
@@ -2431,7 +2444,7 @@
           const txid = await get(`/tx-index/${start + i}`);
           if (state.view === v) go(url.tx(txid));
         });
-        map.set(txs, 1e6);
+        map.set(txs, SHOWN);
         if (lone) return;
         // What kinds fill it, by their share of its space, and the lens that colours by them.
         const kinds = await kindsOf(b);
@@ -2585,7 +2598,7 @@
         c.width = c.height = Math.round(size * Math.max(2, devicePixelRatio));
         const ctx = c.getContext("2d");
         const f = b.feeRange;
-        const full = Math.min(1, b.blockVSize / 1e6);
+        const full = Math.min(1, b.blockVSize / SHOWN);
         let y = c.height * (1 - full);
         SHARES.forEach((share, k) => {
           const h = c.height * full * share;

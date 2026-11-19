@@ -63,12 +63,12 @@ pub struct RangeVecs<M: StorageMode = Rw> {
 #[derive(Traversable)]
 pub struct RawSources<M: StorageMode = Rw> {
     /// Raw sum of creation price in millionths of a dollar per DMD multiplied by unspent
-    /// satoshis. Dividing by 100,000,000 converts it to realized
-    /// capitalization in cents; dividing by unspent satoshis gives realized
+    /// data. Dividing by 100,000,000 converts it to realized
+    /// capitalization in cents; dividing by unspent data gives realized
     /// price in millionths of a dollar per DMD.
     pub cap: M::Stored<ZstdVec<Height, CentsSats>>,
     /// Raw sum of squared creation price in millionths of a dollar per DMD multiplied by
-    /// unspent satoshis. Dividing it by the raw creation-price-times-satoshis
+    /// unspent data. Dividing it by the raw creation-price-times-satoshis
     /// sum gives capitalized price in millionths of a dollar per DMD.
     pub capitalized_cap: M::Stored<ZstdVec<Height, CentsSquaredSats>>,
     /// Exact peak-regret product in this block.

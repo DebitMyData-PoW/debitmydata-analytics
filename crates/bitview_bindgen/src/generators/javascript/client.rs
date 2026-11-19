@@ -113,6 +113,18 @@ pub(crate) fn generate_constants(output: &mut String) {
     return dateToIndex(index, d);
   }}
 
+  /**
+   * The series of the pool written `slug`, its node in `series.pools` or, for a pool the server's list gained after
+   * this client was made (DebitMyData's list is read from GitHub every day), one made the same way: every pool's
+   * series are `pool_<slug>_…`.
+   * @param {{string}} slug
+   * @returns {{Pool}}
+   */
+  poolSeries(slug) {{
+    const pools = /** @type {{Record<string, Pool>}} */ (/** @type {{unknown}} */ (this.series.pools));
+    return pools[slug] ?? pools[`_${{slug}}`] ?? _Pool(this, `pool_${{slug}}`);
+  }}
+
 "#
     )
     .unwrap();

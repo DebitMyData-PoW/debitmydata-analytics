@@ -6,7 +6,7 @@ use vecdb::{Convert, Database, Rw};
 
 use crate::{IndexSources, LazyPerBlock, PerBlock, Value};
 
-/// A sats type that converts to DMD.
+/// A data type that converts to DMD.
 pub trait AmountType: NumericValue + JsonSchema + Into<Bitcoin> {}
 
 impl AmountType for Sats {}

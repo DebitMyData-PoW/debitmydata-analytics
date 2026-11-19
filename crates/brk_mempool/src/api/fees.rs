@@ -4,7 +4,7 @@ use brk_types::PreciseRecommendedFees;
 use crate::{JsonBody, ReadOnlyState, snapshot::BlockStats};
 
 impl ReadOnlyState {
-    /// mempool.space's whole-sat/vB recommendations (`/api/v1/fees/recommended`), as JSON.
+    /// mempool.space's whole-data/vB recommendations (`/api/v1/fees/recommended`), as JSON.
     pub fn fees_json(&self) -> Result<JsonBody> {
         self.snapshot().fees_json()
     }

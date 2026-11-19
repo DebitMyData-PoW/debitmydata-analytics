@@ -322,7 +322,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     .mcp_ignore()
                     .tag(tags::MINING)
                     .summary("Block fee rates")
-                    .description("Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each a whole sat/vB (`/precise` for 3 decimals).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*")
+                    .description("Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each a whole data/vB (`/precise` for 3 decimals).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*")
                     .json_response::<Vec<BlockFeeRatesEntry>>()
                     .not_modified()
             },
@@ -339,7 +339,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 op.id("get_block_fee_rates_precise")
                     .tag(tags::MINING)
                     .summary("Block fee rates (precise)")
-                    .description("Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each in sat/vB to 3 decimals.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*")
+                    .description("Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each in data/vB to 3 decimals.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*")
                     .json_response::<Vec<BlockFeeRatesPreciseEntry>>()
                     .not_modified()
             },

@@ -34,7 +34,7 @@ const LARGE: u32 = u32::MAX;
 
 /// What resolving an input needs about the output it spends, packed (18 bytes, no padding: the pending map holds
 /// millions of them between saves). The output index takes 5 bytes (below 2^40, as `Index40`); the value is
-/// `Sats`' compact form, as in `outputs.value`, and a large one (2^31 sats or more) is kept in the overflow store.
+/// `Sats`' compact form, as in `outputs.value`, and a large one (2^31 data or more) is kept in the overflow store.
 #[derive(Debug, Clone, Copy)]
 pub struct Utxo([u8; 18]);
 

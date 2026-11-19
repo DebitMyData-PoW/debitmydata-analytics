@@ -26,7 +26,7 @@ pub use tx::{ResolvedConfirmedTx, ResolvedTransaction};
 pub use urpd::ResolvedUrpd;
 pub use utxo_set::UtxoSetPoint;
 
-/// mempool.space reports a block without transactions at 0 sat/vB; the series leave it undefined.
+/// mempool.space reports a block without transactions at 0 data/vB; the series leave it undefined.
 fn mempool_fee_rate(rate: brk_types::FeeRate) -> brk_types::FeeRate {
     if f64::from(rate).is_nan() {
         brk_types::FeeRate::ZERO

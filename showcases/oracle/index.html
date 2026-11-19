@@ -651,6 +651,231 @@
         }
       }
 
+      .facts.three {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+
+        @media (max-width: 560px) {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      /* (A phone's two columns: an odd last figure across both.) */
+      @media (max-width: 560px) {
+        .facts {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+
+          > div:last-child:nth-child(odd) {
+            grid-column: 1 / -1;
+          }
+        }
+      }
+
+      .facts small {
+        display: block;
+        margin-top: 2px;
+        color: var(--faint);
+        font-size: 12px;
+      }
+
+      /* ── The chapters' small charts: bars, a mark across them, the pools ── */
+      .bars {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(var(--n, 12), minmax(0, 1fr));
+        align-items: end;
+        gap: 3px;
+        height: 150px;
+        margin: 20px 0 0;
+        padding: 0;
+        list-style: none;
+
+        li {
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+          min-width: 0;
+          height: 100%;
+          color: var(--faint);
+          font-size: 10.5px;
+          text-align: center;
+          font-variant-numeric: tabular-nums;
+        }
+
+        span {
+          overflow: hidden;
+          white-space: nowrap;
+        }
+
+        i {
+          display: block;
+          flex: none;
+          height: var(--h);
+          min-height: 1px;
+          margin-top: 4px;
+          background: var(--heat);
+          opacity: 0.5;
+        }
+
+        .lead i {
+          background: var(--answer);
+          opacity: 1;
+        }
+
+        /* (A target or a floor across the bars, dashed.) */
+        .mark {
+          position: absolute;
+          right: 0;
+          bottom: var(--at);
+          left: 0;
+          height: 0;
+          border-top: 1px dashed color-mix(in srgb, var(--ink) 70%, transparent);
+          pointer-events: none;
+
+          span {
+            position: absolute;
+            right: 0;
+            bottom: 4px;
+            padding: 0 4px;
+            background: var(--app);
+            color: var(--soft);
+          }
+        }
+
+        /* (Changes either way of the middle: up above it, down below.) */
+        &.diverge li {
+          display: grid;
+          grid-template-rows: 1fr 1fr;
+
+          > b {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            border-bottom: 1px solid var(--line);
+            font-weight: inherit;
+          }
+
+          > b + b {
+            justify-content: flex-start;
+            border: 0;
+          }
+
+          i {
+            margin: 0;
+          }
+
+          &.up i {
+            background: var(--gain);
+          }
+
+          &.down i {
+            background: var(--loss);
+          }
+        }
+      }
+
+      .bars-axis {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+
+        /* (Its ends' words kept whole: the middle's wrap.) */
+        > span:first-child,
+        > span:last-child {
+          flex: none;
+          white-space: nowrap;
+        }
+
+        > span:nth-child(2):not(:last-child) {
+          text-align: center;
+        }
+        margin: 0 0 24px;
+        padding-top: 8px;
+        border-top: 1px solid var(--line);
+        color: var(--faint);
+        font-size: 12px;
+      }
+
+      .headline {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 6px 18px;
+
+        strong {
+          color: var(--ink);
+          font-size: clamp(44px, 8vw, 76px);
+          font-weight: 500;
+          line-height: 1;
+          letter-spacing: -0.04em;
+        }
+
+        span {
+          max-width: 36ch;
+          color: var(--soft);
+        }
+      }
+
+      .note {
+        color: var(--faint);
+        font-size: 13px;
+      }
+
+      .pools {
+        display: grid;
+        gap: 1px;
+        margin: 20px 0 24px;
+        padding: 0;
+        border: 1px solid var(--line);
+        background: var(--line);
+        list-style: none;
+
+        li {
+          display: grid;
+          grid-template-columns: 22px minmax(0, 1fr) auto;
+          gap: 4px 12px;
+          align-items: center;
+          padding: 12px 16px;
+          background: var(--app);
+        }
+
+        img,
+        .initials {
+          width: 22px;
+          height: 22px;
+          border-radius: 5px;
+        }
+
+        .initials {
+          display: grid;
+          place-items: center;
+          background: var(--grid);
+          color: var(--soft);
+          font: 600 9.5px var(--mono);
+          letter-spacing: 0.02em;
+        }
+
+        b {
+          overflow: hidden;
+          color: var(--ink);
+          font-weight: 500;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        output {
+          color: var(--soft);
+          font-size: 13px;
+          font-variant-numeric: tabular-nums;
+          text-align: right;
+        }
+
+        i {
+          grid-column: 2 / -1;
+          height: 2px;
+          background: linear-gradient(var(--answer), var(--answer)) 0 0 / var(--share, 0%) 100% no-repeat, var(--grid);
+        }
+      }
+
       .sr {
         position: absolute;
         width: 1px;
@@ -720,9 +945,11 @@
 
       <figure class="week" aria-label="The measure over time">
         <div class="chart" id="chart" tabindex="0" aria-label="The measure over the range shown: arrows move a point (Shift: several), Home and End go to the ends">
+          <canvas id="heat" aria-hidden="true"></canvas>
           <svg id="lines" aria-hidden="true"></svg>
         </div>
         <figcaption class="foot shell">
+          <span class="legend"><span class="swatch" aria-hidden="true"></span><span id="legend">&nbsp;</span></span>
           <p class="ranges" id="ranges" aria-label="How far back">
             <button type="button" data-range="7d" aria-pressed="true">7D</button>
             <button type="button" data-range="30d" aria-pressed="false">30D</button>
@@ -737,44 +964,128 @@
     <p class="sr" id="said" aria-live="polite"></p>
 
     <main class="shell" id="how">
-      <section class="chapter" aria-labelledby="c1" id="about-hashrate">
-        <header><span class="n">01</span><h2 id="c1">Hashrate: how hard the network works</h2></header>
-        <div>
-          <p>Hashrate is the computing power that secures the DebitMyData chain: how many SHA-256 hashes its miners try each second, all of them together. No miner reports it. It's read from the chain itself: each block's difficulty says how much work finding it took, and the time between blocks how fast that work was done.</p>
-          <p>More hashrate makes the chain harder to rewrite: to undo a payment, an attacker would need more computing power than everyone else combined.</p>
-          <dl class="facts" aria-label="The network now">
-            <div><dt>Hashrate now</dt><dd id="f-hashrate">…</dd></div>
-            <div><dt>Algorithm</dt><dd>SHA-256</dd></div>
-            <div><dt>Block target</dt><dd>150 seconds</dd></div>
-          </dl>
-        </div>
-      </section>
+      <div class="chapters" id="about-hashrate" data-for="hashrate">
+        <section class="chapter" aria-labelledby="h1">
+          <header><span class="n">01</span><h2 id="h1">Every block, a proof of work</h2></header>
+          <div>
+            <p>Hashrate is the computing power that secures the DebitMyData chain: how many SHA-256 hashes its miners try each second, all of them together. No miner reports it; the chain tells it. Each block's difficulty says how many hashes finding it took, on average, and the time it took how fast they were tried.</p>
+            <p>The last 30 blocks, each as long as it took, against the 150-second target:</p>
+            <ol class="bars" id="h-blocks" aria-label="The last 30 blocks' times, newest first"></ol>
+            <div class="bars-axis" aria-hidden="true"><span id="h-blocks-newest">newest block</span><span id="h-blocks-say"></span><span>30th</span></div>
+            <dl class="facts" aria-label="The network now">
+              <div><dt>Hashrate now</dt><dd id="f-hashrate">…</dd></div>
+              <div><dt>Algorithm</dt><dd>SHA-256</dd></div>
+              <div><dt>Block target</dt><dd>150 seconds</dd></div>
+            </dl>
+          </div>
+        </section>
+        <section class="chapter" aria-labelledby="h2">
+          <header><span class="n">02</span><h2 id="h2">One block says little</h2></header>
+          <div>
+            <p>A block's time is mostly luck: most come quicker than 150 seconds, a few take far longer, whatever the hashrate. The past week's blocks, by how long each took:</p>
+            <ol class="bars" id="h-spread" aria-label="The past week's blocks by how long each took, in half minutes"></ol>
+            <div class="bars-axis" aria-hidden="true"><span>0 s</span><span>half a minute a bar, the target's in orange</span><span>10 min or more</span></div>
+            <dl class="facts" id="h-spread-facts" aria-label="The past week's blocks"></dl>
+          </div>
+        </section>
+        <section class="chapter" aria-labelledby="h3">
+          <header><span class="n">03</span><h2 id="h3">Many say much</h2></header>
+          <div>
+            <p>So it's averaged: the line above is the work of the last 24 hours' blocks, over 24 hours. Behind it, each block's last hour, as noisy as an hour of blocks is. Longer, steadier still:</p>
+            <dl class="facts" id="h-windows" aria-label="The hashrate over each window"></dl>
+          </div>
+        </section>
+        <section class="chapter" aria-labelledby="h4">
+          <header><span class="n">04</span><h2 id="h4">Who hashes it</h2></header>
+          <div>
+            <p>Each block names its mining pool, by DebitMyData's pool list: the past week's hashrate by pool, its share of the blocks times the network's.</p>
+            <ol class="pools" id="h-pools" aria-label="The past week's pools by blocks found"></ol>
+          </div>
+        </section>
+      </div>
 
-      <section class="chapter" aria-labelledby="c2" id="about-price">
-        <header><span class="n">02</span><h2 id="c2">Price: what one DMD costs to mine</h2></header>
-        <div>
-          <p>DMD has no market price yet. Its <b>reference price</b> is the cost of the electricity it takes to mine one DMD: the chain's work over the last 4,032 blocks, at 20 J/TH and $0.06 per kWh, divided by the block reward. It never goes below DebitMyData's minimum rate of <b>$0.001</b>.</p>
-          <p>It follows the network: as hashrate grows, mining a coin costs more, and the reference price rises with it. It is not a market price, and nobody trades at it; the DebitMyData Agent Gateway charges with it.</p>
-          <dl class="facts" aria-label="The reference price now">
-            <div><dt>Reference price now</dt><dd id="f-price">…</dd></div>
-            <div><dt>Minimum</dt><dd>$0.001</dd></div>
-            <div><dt>Block reward</dt><dd id="f-reward">35 DMD</dd></div>
-          </dl>
-        </div>
-      </section>
+      <div class="chapters" id="about-price" data-for="price" hidden>
+        <section class="chapter" aria-labelledby="p1">
+          <header><span class="n">01</span><h2 id="p1">What one DMD costs to mine</h2></header>
+          <div>
+            <p>DMD has no market price yet. Its <b>reference price</b> is the cost of the electricity it takes to mine one DMD, worked out from the chain, block by block: the work of the last 4,032 blocks, at 20 J/TH and $0.06 per kWh, divided by the block reward. Now:</p>
+            <dl class="facts three" id="p-cost" aria-label="The reference price's formula, now"></dl>
+            <p id="p-cost-say">&nbsp;</p>
+          </div>
+        </section>
+        <section class="chapter" aria-labelledby="p2">
+          <header><span class="n">02</span><h2 id="p2">Never below $0.001</h2></header>
+          <div>
+            <p>It never goes below DebitMyData's minimum rate of <b>$0.001</b>: while mining costs less, the price sits at the floor, the dashed line. The past 30 days:</p>
+            <ol class="bars" id="p-days" aria-label="The reference price each of the past 30 days, oldest first"></ol>
+            <div class="bars-axis" aria-hidden="true"><span>30 days ago</span><span>today</span></div>
+            <dl class="facts" aria-label="The reference price now">
+              <div><dt>Reference price now</dt><dd id="f-price">…</dd></div>
+              <div><dt>Minimum</dt><dd>$0.001</dd></div>
+              <div><dt>Block reward</dt><dd id="f-reward">35 DMD</dd></div>
+            </dl>
+          </div>
+        </section>
+        <section class="chapter" aria-labelledby="p3">
+          <header><span class="n">03</span><h2 id="p3">Priced at every block</h2></header>
+          <div>
+            <p>Every block has its price, from the work up to it: a burst of hashing power moves it a little, over a week. The last 12 blocks:</p>
+            <ol class="bars" id="p-blocks" aria-label="The last 12 blocks' reference prices, newest first"></ol>
+            <div class="bars-axis" aria-hidden="true"><span>newest block</span><span>12th</span></div>
+          </div>
+        </section>
+        <section class="chapter" aria-labelledby="p4">
+          <header><span class="n">04</span><h2 id="p4">Not a market price</h2></header>
+          <div>
+            <p class="headline"><strong>None</strong><span>market price for DMD yet: it isn't traded on an exchange.</span></p>
+            <dl class="facts" aria-label="Where DMD's price comes from">
+              <div><dt>Exchanges trading DMD</dt><dd>None yet</dd></div>
+              <div><dt>Reference price</dt><dd id="p-now">…</dd></div>
+              <div><dt>Charged by</dt><dd>The Agent Gateway</dd></div>
+            </dl>
+            <p class="note">Nobody trades at the reference price; the DebitMyData Agent Gateway charges with it. When DMD trades on an exchange, its market price will be a line of its own.</p>
+          </div>
+        </section>
+      </div>
 
-      <section class="chapter" aria-labelledby="c3" id="about-difficulty">
-        <header><span class="n">03</span><h2 id="c3">Difficulty: set again at every block</h2></header>
-        <div>
-          <p>Difficulty is how hard it is to find a block: how many hashes, on average, a miner tries before one is valid. DebitMyData sets it again at <b>every block</b>, from the last 60 blocks' times (LWMA), so blocks keep coming about every 150 seconds as miners arrive or leave.</p>
-          <p>Bitcoin adjusts its difficulty only every 2,016 blocks, about two weeks; DebitMyData follows a change in hashrate within the hour.</p>
-          <dl class="facts" aria-label="The difficulty now">
-            <div><dt>Difficulty now</dt><dd id="f-difficulty">…</dd></div>
-            <div><dt>Adjusted</dt><dd>Every block</dd></div>
-            <div><dt>Window</dt><dd>60 blocks</dd></div>
-          </dl>
-        </div>
-      </section>
+      <div class="chapters" id="about-difficulty" data-for="difficulty" hidden>
+        <section class="chapter" aria-labelledby="d1">
+          <header><span class="n">01</span><h2 id="d1">Set again at every block</h2></header>
+          <div>
+            <p>Difficulty is how hard it is to find a block: how many hashes, on average, a miner tries before one is valid. DebitMyData sets it again at <b>every block</b>, so blocks keep coming about every 150 seconds as miners arrive or leave. The last 30 blocks' changes:</p>
+            <ol class="bars diverge" id="d-changes" aria-label="The last 30 blocks' difficulty changes, newest first"></ol>
+            <div class="bars-axis" aria-hidden="true"><span>newest block</span><span id="d-changes-say"></span><span>30th</span></div>
+            <dl class="facts" aria-label="The difficulty now">
+              <div><dt>Difficulty now</dt><dd id="f-difficulty">…</dd></div>
+              <div><dt>Adjusted</dt><dd>Every block</dd></div>
+              <div><dt>Window</dt><dd>60 blocks</dd></div>
+            </dl>
+          </div>
+        </section>
+        <section class="chapter" aria-labelledby="d2">
+          <header><span class="n">02</span><h2 id="d2">From the last 60 blocks</h2></header>
+          <div>
+            <p>Each block's difficulty comes from the times of the 60 blocks before it, the newest weighing most (LWMA): a change in hashrate shows within the hour, and one odd block can't throw it far. Each block's weight:</p>
+            <ol class="bars" id="d-weights" aria-label="The weight of each of the last 60 blocks, newest first"></ol>
+            <div class="bars-axis" aria-hidden="true"><span>newest block, 3.3%</span><span>60th, 0.05%</span></div>
+            <p>Bitcoin adjusts its difficulty only every 2,016 blocks, about two weeks.</p>
+          </div>
+        </section>
+        <section class="chapter" aria-labelledby="d3">
+          <header><span class="n">03</span><h2 id="d3">Blocks on time</h2></header>
+          <div>
+            <p>What it aims at: a block every 150 seconds. How long blocks have taken, on average:</p>
+            <dl class="facts" id="d-times" aria-label="The average time between blocks over each window"></dl>
+          </div>
+        </section>
+        <section class="chapter" aria-labelledby="d4">
+          <header><span class="n">04</span><h2 id="d4">Where it stands</h2></header>
+          <div>
+            <p>The difficulty now against a day, a week and a month ago:</p>
+            <dl class="facts" id="d-since" aria-label="The difficulty now and before"></dl>
+          </div>
+        </section>
+      </div>
     </main>
 
     <footer class="shell">
@@ -783,6 +1094,8 @@
 
     <script type="module">
       // @ts-check
+      import { LOGOS, logo as poolLogo } from "/assets/pools/logos.js";
+      const dark = matchMedia("(prefers-color-scheme: dark)");
       // The DebitMyData network on one screen, as Bitview's Oracle draws its price: a big number, the line under it edge
       // to edge, pointing at it telling that moment. Three measures (hashrate, the reference price, difficulty), each
       // over 7, 30 or 90 days or all of the chain.
@@ -812,6 +1125,7 @@
       /** A number to three significant figures with its SI prefix: 1.23 P. */
       const si = (/** @type {number} */ v) => {
         if (!(v > 0)) return { figure: "0", prefix: "" };
+        if (v < 1) return { figure: small(v), prefix: "" };
         const tier = Math.max(0, Math.min(SI.length - 1, Math.floor(Math.log10(v) / 3)));
         return { figure: (v / 1000 ** tier).toPrecision(3).replace(/\.?0+$/, (m) => (m.startsWith(".") ? "" : m)), prefix: SI[tier] };
       };
@@ -820,9 +1134,9 @@
 
       /** The three measures: their series, how a value is written, and what the top says of them. */
       const MEASURES = /** @type {const} */ ({
-        hashrate: { series: "hashrate", kicker: "Hashrate · the DebitMyData network", write: (/** @type {number} */ v) => ((s) => `${s.figure} ${s.prefix}H/s`)(si(v)), about: "about-hashrate", log: true },
-        price: { series: "price", kicker: "DMD/USD · reference price, the cost of mining one DMD", write: dollars, about: "about-price", log: true },
-        difficulty: { series: "difficulty", kicker: "Difficulty · set again at every block", write: (/** @type {number} */ v) => ((s) => `${s.figure}${s.prefix ? ` ${s.prefix}` : ""}`)(si(v)), about: "about-difficulty", log: true },
+        hashrate: { series: "hashrate", kicker: "Hashrate · the DebitMyData network", write: (/** @type {number} */ v) => ((s) => `${s.figure} ${s.prefix}H/s`)(si(v)), about: "about-hashrate", log: true, legend: "Behind the line, each block's last hour of hashing: brighter where more blocks put it" },
+        price: { series: "price", kicker: "DMD/USD · reference price, the cost of mining one DMD", write: dollars, about: "about-price", log: true, legend: "Behind the line, each block's reference price: brighter where more blocks had it" },
+        difficulty: { series: "difficulty", kicker: "Difficulty · set again at every block", write: (/** @type {number} */ v) => ((s) => `${s.figure}${s.prefix ? ` ${s.prefix}` : ""}`)(si(v)), about: "about-difficulty", log: true, legend: "Behind the line, each block's difficulty: brighter where more blocks had it" },
       });
       /** How far back: blocks (a block each 150 seconds, a few more for a fast stretch) or days. */
       const RANGES = /** @type {const} */ ({
@@ -836,10 +1150,17 @@
       /** The DebitMyData chain's first day. */
       const GENESIS_DAY = "2026-02-20";
 
-      const read = (/** @type {string} */ path) => fetch(path, { signal: AbortSignal.timeout(15_000) }).then((r) => {
+      const read = (/** @type {string} */ path) => fetch(path, { signal: AbortSignal.timeout(30_000) }).then((r) => {
         if (!r.ok) throw new Error(String(r.status));
         return r.json();
       });
+      /** The work a block of this difficulty proves, in hashes, as the node's chainwork adds it up. */
+      const work = (/** @type {number} */ d) => d * (2 ** 48 / 65_535);
+      /** A time span: "45 s", "2 min 31 s", "1 h 4 min". */
+      const span = (/** @type {number} */ s) => {
+        s = Math.max(0, Math.round(s));
+        return s < 60 ? `${s} s` : s < 3600 ? `${Math.floor(s / 60)} min${s % 60 ? ` ${s % 60} s` : ""}` : `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`;
+      };
       const still = matchMedia("(prefers-reduced-motion: reduce)");
 
       // ── State, kept in the address so a link opens the same view ──
@@ -955,6 +1276,356 @@
         showFacts();
         draw();
         tell(pointed);
+        readChapters();
+        // (The blocks behind the line after: the line first, the squares filled in once read.)
+        const shown = `${measure}:${range}`;
+        const got = await readBehind(raw).catch(() => null);
+        if (!got || mine !== reading || shown !== `${measure}:${range}`) return;
+        raw = got;
+        behind = blocksBehind(raw);
+        wide = spread();
+        draw();
+      }
+
+      // ── Behind the line: each block's own value ──
+
+      // (As Bitview's Oracle draws the payments behind its price: squares about 10px, a column over the points it covers,
+      // brightest where most of its blocks put the measure, lit along the line. A block's hashrate there is its last
+      // hour's, the work of the blocks found in the hour up to it, over the hour (one block's time alone is too much luck);
+      // its difficulty and its reference price are its own.)
+      const HOUR = 3600;
+      /** The blocks read for behind the line: whose (measure and range), the first shown, and from the first read on,
+       * each one's value and time. Read again only from the last one read, at each new block. */
+      let raw = { key: "", first: 0, from: 0, values: /** @type {number[]} */ ([]), times: /** @type {number[]} */ ([]) };
+      /** Each block behind the line: its height, time and value (its hour's hashrate, its difficulty or price).
+       * @type {{ h: number, t: number, v: number }[]} */
+      let behind = [];
+      /** How far most of them spread (null: too few to say). @type {{ lo: number, hi: number } | null} */
+      let wide = null;
+      /** The most values a read is sent in: under the server's cap on a response. */
+      const PIECE = 30_000;
+      /** A series by block from a height to the tip, in pieces. */
+      async function heights(/** @type {string} */ id, /** @type {number} */ from, /** @type {number} */ to) {
+        const asked = [];
+        for (let s = from; s < to; s += PIECE) asked.push(read(`/api/series/${id}/height?start=${s}&end=${Math.min(to, s + PIECE)}`));
+        return (await Promise.all(asked)).flatMap((piece) => piece.data.map(Number));
+      }
+      /** The blocks behind the line of the measure and range shown: those already read kept, the new ones added. */
+      async function readBehind(/** @type {typeof raw} */ had) {
+        const r = RANGES[range], key = `${measure}:${range}`;
+        if (!points.length || !tip.h) return null;
+        let first = 0;
+        if (r.index === "height") first = /** @type {number} */ (points[0].h);
+        else {
+          const firstDay = Math.round((points[0].t - DAY_ZERO) / 86400);
+          // (The day's first block: the blocks counted up to the day before.)
+          first = firstDay > 0 ? Number((await read(`/api/series/block_count_cumulative/day1?start=${firstDay - 1}&end=${firstDay}`)).data[0]) || 0 : 0;
+        }
+        // (An hour of blocks before the first, for its hour: 80, a fast hour's.)
+        const from = Math.max(0, first - (measure === "hashrate" ? 80 : 0)), id = measure === "price" ? "price" : "difficulty";
+        const keep = had.key === key && had.from <= from ? Math.min(had.values.length, had.times.length) - (from - had.from) : 0;
+        const values = keep > 0 ? had.values.slice(from - had.from, from - had.from + keep) : [], times = keep > 0 ? had.times.slice(from - had.from, from - had.from + keep) : [];
+        const next = from + values.length, to = tip.h + 1;
+        if (next < to) {
+          const [v, t] = await Promise.all([heights(id, next, to), heights("timestamp", next, to)]);
+          const n = Math.min(v.length, t.length);
+          for (let i = 0; i < n; i++) {
+            values.push(v[i]);
+            times.push(t[i]);
+          }
+        }
+        return { key, first, from, values, times };
+      }
+      /** The blocks read, each its value behind the line. */
+      function blocksBehind(/** @type {typeof raw} */ got) {
+        const out = [];
+        let j = 0, hashes = 0;
+        for (let i = 0; i < got.values.length; i++) {
+          const h = got.from + i, t = got.times[i], v = got.values[i];
+          let value = v;
+          if (got.key.startsWith("hashrate:")) {
+            hashes += work(v);
+            while (j < i && got.times[j] <= t - HOUR) hashes -= work(got.values[j++]);
+            value = hashes / HOUR;
+          }
+          if (h >= got.first && value > 0) out.push({ h, t, v: value });
+        }
+        return out;
+      }
+      /** The blocks behind the line, each at the point it falls in: its own, by block; its day's, by day. */
+      function placed() {
+        const out = [];
+        if (RANGES[range].index === "height") {
+          const at = new Map(points.map((pt, k) => [pt.h, k]));
+          for (const b of behind) {
+            const k = at.get(b.h);
+            if (k !== undefined) out.push({ k, v: b.v });
+          }
+        } else {
+          const at = new Map(points.map((pt, k) => [Math.round((pt.t - DAY_ZERO) / 86400), k]));
+          for (const b of behind) {
+            const k = at.get(Math.floor((b.t - DAY_ZERO) / 86400));
+            if (k !== undefined) out.push({ k, v: b.v });
+          }
+        }
+        return out;
+      }
+      /** How far most blocks behind the line spread: the line's frame wide enough for them, the odd one off it. */
+      function spread() {
+        if (behind.length < 20) return null;
+        const sorted = Float64Array.from(behind, (b) => b.v).sort();
+        return { lo: sorted[Math.floor(sorted.length * 0.02)], hi: sorted[Math.floor(sorted.length * 0.98)] };
+      }
+
+      const heat = /** @type {HTMLCanvasElement} */ ($("heat"));
+      /** A color as the scheme resolves it: a canvas can't read light-dark(). */
+      const probe = document.createElement("i");
+      function resolved(/** @type {string} */ value) {
+        probe.style.color = value;
+        document.body.append(probe);
+        const rgb = (getComputedStyle(probe).color.match(/[\d.]+/g) ?? ["128", "128", "128"]).slice(0, 3).join(",");
+        probe.remove();
+        return rgb;
+      }
+      /** The squares: a column over the points it covers, a row about 10px; a square's blocks counted, brightest where a
+       * column's are densest and lifted along the line, gray where a column has no block. */
+      function drawHeat(/** @type {ReturnType<typeof frame>} */ f) {
+        const ratio = devicePixelRatio || 1;
+        heat.width = Math.round(f.w * ratio);
+        heat.height = Math.round(f.h * ratio);
+        const ctx = /** @type {CanvasRenderingContext2D} */ (heat.getContext("2d"));
+        ctx.scale(ratio, ratio);
+        if (!f.n) return;
+        const stops = ["var(--heat-lo)", "var(--heat-mid)", "var(--heat-hi)"].map((c) => resolved(c).split(",").map(Number)), ink = resolved("var(--ink)");
+        const ramp = (/** @type {number} */ v) => {
+          const k = v < 0.5 ? 0 : 1, u = v < 0.5 ? v * 2 : (v - 0.5) * 2;
+          return stops[k].map((a, i) => Math.round(a + (stops[k + 1][i] - a) * u)).join(",");
+        };
+        const cols = Math.max(3, Math.round(f.w / 10)), rows = Math.max(3, Math.round(f.h / 10)), wide = f.w / cols, tall = f.h / rows;
+        const col = (/** @type {number} */ x) => Math.max(0, Math.min(cols - 1, Math.floor(x / wide)));
+        const counts = Array.from({ length: cols }, () => new Float64Array(rows)), reached = new Uint8Array(cols);
+        const line = new Float64Array(cols), lineN = new Float64Array(cols);
+        points.forEach((pt, k) => {
+          const c = col(f.x(k));
+          line[c] += f.y(pt.v) / tall;
+          lineN[c]++;
+        });
+        for (const b of placed()) {
+          const c = col(f.x(b.k)), r = Math.floor(f.y(b.v) / tall);
+          reached[c] = 1;
+          if (r >= 0 && r < rows) counts[c][r]++;
+        }
+        for (let c = 0; c < cols; c++) {
+          let most = 0;
+          for (let r = 0; r < rows; r++) most = Math.max(most, counts[c][r]);
+          const at = lineN[c] ? line[c] / lineN[c] : -9;
+          for (let r = 0; r < rows; r++) {
+            const v0 = most ? (counts[c][r] / most) ** 0.7 : 0, u = Math.exp(-((r + 0.5 - at) ** 2) / 0.8);
+            const v = Math.min(1, v0 + 0.4 * u * (1 - v0) + 0.15 * u);
+            ctx.fillStyle = reached[c] || lineN[c] ? `rgba(${ramp(v)},${(0.06 + 0.94 * v).toFixed(3)})` : `rgba(${ink},0.035)`;
+            ctx.fillRect(c * wide, r * tall, wide - 1, tall - 1);
+          }
+        }
+      }
+
+      // ── The chapters: the measure shown's, read live ──
+
+      /** Bars into a list: each its height (0 to 1), its words over it and when pointed at, its kind; a dashed mark
+       * across them at a height, if any. */
+      function bars(/** @type {HTMLElement} */ list, /** @type {{ h: number, label?: string, title: string, kind?: string }[]} */ items, mark = -1, said = "") {
+        // (The tallest bar under the top, room over it for its words; the mark on the same scale.)
+        const room = list.classList.contains("diverge") ? 1 : 0.86;
+        list.style.setProperty("--n", String(items.length));
+        list.replaceChildren(
+          ...items.map((it) => {
+            const li = document.createElement("li");
+            li.className = it.kind ?? "";
+            li.title = it.title;
+            const bar = Object.assign(document.createElement("i"), {});
+            bar.style.setProperty("--h", `${(Math.max(0, Math.min(1, it.h)) * room * 100).toFixed(1)}%`);
+            if (list.classList.contains("diverge")) {
+              const up = Object.assign(document.createElement("b"), {}), down = Object.assign(document.createElement("b"), {});
+              (it.kind === "down" ? down : up).append(bar);
+              li.append(up, down);
+            } else li.append(Object.assign(document.createElement("span"), { textContent: it.label ?? "" }), bar);
+            return li;
+          }),
+        );
+        if (mark >= 0) {
+          const m = document.createElement("li");
+          m.className = "mark";
+          m.setAttribute("aria-hidden", "true");
+          m.style.setProperty("--at", `${(Math.min(1, mark) * room * 100).toFixed(1)}%`);
+          if (said) m.append(Object.assign(document.createElement("span"), { textContent: said }));
+          list.append(m);
+        }
+      }
+      /** A pool's logo, as the other pages draw it (one with none: its initials). */
+      function mark(/** @type {string} */ slug, /** @type {string} */ name) {
+        if (LOGOS.has(slug)) return Object.assign(document.createElement("img"), { src: poolLogo(slug, !dark.matches), alt: "" });
+        const words = name.replace(/[^A-Za-z0-9 ]/g, "").replace(/([a-z])([A-Z])/g, "$1 $2").split(/\s+/).filter(Boolean), one = words[0] ?? "?";
+        const text = (words.length > 1 ? words.map((w) => w[0]).join("") : one[0] + (one.slice(1).match(/[^aeiouAEIOU]/)?.[0] ?? "")).slice(0, 2).toUpperCase();
+        return Object.assign(document.createElement("span"), { className: "initials", textContent: text, ariaHidden: "true" });
+      }
+      /** Figures into a list: each its name, its value and a note under it, if any. */
+      function figures(/** @type {HTMLElement} */ list, /** @type {[string, string, string?][]} */ items) {
+        list.replaceChildren(
+          ...items.map(([name, value, note]) => {
+            const div = document.createElement("div"), dd = Object.assign(document.createElement("dd"), { textContent: value });
+            if (note) dd.append(Object.assign(document.createElement("small"), { textContent: note }));
+            div.append(Object.assign(document.createElement("dt"), { textContent: name }), dd);
+            return div;
+          }),
+        );
+      }
+      const SUPERSCRIPT = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+      /** A number however small, three figures: 0.0123, or 6.67 × 10⁻¹⁹ under a millionth. */
+      const small = (/** @type {number} */ v) => {
+        if (!(v > 0)) return "0";
+        if (v >= 1e-6) return String(Number(v.toPrecision(3)));
+        const power = Math.floor(Math.log10(v)), figure = (v / 10 ** power).toPrecision(3).replace(/\.?0+$/, "");
+        return `${figure} × 10⁻${String(-power).replace(/\d/g, (n) => SUPERSCRIPT[Number(n)])}`;
+      };
+      const NAMES = ["", "thousand", "million", "billion", "trillion", "quadrillion", "quintillion", "sextillion"];
+      /** A count of hashes in words: "2 hashes", "1.23 trillion hashes". */
+      const hashesSaid = (/** @type {number} */ v) => {
+        const tier = v >= 1 ? Math.max(0, Math.min(NAMES.length - 1, Math.floor(Math.log10(v) / 3))) : 0;
+        return `${Number((v / 1000 ** tier).toPrecision(3))}${tier ? ` ${NAMES[tier]}` : ""} hashes`;
+      };
+      const pct = (/** @type {number} */ x) => `${x > 0 ? "+" : x < 0 ? "−" : ""}${Math.abs(x * 100).toFixed(Math.abs(x) < 0.1 ? 2 : 1)}%`;
+      const one = async (/** @type {string} */ path) => Number((await read(path)).data.at(-1)) || 0;
+
+      const CHAPTERS = {
+        async hashrate() {
+          const [times, diffs, w1, m1, ath, week] = await Promise.all([
+            read("/api/series/timestamp/height?start=-4700"),
+            read("/api/series/difficulty/height?start=-120"),
+            one("/api/series/hashrate_sma_1w/height?start=-1").catch(() => 0),
+            one("/api/series/hashrate_sma_1m/height?start=-1").catch(() => 0),
+            one("/api/series/hashrate_ath/height?start=-1").catch(() => 0),
+            read("/api/v1/mining/pools/1w").catch(() => null),
+          ]);
+          const t = times.data.map(Number), last = t.at(-1);
+          // 01: the last 30 blocks' times.
+          const gaps = [];
+          for (let i = t.length - 1; i > 0 && gaps.length < 30; i--) gaps.push({ h: times.start + i, s: Math.max(0, t[i] - t[i - 1]) });
+          const top = Math.max(300, Math.min(900, Math.max(...gaps.map((g) => g.s))));
+          bars($("h-blocks"), gaps.map((g, k) => ({ h: g.s / top, title: `Block ${grouped(g.h)}: ${span(g.s)}`, kind: k ? "" : "lead" })), 150 / top, "150 s, the target");
+          $("h-blocks-newest").textContent = gaps.length ? `newest block, ${span(gaps[0].s)}` : "newest block";
+          $("h-blocks-say").textContent = `${span(gaps.reduce((a, g) => a + g.s, 0) / Math.max(1, gaps.length))} on average`;
+          // 02: the week's blocks by their time, in half minutes, 10 minutes or more the last.
+          const weekGaps = [];
+          for (let i = t.length - 1; i > 0 && t[i] > last - 7 * 86400; i--) weekGaps.push(Math.max(0, t[i] - t[i - 1]));
+          const bins = new Array(21).fill(0);
+          for (const s of weekGaps) bins[Math.min(20, Math.floor(s / 30))]++;
+          const most = Math.max(1, ...bins);
+          bars($("h-spread"), bins.map((n, b) => ({ h: n / most, title: `${b < 20 ? `${b * 30} to ${b * 30 + 30} s` : "10 min or more"}: ${grouped(n)} blocks`, label: "", kind: b === 4 ? "lead" : "" })));
+          const sorted = [...weekGaps].sort((a, b) => a - b);
+          figures($("h-spread-facts"), [
+            ["Blocks this week", grouped(weekGaps.length)],
+            ["Median time", sorted.length ? span(sorted[Math.floor(sorted.length / 2)]) : "–"],
+            ["Average time", weekGaps.length ? span(weekGaps.reduce((a, s) => a + s, 0) / weekGaps.length) : "–"],
+            ["Longest", sorted.length ? span(sorted.at(-1)) : "–"],
+          ]);
+          // 03: over each window; the last hour from its blocks' work.
+          const d = diffs.data.map(Number), dt = t.slice(t.length - d.length);
+          let hour = 0;
+          for (let i = d.length - 1; i >= 0 && dt[i] > last - HOUR; i--) hour += work(d[i]);
+          const write = MEASURES.hashrate.write;
+          figures($("h-windows"), [
+            ["Last hour", hour ? write(hour / HOUR) : "–"],
+            ["Last 24 hours, the line", now.hashrate ? write(now.hashrate) : "–"],
+            ["7 days", w1 ? write(w1) : "–"],
+            ["30 days", m1 ? write(m1) : "–"],
+            ["All-time high", ath ? write(ath) : "–"],
+          ]);
+          // 04: the week's pools.
+          const pools = week?.pools ?? [], total = week?.blockCount || pools.reduce((/** @type {number} */ a, /** @type {any} */ p) => a + p.blockCount, 0) || 1;
+          $("h-pools").replaceChildren(
+            ...pools.filter((/** @type {any} */ p) => p.blockCount).map((/** @type {any} */ p) => {
+              const li = document.createElement("li"), share = p.blockCount / total;
+              li.style.setProperty("--share", `${(share * 100).toFixed(1)}%`);
+              li.append(
+                mark(p.slug, p.name),
+                Object.assign(document.createElement("b"), { textContent: p.name }),
+                Object.assign(document.createElement("output"), { textContent: `${(share * 100).toFixed(1)}% · ${grouped(p.blockCount)} blocks${w1 ? ` · ${write(share * w1)}` : ""}` }),
+                document.createElement("i"),
+              );
+              return li;
+            }),
+          );
+        },
+        async price() {
+          const [diffs, days, blocks] = await Promise.all([
+            read("/api/series/difficulty/height?start=-4032"),
+            read("/api/series/price/day1?start=-30"),
+            read("/api/series/price/height?start=-12"),
+          ]);
+          // 01: the formula with the chain's numbers now (the gateway's settings: 20 J/TH, $0.06 a kWh, $0.001 at least).
+          const d = diffs.data.map(Number).filter((v) => v > 0), perBlock = d.reduce((a, v) => a + work(v), 0) / Math.max(1, d.length);
+          const kwh = (perBlock / 1e12) * 20 / 3_600_000, usd = kwh * 0.06, reward = 35 / 2 ** (Math.floor(tip.h / 300_000) % 32), cost = usd / reward;
+          const usdSaid = (/** @type {number} */ v) => (v >= 0.001 ? dollars(v) : `$${small(v)}`);
+          figures($("p-cost"), [
+            ["Work a block", hashesSaid(perBlock), `the average of the last ${grouped(d.length)}`],
+            ["Its electricity", `${small(kwh)} kWh`, "at 20 J/TH"],
+            ["Its cost", usdSaid(usd), "at $0.06 a kWh"],
+            ["Reward a block", `${+reward.toPrecision(6)} DMD`],
+            ["Cost of one DMD", usdSaid(cost), "its cost over the reward"],
+            ["Reference price", dollars(Math.max(0.001, cost)), cost < 0.001 ? "the minimum" : "the cost"],
+          ]);
+          $("p-cost-say").textContent = cost < 0.001 ? `Mining one DMD costs ${usdSaid(cost)}, under the minimum: the reference price is the minimum, $0.001.` : `Mining one DMD costs ${usdSaid(cost)}, above the minimum: that's the reference price.`;
+          // 02: the past 30 days, the floor dashed.
+          const dayValues = days.data.map(Number), dayTop = Math.max(0.00125, ...dayValues) * 1.05;
+          bars($("p-days"), dayValues.map((v, k) => ({ h: v / dayTop, title: `${day(DAY_ZERO + (days.start + k) * 86400)}: ${v > 0 ? dollars(v) : "–"}`, label: "", kind: k === dayValues.length - 1 ? "lead" : "" })), 0.001 / dayTop, "$0.001, the minimum");
+          // 03: the last 12 blocks, newest first.
+          const b = blocks.data.map(Number), blockTop = Math.max(0.00125, ...b) * 1.05;
+          bars($("p-blocks"), b.map((v, k) => ({ h: v / blockTop, title: `Block ${grouped(blocks.start + k)}: ${dollars(v)}`, label: k === b.length - 1 ? dollars(v) : "", kind: k === b.length - 1 ? "lead" : "" })).reverse());
+          $("p-now").textContent = now.price ? dollars(now.price) : "…";
+        },
+        async difficulty() {
+          const [diffs, times, day1, week1, month1] = await Promise.all([
+            read("/api/series/difficulty/height?start=-31"),
+            read("/api/series/timestamp/height?start=-4100"),
+            one("/api/series/difficulty/height?start=-577&end=-576").catch(() => 0),
+            one("/api/series/difficulty/height?start=-4033&end=-4032").catch(() => 0),
+            one("/api/series/difficulty/height?start=-17281&end=-17280").catch(() => 0),
+          ]);
+          // 01: each of the last 30 blocks' change, newest first.
+          const d = diffs.data.map(Number), changes = [];
+          for (let i = d.length - 1; i > 0 && changes.length < 30; i--) changes.push({ h: diffs.start + i, x: d[i - 1] > 0 ? d[i] / d[i - 1] - 1 : 0 });
+          const widest = Math.max(0.01, ...changes.map((c) => Math.abs(c.x)));
+          bars($("d-changes"), changes.map((c) => ({ h: Math.abs(c.x) / widest, title: `Block ${grouped(c.h)}: ${pct(c.x)}`, kind: c.x < 0 ? "down" : "up" })));
+          const up = changes.filter((c) => c.x > 0).length, down = changes.filter((c) => c.x < 0).length, same = changes.length - up - down;
+          $("d-changes-say").textContent = `${up} up, ${down} down${same ? `, ${same} unchanged` : ""}`;
+          // 02: the LWMA's weights, newest first: block k of 60 weighs k, out of 1,830.
+          bars($("d-weights"), Array.from({ length: 60 }, (_, i) => ({ h: (60 - i) / 60, title: `${i ? `${i + 1}th newest` : "The newest"}: ${(((60 - i) / 1830) * 100).toFixed(2)}%`, label: "", kind: i ? "" : "lead" })));
+          // 03: the average time between blocks.
+          const t = times.data.map(Number), last = t.at(-1);
+          const avg = (/** @type {number} */ n) => (t.length > n ? (last - t[t.length - 1 - n]) / n : 0);
+          const within = (/** @type {number} */ seconds) => {
+            let n = 0;
+            for (let i = t.length - 1; i > 0 && t[i - 1] > last - seconds; i--) n++;
+            return n ? seconds / n : 0;
+          };
+          figures($("d-times"), [
+            ["The last 60 blocks", avg(60) ? span(avg(60)) : "–"],
+            ["The last 24 hours", within(86400) ? span(within(86400)) : "–"],
+            ["The last 7 days", within(7 * 86400) ? span(within(7 * 86400)) : "–"],
+            ["The target", "2 min 30 s"],
+          ]);
+          // 04: now against before.
+          const write = MEASURES.difficulty.write, latest = d.at(-1) ?? 0;
+          figures($("d-since"), [
+            ["Now", latest ? write(latest) : "–"],
+            ["A day ago", day1 ? write(day1) : "–", day1 ? `${pct(latest / day1 - 1)} since` : ""],
+            ["A week ago", week1 ? write(week1) : "–", week1 ? `${pct(latest / week1 - 1)} since` : ""],
+            ["A month ago", month1 ? write(month1) : "–", month1 ? `${pct(latest / month1 - 1)} since` : "not a month of blocks yet"],
+          ]);
+        },
+      };
+      /** The measure shown's chapters, read again; one failing leaves the rest as they were. */
+      function readChapters() {
+        CHAPTERS[measure]().catch((error) => console.warn("The chapters couldn't all be read:", error));
       }
 
       // ── The chart, edge to edge ──
@@ -972,11 +1643,13 @@
       function frame() {
         const w = chart.clientWidth, h = chart.clientHeight, n = points.length, words = wordsOver();
         const values = points.map((pt) => pt.v), lo = Math.min(...values), hi = Math.max(...values);
-        const log = MEASURES[measure].log && hi / lo >= 4;
+        // (The scale wide enough for most of the blocks behind the line too, once read.)
+        const low = Math.min(lo, wide?.lo ?? lo), high = Math.max(hi, wide?.hi ?? hi);
+        const log = MEASURES[measure].log && high / low >= 4;
         const f = (/** @type {number} */ v) => (log ? Math.log(v) : v);
         const top = words.top + CLEAR, bottom = Math.max(top + 40, words.bottom - CLEAR);
         // (A flat range drawn at mid-height, a hair of room either side.)
-        const [a, b] = hi > lo ? [f(lo), f(hi)] : [f(lo) - 1, f(hi) + 1];
+        const [a, b] = high > low ? [f(low), f(high)] : [f(low) - 1, f(high) + 1];
         // (Its last point a little in from the right edge, its dot whole.)
         const x = (/** @type {number} */ k) => (n > 1 ? (k / (n - 1)) * (w - 16) + 1 : w / 2);
         const y = (/** @type {number} */ v) => bottom - ((f(v) - a) / (b - a)) * (bottom - top);
@@ -991,9 +1664,11 @@
         if (!points.length) {
           svg.innerHTML = "";
           framed = null;
+          drawHeat({ w: chart.clientWidth, h: chart.clientHeight, n: 0, x: () => 0, y: () => 0, lo: 0, hi: 0, top: 0, bottom: 0 });
           return;
         }
         const f = (framed = frame());
+        drawHeat(f);
         svg.setAttribute("viewBox", `0 0 ${f.w} ${f.h}`);
         const path = points.map((pt, k) => `${k ? "L" : "M"}${f.x(k).toFixed(1)},${f.y(pt.v).toFixed(1)}`).join("");
         const endX = f.x(f.n - 1), endY = f.y(points[f.n - 1].v);
@@ -1088,6 +1763,8 @@
         for (const b of $("measures").querySelectorAll("button")) b.setAttribute("aria-checked", String(b.dataset.measure === measure));
         for (const b of $("ranges").querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.range === range));
         $("more").textContent = `How ${measure === "price" ? "the reference price is set" : measure === "difficulty" ? "the difficulty is set" : "hashrate is measured"}`;
+        for (const group of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll(".chapters"))) group.hidden = group.dataset.for !== measure;
+        $("legend").textContent = MEASURES[measure].legend;
         /** @type {HTMLAnchorElement} */ (document.querySelector(".more")).href = `#${MEASURES[measure].about}`;
       }
       function choose(/** @type {Partial<{ measure: typeof measure, range: typeof range }>} */ next) {
@@ -1098,6 +1775,8 @@
         showChoices();
         remember();
         points = [];
+        behind = [];
+        wide = null;
         draw();
         tell(null);
         refresh();

@@ -16,7 +16,7 @@ pub struct MempoolInfo {
     /// Total virtual size of all transactions in the mempool (vbytes), sigop-adjusted as Bitcoin
     /// Core's `getmempoolinfo` `bytes` and every fee rate measure it
     pub vsize: VSize,
-    /// Total fees of all transactions in the mempool (satoshis)
+    /// Total fees of all transactions in the mempool (data)
     pub total_fee: Sats,
     /// Fee histogram as Esplora bins it: `[[fee_rate, vsize], ...]` by descending fee rate, each
     /// entry the vsize of the transactions paying from its fee rate up to the previous entry's,

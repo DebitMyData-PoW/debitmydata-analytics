@@ -6,7 +6,7 @@ use vecdb::{ReadableBoxedVec, ReadableCloneableVec};
 
 use super::SupplyChange;
 
-/// A cohort's supply views over its stored sats: the supply, its change over each window and its
+/// A cohort's supply views over its stored data: the supply, its change over each window and its
 /// share. `name` is the supply series name (`entry_discount_supply`).
 #[derive(Clone, Traversable)]
 pub struct SupplyViews {

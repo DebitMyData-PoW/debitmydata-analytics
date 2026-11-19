@@ -8,6 +8,6 @@ pub struct Utxo {
     pub txid: Txid,
     pub vout: Vout,
     pub status: TxStatus,
-    /// Output value in satoshis
+    /// Output value in data
     pub value: Sats,
 }

@@ -6,7 +6,7 @@ use super::block_window::BlockWindow;
 use crate::{Query, Result};
 
 impl Query {
-    /// Round-half-up mean block fees in sats per time bucket over `time_period`, chronological,
+    /// Round-half-up mean block fees in data per time bucket over `time_period`, chronological,
     /// with the bucket's mean USD spot price (not fees in USD: clients multiply).
     pub fn block_fees(&self, time_period: TimePeriod) -> Result<Vec<BlockFeesEntry>> {
         let pin = self.pin_safe_lengths()?;

@@ -72,7 +72,7 @@ impl<M: StorageMode> Vecs<M> {
         &self.all_capital
     }
 
-    /// Each age range's supply in sats.
+    /// Each age range's supply in data.
     pub fn age_supplies(&self) -> AgeRange<&impl ReadableVec<Height, Sats>> {
         AgeRange::from_fn(|id| &id.select(&self.ranges).supply.total.value.sats.height)
     }

@@ -10,11 +10,11 @@ use crate::{Sats, Transaction, Txid, VSize};
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct MempoolTxSummary {
     pub txid: Txid,
-    /// Transaction fee (sats)
+    /// Transaction fee (data)
     pub fee: Sats,
     /// Virtual size (vbytes)
     pub vsize: VSize,
-    /// Total output value (sats)
+    /// Total output value (data)
     pub value: Sats,
 }
 

@@ -4,13 +4,13 @@ use brk_types::{FeeRate, PreciseRecommendedFees, RecommendedFees};
 
 use super::block_stats::BlockStats;
 
-/// Rounding granularity in sat/vB of mempool.space's `/api/v1/fees/precise`.
+/// Rounding granularity in data/vB of mempool.space's `/api/v1/fees/precise`.
 const PRECISE: FeeRate = FeeRate::from_milli(1);
-/// Rounding granularity in sat/vB of mempool.space's `/api/v1/fees/recommended`.
+/// Rounding granularity in data/vB of mempool.space's `/api/v1/fees/recommended`.
 const WHOLE: FeeRate = FeeRate::from_milli(1_000);
 /// `getPreciseRecommendedFee` adds this to `fastestFee` and
 /// half of it to `halfHourFee`, then floors them. Compensates
-/// for sub-1-sat/vB fees mined by hashrate that ignores the
+/// for sub-1-data/vB fees mined by hashrate that ignores the
 /// relay floor.
 const PRIORITY_FACTOR: FeeRate = FeeRate::from_milli(500);
 const MIN_FASTEST_FEE: FeeRate = FeeRate::from_milli(1_000);
@@ -55,7 +55,7 @@ impl FeeView {
 /// over Bitview's projected blocks. One input differs: a block's median is the vsize-weighted
 /// median of its members' effective rates (Core's `getblockstats` rule, as every Bitview median),
 /// where mempool.space averages the middle 0.25% of a 4M WU block padded below with its unused
-/// space; the two agree on full blocks. `min_fee` is bitcoind's live `mempoolminfee` in sat/vB
+/// space; the two agree on full blocks. `min_fee` is bitcoind's live `mempoolminfee` in data/vB
 /// and floors every tier while the mempool is purging by fee.
 pub fn precise(stats: &[BlockStats], min_fee: FeeRate) -> PreciseRecommendedFees {
     let fees = recommend(stats, min_fee, PRECISE);
@@ -66,7 +66,7 @@ pub fn precise(stats: &[BlockStats], min_fee: FeeRate) -> PreciseRecommendedFees
     }
 }
 
-/// mempool.space's `getRecommendedFee`: the same tiers at whole sat/vB, without
+/// mempool.space's `getRecommendedFee`: the same tiers at whole data/vB, without
 /// [`precise`]'s priority offsets.
 pub fn whole(stats: &[BlockStats], min_fee: FeeRate) -> RecommendedFees {
     let fees = recommend(stats, min_fee, WHOLE);

@@ -6,7 +6,7 @@ use statedb::Cursor;
 /// Applies the cursor's next block and hands `change` its effect on the price/age distribution,
 /// in the order every URPD applies it: the age crossings of the origins as they stood before
 /// the block, then its new outputs (under an hour old), then its spends at their origins' ages.
-/// Each change is (age, origin, signed sats), never zero; `crossings` is the crossing scan's
+/// Each change is (age, origin, signed data), never zero; `crossings` is the crossing scan's
 /// position, kept between blocks.
 pub(crate) fn block_changes(
     cursor: &mut Cursor<'_>,

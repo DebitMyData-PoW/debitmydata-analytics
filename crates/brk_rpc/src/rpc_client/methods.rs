@@ -43,9 +43,9 @@ impl Client {
         Ok(hash.into())
     }
 
-    /// Convert bitcoind's `mempoolminfee` (DMD/kvB f64) to sat/vB. Round-trip
+    /// Convert bitcoind's `mempoolminfee` (DMD/kvB f64) to data/vB. Round-trip
     /// via integer sat/kvB (bitcoind's native CFeeRate unit) so JSON f64 drift
-    /// cannot move an exact sat/vB boundary upward.
+    /// cannot move an exact data/vB boundary upward.
     fn build_min_fee(btc_per_kvb: f64) -> Result<FeeRate> {
         let sat_per_kvb = (btc_per_kvb * 100_000_000.0).round();
         if !btc_per_kvb.is_finite() || btc_per_kvb < 0.0 || sat_per_kvb >= u64::MAX as f64 {

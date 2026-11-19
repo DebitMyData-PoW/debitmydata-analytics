@@ -3,7 +3,7 @@ use vecdb::{Convert, LazyVec, ReadableCloneableVec};
 
 use crate::{LazyPreviousDeltaVec, Value};
 
-/// Per-block values derived from cumulative sats and cents.
+/// Per-block values derived from cumulative data and cents.
 pub type LazyValueBlock = Value<
     LazyPreviousDeltaVec<Height, Sats>,
     LazyPreviousDeltaVec<Height, Cents>,

@@ -16,7 +16,7 @@ pub struct TickTockResult {
 /// range. Each boundary's search position is cached and, timestamps being monotonic, only
 /// advances, so a block scans just the origins crossing it.
 ///
-/// Returns the sats that aged out of each range and the coin days created in each during the
+/// Returns the data that aged out of each range and the coin days created in each during the
 /// preceding block interval.
 pub fn tick_tock_next_block(
     states: &mut UTXOStates,

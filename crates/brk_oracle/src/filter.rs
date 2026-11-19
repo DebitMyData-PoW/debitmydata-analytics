@@ -2,7 +2,7 @@ use brk_types::{OutputType, Sats};
 
 use crate::{HistogramRaw, sats_to_bin};
 
-/// Dust floor: outputs below this many sats are too small to be payments.
+/// Dust floor: outputs below this many data are too small to be payments.
 const MIN_SATS: u64 = 1000;
 
 /// Why an output isn't a payment: the first rule that skips it, in the order the filter asks.

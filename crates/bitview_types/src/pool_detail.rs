@@ -29,7 +29,7 @@ pub struct PoolDetail {
     #[serde(rename = "avgBlockHealth")]
     pub avg_block_health: Option<f64>,
 
-    /// Total reward earned by this pool: coinbase output value of every block it mined (sats),
+    /// Total reward earned by this pool: coinbase output value of every block it mined (data),
     /// as a decimal string
     #[serde(rename = "totalReward", with = "crate::decimal_string")]
     #[schemars(with = "String", extend("pattern" = "^[0-9]+$"))]

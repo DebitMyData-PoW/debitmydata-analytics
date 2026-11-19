@@ -3,7 +3,7 @@ use brk_types::{Bitcoin, Sats};
 use crate::scalar::scalar;
 
 scalar! {
-    /// A mean amount in sats.
+    /// A mean amount in data.
     float SatsFract(f64)
 }
 

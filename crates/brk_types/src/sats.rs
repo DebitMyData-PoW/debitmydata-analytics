@@ -12,7 +12,7 @@ use crate::{CheckedSub, unlikely};
 #[cfg(feature = "storage")]
 use vecdb::{OverflowVecValue, Pco, SaturatingAdd, Version};
 
-/// An amount in satoshis (100,000,000 to a DMD).
+/// An amount in data (100,000,000 to a DMD).
 #[derive(
     Debug,
     PartialEq,

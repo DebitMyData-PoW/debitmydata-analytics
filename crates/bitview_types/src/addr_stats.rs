@@ -22,6 +22,6 @@ pub struct AddressStats {
     /// Statistics for unconfirmed transactions in the mempool
     pub mempool_stats: AddressMempoolStats,
 
-    /// Total current balance in satoshis, including pending (unconfirmed) mempool changes
+    /// Total current balance in data, including pending (unconfirmed) mempool changes
     pub balance: Sats,
 }

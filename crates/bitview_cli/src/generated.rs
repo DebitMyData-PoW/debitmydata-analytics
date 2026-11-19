@@ -183,12 +183,12 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/blindbit/mainnet/tweak-index/{height}",
         summary: "Tweak index",
-        description: "The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional and takes any value, as BlindBit takes it (0 when left out), but transactions whose Taproot outputs all hold less than 600 sats aren't held, so any limit below 600 answers as 600.",
+        description: "The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` data, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional and takes any value, as BlindBit takes it (0 when left out), but transactions whose Taproot outputs all hold less than 600 data aren't held, so any limit below 600 answers as 600.",
         path_parameters: &[
             Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
         ],
         query_parameters: &[
-            Parameter { api_name: "dustLimit", name: "dust-limit", required: false, value_name: "integer", repeatable: false, description: Some("Least value in sats of a Taproot output for its transaction to be listed. Optional, any\nvalue, as BlindBit takes it (0 when left out); below 600, the least value held, it answers\nas 600.") },
+            Parameter { api_name: "dustLimit", name: "dust-limit", required: false, value_name: "integer", repeatable: false, description: Some("Least value in data of a Taproot output for its transaction to be listed. Optional, any\nvalue, as BlindBit takes it (0 when left out); below 600, the least value held, it answers\nas 600.") },
         ],
         request_body: None,
     },
@@ -197,12 +197,12 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/blindbit/mainnet/tweaks/{height}",
         summary: "Cut-through tweaks",
-        description: "`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.",
+        description: "`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` data, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.",
         path_parameters: &[
             Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
         ],
         query_parameters: &[
-            Parameter { api_name: "dustLimit", name: "dust-limit", required: false, value_name: "integer", repeatable: false, description: Some("Least value in sats of a Taproot output for its transaction to be listed. Optional, any\nvalue, as BlindBit takes it (0 when left out); below 600, the least value held, it answers\nas 600.") },
+            Parameter { api_name: "dustLimit", name: "dust-limit", required: false, value_name: "integer", repeatable: false, description: Some("Least value in data of a Taproot output for its transaction to be listed. Optional, any\nvalue, as BlindBit takes it (0 when left out); below 600, the least value held, it answers\nas 600.") },
         ],
         request_body: None,
     },
@@ -250,7 +250,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mining/blocks/fee-rates/{time_period}",
         summary: "Block fee rates",
-        description: "Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each a whole sat/vB (`/precise` for 3 decimals).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*",
+        description: "Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each a whole data/vB (`/precise` for 3 decimals).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*",
         path_parameters: &[
             Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.") },
         ],
@@ -263,7 +263,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mining/blocks/fee-rates/{time_period}/precise",
         summary: "Block fee rates (precise)",
-        description: "Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each in sat/vB to 3 decimals.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*",
+        description: "Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each in data/vB to 3 decimals.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*",
         path_parameters: &[
             Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.") },
         ],
@@ -860,7 +860,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/fees/precise",
         summary: "Recommended fee rates (precise)",
-        description: "Recommended fee rates by confirmation target, with up to three decimal places and support for sub-sat/vB rates.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*",
+        description: "Recommended fee rates by confirmation target, with up to three decimal places and support for sub-data/vB rates.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -884,7 +884,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/fees/recommended",
         summary: "Recommended fees",
-        description: "Recommended fee rates by confirmation target, in whole sat/vB.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*",
+        description: "Recommended fee rates by confirmation target, in whole data/vB.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -1210,7 +1210,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/urpd/{cohort}/{point}",
         summary: "URPD at block height or date",
-        description: "URPD (UTXO realized price distribution: how much supply last moved at each price) for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is DMD. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.",
+        description: "URPD (UTXO realized price distribution: how much supply last moved at each price) for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is DMD. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole data) and the bucket values follow it.",
         path_parameters: &[
             Parameter { api_name: "cohort", name: "cohort", required: true, value_name: "UrpdCohort", repeatable: false, description: None },
             Parameter { api_name: "point", name: "point", required: true, value_name: "HeightOrDate", repeatable: false, description: Some("Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)") },

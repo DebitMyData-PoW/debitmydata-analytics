@@ -123,7 +123,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         price on the price grid (four significant digits of the price in cents, \
                         within 0.05% of the exact price), rounded to the cent per bucket, so the \
                         buckets need not sum to the realized cap series. With a `wakefulness` or \
-                        `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and \
+                        `mobility` `weight`, `supply` is the weighted supply (whole data) and \
                         the bucket values follow it.",
                     )
                     .json_response::<Urpd>()

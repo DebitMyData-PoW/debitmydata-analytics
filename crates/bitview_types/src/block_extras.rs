@@ -7,33 +7,33 @@ use crate::{BlockOrphan, BlockPool};
 /// Extended block data matching mempool.space /api/v1/blocks extras
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct BlockExtras {
-    /// Total fees in satoshis
+    /// Total fees in data
     #[serde(rename = "totalFees")]
     pub total_fees: Sats,
 
-    /// Median effective (CPFP) fee rate in sat/vB, by vsize: the rate half the block's space
+    /// Median effective (CPFP) fee rate in data/vB, by vsize: the rate half the block's space
     /// paid at most (Bitcoin Core's `getblockstats` rule; mempool.space averages the middle
     /// 0.25% of a 4M WU block instead)
     #[serde(rename = "medianFee")]
     pub median_fee: FeeRate,
 
-    /// Effective (CPFP) fee rate range in sat/vB: [min, 10%, 25%, 50%, 75%, 90%, max], the
+    /// Effective (CPFP) fee rate range in data/vB: [min, 10%, 25%, 50%, 75%, 90%, max], the
     /// percentiles of block space (vsize-weighted, as `medianFee`; mempool.space ranks
     /// transactions by count), min and max the lower/higher of the 1st/99th percentile and the
     /// extreme rate in the block's last/first 2% of vsize
     #[serde(rename = "feeRange")]
     pub fee_range: [FeeRate; 7],
 
-    /// Total block reward (subsidy + fees) in satoshis
+    /// Total block reward (subsidy + fees) in data
     pub reward: Sats,
 
     pub pool: BlockPool,
 
-    /// Mean fee per non-coinbase transaction in satoshis, rounded down (0 without any)
+    /// Mean fee per non-coinbase transaction in data, rounded down (0 without any)
     #[serde(rename = "avgFee")]
     pub avg_fee: Sats,
 
-    /// Average fee rate in sat/vB
+    /// Average fee rate in data/vB
     #[serde(rename = "avgFeeRate")]
     pub avg_fee_rate: FeeRate,
 
@@ -72,15 +72,15 @@ pub struct BlockExtras {
     #[schemars(example = 7500)]
     pub total_outputs: u64,
 
-    /// Total output amount in satoshis, coinbase excluded
+    /// Total output amount in data, coinbase excluded
     #[serde(rename = "totalOutputAmt")]
     pub total_output_amt: Sats,
 
-    /// Median fee amount in satoshis
+    /// Median fee amount in data
     #[serde(rename = "medianFeeAmt")]
     pub median_fee_amt: Sats,
 
-    /// Fee amount percentiles in satoshis: [min, 10%, 25%, 50%, 75%, 90%, max]
+    /// Fee amount percentiles in data: [min, 10%, 25%, 50%, 75%, 90%, max]
     #[serde(rename = "feePercentiles")]
     pub fee_percentiles: [Sats; 7],
 
@@ -110,7 +110,7 @@ pub struct BlockExtras {
     #[schemars(example = 170_000_000)]
     pub utxo_set_size: u64,
 
-    /// Total input amount in satoshis
+    /// Total input amount in data
     #[serde(rename = "totalInputAmt")]
     pub total_input_amt: Sats,
 

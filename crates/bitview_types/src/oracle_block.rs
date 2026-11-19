@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 /// The oracle at one block: what it counted (`histogram`, `outputs`), where it looked (`first_bin`,
 /// `scores`) and what it found (`bin`, `price`).
 ///
-/// Bins are the oracle's log scale of amounts in sats, 200 a decade: amount `sats` is in bin
-/// `round(log10(sats) * 200)`, bin 0 at 1 sat to bin 2399 just under 10^12. Read as where $100
+/// Bins are the oracle's log scale of amounts in data, 200 a decade: amount `sats` is in bin
+/// `round(log10(sats) * 200)`, bin 0 at 1 data to bin 2399 just under 10^12. Read as where $100
 /// lands, a bin is a price: `10^(10 - bin / 200)` dollars, higher bins lower prices.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct OracleBlock {
@@ -56,9 +56,9 @@ pub struct OracleOutputs {
     pub op_return: u32,
     /// Taproot outputs: mostly protocol traffic.
     pub taproot: u32,
-    /// Under 1,000 sats.
+    /// Under 1,000 data.
     pub dust: u32,
-    /// Round amounts in bitcoin (within 0.1% of 1, 2, 3, 5 or 6 times a power of ten sats).
+    /// Round amounts in bitcoin (within 0.1% of 1, 2, 3, 5 or 6 times a power of ten data).
     pub round_btc: u32,
     /// The rest: the payments it counted.
     pub payments: u32,

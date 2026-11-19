@@ -8,7 +8,7 @@ const HEADER: usize = 52;
 /// rows, 1: PCO columns).
 const FORMAT: u64 = 1 << 32;
 
-/// Decoded spend rows: origins, counts, sats.
+/// Decoded spend rows: origins, counts, data.
 pub(crate) type Rows = (Vec<u32>, Vec<u64>, Vec<u64>);
 
 /// Per-block spent amounts grouped by the height of the outputs they spend.
@@ -59,7 +59,7 @@ impl Spends {
         self.journal.commit()
     }
     /// Journals a block's spent rows, sorted by origin, as three PCO columns: origin gaps, counts
-    /// and sats. The order is the format's: readers see the rows by origin, whatever order they
+    /// and data. The order is the format's: readers see the rows by origin, whatever order they
     /// came in.
     pub fn push(
         &mut self,
@@ -97,7 +97,7 @@ impl Spends {
     pub(crate) fn cursor(&self, end: usize) -> JournalReader<'_> {
         JournalReader::new(&self.journal, end)
     }
-    /// A record's block hash and total, its rows decoded into `rows` (origins, counts, sats);
+    /// A record's block hash and total, its rows decoded into `rows` (origins, counts, data);
     /// returns the row count.
     pub(crate) fn decode(record: &[u8], rows: &mut Rows) -> Result<([u8; 32], Amount, usize)> {
         if record.len() < HEADER {

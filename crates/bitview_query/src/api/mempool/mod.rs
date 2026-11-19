@@ -182,7 +182,7 @@ impl Query {
         Ok(MempoolTxids { mempool, hash })
     }
 
-    /// mempool.space's `/api/v1/fees/recommended` (whole sat/vB) with its content identity, built
+    /// mempool.space's `/api/v1/fees/recommended` (whole data/vB) with its content identity, built
     /// once per projection.
     pub fn recommended_fees_json(&self) -> Result<(Arc<[u8]>, RepresentationId)> {
         published_json(self.require_mempool()?.fees_json()?)

@@ -8,14 +8,14 @@ use serde::{Deserialize, Serialize};
 /// Based on mempool.space's format with type_index extension.
 #[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct AddressChainStats {
-    /// Current confirmed balance in satoshis
+    /// Current confirmed balance in data
     pub balance: Sats,
 
     /// Total number of transaction outputs that funded this address
     #[schemars(example = 5)]
     pub funded_txo_count: u32,
 
-    /// Total amount in satoshis received by this address across all funded outputs
+    /// Total amount in data received by this address across all funded outputs
     #[schemars(example = Sats::new(15007599040))]
     pub funded_txo_sum: Sats,
 
@@ -23,7 +23,7 @@ pub struct AddressChainStats {
     #[schemars(example = 5)]
     pub spent_txo_count: u32,
 
-    /// Total amount in satoshis spent from this address
+    /// Total amount in data spent from this address
     #[schemars(example = Sats::new(15007599040))]
     pub spent_txo_sum: Sats,
 

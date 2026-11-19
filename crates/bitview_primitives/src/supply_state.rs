@@ -17,7 +17,7 @@ use vecdb::{Bytes, Formattable};
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 pub struct SupplyState {
     pub utxo_count: u64,
-    /// Total value in satoshis
+    /// Total value in data
     pub value: Sats,
 }
 

@@ -30,7 +30,7 @@ pub fn dollars_bin_offset(dollars: f64) -> f64 {
 }
 
 /// Converts a fractional bin to a USD price in cents. At the $100 reference,
-/// sats = 100 * 1e8 / P, so P = 10^(10 - bin / 200) dollars.
+/// data = 100 * 1e8 / P, so P = 10^(10 - bin / 200) dollars.
 #[inline]
 pub fn bin_to_cents(bin: f64) -> Cents {
     Cents::from(Dollars::from(

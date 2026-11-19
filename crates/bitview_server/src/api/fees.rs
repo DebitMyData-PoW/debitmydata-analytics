@@ -37,7 +37,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     .tag(tags::FEES)
                     .mcp_ignore()
                     .summary("Recommended fees")
-                    .description("Recommended fee rates by confirmation target, in whole sat/vB.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*")
+                    .description("Recommended fee rates by confirmation target, in whole data/vB.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*")
                     .json_response::<RecommendedFees>()
                     .not_modified()
             },
@@ -55,7 +55,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 op.id("get_precise_fees")
                     .tag(tags::FEES)
                     .summary("Recommended fee rates (precise)")
-                    .description("Recommended fee rates by confirmation target, with up to three decimal places and support for sub-sat/vB rates.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*")
+                    .description("Recommended fee rates by confirmation target, with up to three decimal places and support for sub-data/vB rates.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*")
                     .json_response::<PreciseRecommendedFees>()
                     .not_modified()
             },

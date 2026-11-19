@@ -14,7 +14,7 @@ use vecdb::{AnyStoredVec, Database, ReadableCloneableVec, ReadableVec, Rw, Stora
 #[derive(Traversable)]
 pub struct CostBasisVecs<M: StorageMode = Rw> {
     /// Creation prices (spot when each output was created) of the cohort's unspent outputs,
-    /// weighted by the cohort's weighted satoshis.
+    /// weighted by the cohort's weighted data.
     pub by_coin: CostBasisByCoin<M>,
     /// Creation prices (spot when each output was created) of the cohort's unspent outputs,
     /// weighted by each output's weighted USD value at creation.
@@ -23,7 +23,7 @@ pub struct CostBasisVecs<M: StorageMode = Rw> {
     /// without weighted supply or a positive spot price.
     #[traversable(lead = "Supply near the price: the share of coins that last moved within 5% of the price of the day.")]
     supply_density: DensityVecs<M>,
-    /// Share of the cohort's weighted capital (satoshis times creation
+    /// Share of the cohort's weighted capital (data times creation
     /// price) with a creation price near spot; undefined (null) without weighted capital or a
     /// positive spot price.
     #[traversable(lead = "Capital near the price: the share of the capital whose coins last moved within 5% of the price of the day.")]

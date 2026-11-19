@@ -45,7 +45,7 @@ impl ValuePerBlockCumulative {
         })
     }
 
-    /// Appends one block's sats; fiat values compute apart.
+    /// Appends one block's data; fiat values compute apart.
     pub fn push_sats(&mut self, value: Sats) {
         self.last_sats.push(&mut self.cumulative.sats.height, value);
     }

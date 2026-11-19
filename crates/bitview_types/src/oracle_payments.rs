@@ -3,7 +3,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 /// 144 blocks' payments, each read as each of the oracle's 19 round-dollar amounts ($1 to
-/// $10,000) at its exact amount in sats, counted by the price each reading implies in buckets a
+/// $10,000) at its exact amount in data, counted by the price each reading implies in buckets a
 /// tenth of the oracle's bins.
 ///
 /// A reading of `sats` as `amount` dollars implies $100 lands at bin

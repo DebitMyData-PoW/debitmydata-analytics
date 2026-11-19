@@ -142,7 +142,7 @@ const TAGS: [(&str, &str); 13] = [
         eligible transactions, BIP158 filters of its new Taproot outputs and of its spends of \
         Taproot outputs, its eligible transactions' Taproot outputs and its spent index. \
         Precomputed: no tweak or filter math per request.\n\n\
-        Transactions whose Taproot outputs all hold less than 600 sats are left out: such an \
+        Transactions whose Taproot outputs all hold less than 600 data are left out: such an \
         output costs more to spend than it holds, and wallets skip it already. `dustLimit` is \
         optional and takes any value, as BlindBit takes it, but one below 600 answers as 600.\n\n\
         Out on purpose: mempool tweaks and a server-side scan. Both need a push subscription, \

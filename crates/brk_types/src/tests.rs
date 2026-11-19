@@ -54,7 +54,7 @@ fn address_output_types() {
 }
 
 /// An amount's value rounds half a cent up; past u64 it widens to u128 and still agrees with the
-/// exact product; a NaN price stays NaN, and so does a realized price over no sats.
+/// exact product; a NaN price stays NaN, and so does a realized price over no data.
 #[test]
 fn values_round_half_up_and_widen_past_u64() {
     let at = |sats: u64, cents_per_btc: u64| Sats::from(sats).value_at(Cents::from(cents_per_btc));

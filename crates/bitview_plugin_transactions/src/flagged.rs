@@ -40,7 +40,7 @@ impl<T, V> Copy for Totals<'_, T, V> {}
 
 /// A kind of transaction's per-block count (`<kind>_count`, as `p2tr_tx_count`), with its cumulative
 /// and window sums, and its share of all transactions over the same spans (`<kind>_share_<window>`);
-/// and the bitcoin they moved (`<kind>_value`), likewise.
+/// and the DMD they moved (`<kind>_value`), likewise.
 #[derive(Traversable, Deref, DerefMut)]
 pub struct TxCount<M: StorageMode = Rw> {
     #[deref]
@@ -52,7 +52,7 @@ pub struct TxCount<M: StorageMode = Rw> {
     pub value: TxValue<M>,
 }
 
-/// The bitcoin a kind of transaction moved: the value of their inputs, the coinbase's none, as
+/// The DMD a kind of transaction moved: the value of their inputs, the coinbase's none, as
 /// transfer volume counts it; with its cumulative and window sums, and its share of transfer volume
 /// over the same spans (`<kind>_value_share_<window>`).
 #[derive(Traversable, Deref, DerefMut)]
@@ -66,18 +66,18 @@ pub struct TxValue<M: StorageMode = Rw> {
 }
 
 impl TxValue {
-    /// A block's value, in sats: its dollars compute apart (`compute_cents`).
+    /// A block's value, in data: its dollars compute apart (`compute_cents`).
     #[inline]
     pub(crate) fn push(&mut self, value: Sats) {
         self.value.push_sats(value);
     }
 
-    /// The stored sats, per block (the dollars resume by them).
+    /// The stored data, per block (the dollars resume by them).
     pub(crate) fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
         &mut self.value.cumulative.sats.height
     }
 
-    /// Each block's dollars, its sats at its price, from `start`.
+    /// Each block's dollars, its data at its price, from `start`.
     pub(crate) fn compute_cents(
         &mut self,
         start: Height,

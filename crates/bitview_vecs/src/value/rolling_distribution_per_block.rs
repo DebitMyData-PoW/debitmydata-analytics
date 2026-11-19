@@ -19,7 +19,7 @@ pub struct RollingDistributionValuePerBlock<M: StorageMode = Rw> {
     #[deref_mut]
     #[traversable(flatten)]
     stats: DistributionStats<Windows<ValuePerBlock<M>>>,
-    /// The kept sats and cents windows of each rolling window, in `Windows` order.
+    /// The kept data and cents windows of each rolling window, in `Windows` order.
     retained: M::WriteOnly<[[Retained<SortedWindow>; 2]; 4]>,
 }
 

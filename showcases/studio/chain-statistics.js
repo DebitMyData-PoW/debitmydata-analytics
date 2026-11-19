@@ -18,10 +18,10 @@
 export const CHAIN_STATISTICS = "Chain statistics";
 
 /**
- * @param {{ t: SeriesTree, facts: Facts | undefined, chart: ChartBuilder, section: SectionBuilder, ramp: (count: number) => readonly string[], flowWindow: (sums: Cumulative["sum"], key: "_1m") => NamedSeries | undefined, underOneSatVb: Cumulative[] }} parts
+ * @param {{ t: SeriesTree, facts: Facts | undefined, chart: ChartBuilder, section: SectionBuilder, ramp: (count: number) => readonly string[], flowWindow: (sums: Cumulative["sum"], key: "_1m") => NamedSeries | undefined, underOneSatVb: Cumulative[], poolSeries?: (slug: string) => Pool }} parts
  * @returns {SectionNode}
  */
-export function chainStatistics({ t, facts, chart, section, ramp, flowWindow, underOneSatVb }) {
+export function chainStatistics({ t, facts, chart, section, ramp, flowWindow, underOneSatVb, poolSeries }) {
   /** A series' change per day, by the days each point spans (see perday). @param {NamedSeries} series */
   const perDay = (series) => `perday(${series.name})`;
   /** A running total's change per day. @param {Cumulative} total */
@@ -86,7 +86,8 @@ export function chainStatistics({ t, facts, chart, section, ramp, flowWindow, un
   /** Some of a day's blocks, as a share of all. @param {string} blocks */
   const ofBlocks = (blocks) => percent(blocks, day.blocks);
   const poolLine = (/** @type {string} */ name, /** @type {Pool} */ pool) => percentLine(`${name} hashrate`, [[`${name} share`, ofBlocks(daily(pool.blockCount))]], 7);
-  const poolOf = (/** @type {string} */ slug) => pools[/** @type {PoolKey} */ (slug in pools ? slug : `_${slug}`)];
+  // (A pool the client lists, else one the server's list gained since, made the same way: see client.poolSeries.)
+  const poolOf = (/** @type {string} */ slug) => pools[/** @type {PoolKey} */ (slug in pools ? slug : `_${slug}`)] ?? poolSeries?.(slug);
   /** The largest pools of each day, as a share of its blocks. @param {string} title @param {Concentration} tops */
   const centralization = (title, tops) => percentLine(title, (/** @type {const} */ ([2, 3, 4, 5, 6])).map((n) => [`top ${n} pools`, ofBlocks(tops[`top${n}`].name)]), 30);
 

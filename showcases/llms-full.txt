@@ -177,11 +177,11 @@ Returns: JSON `BlindbitSpentIndex`
 
 Tweak index
 
-The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional and takes any value, as BlindBit takes it (0 when left out), but transactions whose Taproot outputs all hold less than 600 sats aren't held, so any limit below 600 answers as 600.
+The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` data, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional and takes any value, as BlindBit takes it (0 when left out), but transactions whose Taproot outputs all hold less than 600 data aren't held, so any limit below 600 answers as 600.
 
 Parameters:
 - `height` (path, Height, required)
-- `dustLimit` (query, integer, optional): Least value in sats of a Taproot output for its transaction to be listed. Optional, any value, as BlindBit takes it (0 when left out); below 600, the least value held, it answers as 600.
+- `dustLimit` (query, integer, optional): Least value in data of a Taproot output for its transaction to be listed. Optional, any value, as BlindBit takes it (0 when left out); below 600, the least value held, it answers as 600.
 
 Returns: JSON `Tweak[]`
 
@@ -189,11 +189,11 @@ Returns: JSON `Tweak[]`
 
 Cut-through tweaks
 
-`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.
+`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` data, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.
 
 Parameters:
 - `height` (path, Height, required)
-- `dustLimit` (query, integer, optional): Least value in sats of a Taproot output for its transaction to be listed. Optional, any value, as BlindBit takes it (0 when left out); below 600, the least value held, it answers as 600.
+- `dustLimit` (query, integer, optional): Least value in data of a Taproot output for its transaction to be listed. Optional, any value, as BlindBit takes it (0 when left out); below 600, the least value held, it answers as 600.
 
 Returns: JSON `Tweak[]`
 
@@ -427,7 +427,7 @@ Returns: JSON `MempoolBlock[]`
 
 Recommended fee rates (precise)
 
-Recommended fee rates by confirmation target, with up to three decimal places and support for sub-sat/vB rates. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*
+Recommended fee rates by confirmation target, with up to three decimal places and support for sub-data/vB rates. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*
 
 Returns: JSON `PreciseRecommendedFees`
 
@@ -435,7 +435,7 @@ Returns: JSON `PreciseRecommendedFees`
 
 Recommended fees
 
-Recommended fee rates by confirmation target, in whole sat/vB. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*
+Recommended fee rates by confirmation target, in whole data/vB. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*
 
 Returns: JSON `RecommendedFees`
 
@@ -530,7 +530,7 @@ Returns: JSON `MempoolBlockDiff`
 
 Block fee rates
 
-Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each a whole sat/vB (`/precise` for 3 decimals). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
+Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each a whole data/vB (`/precise` for 3 decimals). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
 
 Parameters:
 - `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
@@ -541,7 +541,7 @@ Returns: JSON `BlockFeeRatesEntry[]`
 
 Block fee rates (precise)
 
-Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each in sat/vB to 3 decimals. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
+Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each in data/vB to 3 decimals. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
 
 Parameters:
 - `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
@@ -1101,7 +1101,7 @@ Returns: JSON `Urpd`
 
 URPD at block height or date
 
-URPD (UTXO realized price distribution: how much supply last moved at each price) for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is DMD. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
+URPD (UTXO realized price distribution: how much supply last moved at each price) for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is DMD. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole data) and the bucket values follow it.
 
 Parameters:
 - `cohort` (path, UrpdCohort, required)
@@ -1176,11 +1176,11 @@ Returns: JSON `ServerVersion`
 
 ### `AddressChainStats`
 
-- `balance`: `Sats` (required) — Current confirmed balance in satoshis
+- `balance`: `Sats` (required) — Current confirmed balance in data
 - `funded_txo_count`: `integer` (required) — Total number of transaction outputs that funded this address
-- `funded_txo_sum`: `Sats` (required) — Total amount in satoshis received by this address across all funded outputs
+- `funded_txo_sum`: `Sats` (required) — Total amount in data received by this address across all funded outputs
 - `spent_txo_count`: `integer` (required) — Total number of transaction outputs spent from this address
-- `spent_txo_sum`: `Sats` (required) — Total amount in satoshis spent from this address
+- `spent_txo_sum`: `Sats` (required) — Total amount in data spent from this address
 - `tx_count`: `integer` (required) — Total number of confirmed transactions involving this address
 - `type_index`: `TypeIndex | null` — Index of this address within its type on the blockchain, null for an address without confirmed activity
 - `realized_price`: `Dollars` (required) — Realized price (average cost basis) in USD
@@ -1194,11 +1194,11 @@ Returns: JSON `ServerVersion`
 
 ### `AddressMempoolStats`
 
-- `balance_delta`: `SatsSigned` (required) — Net pending (unconfirmed) balance change in satoshis; negative when pending spends exceed receipts
+- `balance_delta`: `SatsSigned` (required) — Net pending (unconfirmed) balance change in data; negative when pending spends exceed receipts
 - `funded_txo_count`: `integer` (required) — Number of unconfirmed transaction outputs funding this address
-- `funded_txo_sum`: `Sats` (required) — Total amount in satoshis being received in unconfirmed transactions
+- `funded_txo_sum`: `Sats` (required) — Total amount in data being received in unconfirmed transactions
 - `spent_txo_count`: `integer` (required) — Number of unconfirmed transaction inputs spending from this address
-- `spent_txo_sum`: `Sats` (required) — Total amount in satoshis being spent in unconfirmed transactions
+- `spent_txo_sum`: `Sats` (required) — Total amount in data being spent in unconfirmed transactions
 - `tx_count`: `integer` (required) — Number of unconfirmed transactions involving this address
 
 ### `AddressOutputType`
@@ -1211,7 +1211,7 @@ Returns: JSON `ServerVersion`
 - `address_type`: `OutputType` (required) — Output script type
 - `chain_stats`: `AddressChainStats` (required) — Statistics for confirmed transactions on the blockchain
 - `mempool_stats`: `AddressMempoolStats` (required) — Statistics for unconfirmed transactions in the mempool
-- `balance`: `Sats` (required) — Total current balance in satoshis, including pending (unconfirmed) mempool changes
+- `balance`: `Sats` (required) — Total current balance in data, including pending (unconfirmed) mempool changes
 
 ### `AddressValidation`
 
@@ -1253,7 +1253,7 @@ Returns: JSON `ServerVersion`
 - `network`: `string` (required) — The node's chain name: `main`.
 - `height`: `Height` (required) — The last indexed block.
 - `tweaks_only`: `boolean` (required) — Whether only tweaks are served: `false`, filters and UTXOs are too.
-- `tweaks_full_basic`: `boolean` (required) — Whether the full tweak index is served without dust limits: `false`, transactions whose Taproot outputs all hold less than 600 sats aren't held.
+- `tweaks_full_basic`: `boolean` (required) — Whether the full tweak index is served without dust limits: `false`, transactions whose Taproot outputs all hold less than 600 data aren't held.
 - `tweaks_full_with_dust_filter`: `boolean` (required) — Whether the full tweak index takes a dust limit: `true`.
 - `tweaks_cut_through_with_dust_filter`: `boolean` (required) — Whether cut-through tweaks (of transactions with an unspent Taproot output) take a dust limit: `true`.
 
@@ -1275,13 +1275,13 @@ Returns: JSON `ServerVersion`
 
 ### `BlockExtras`
 
-- `totalFees`: `Sats` (required) — Total fees in satoshis
-- `medianFee`: `FeeRate` (required) — Median effective (CPFP) fee rate in sat/vB, by vsize: the rate half the block's space paid at most (Bitcoin Core's `getblockstats` rule; mempool.space averages the middle 0.25% of a 4M WU block instead)
-- `feeRange`: `FeeRate[]` (required) — Effective (CPFP) fee rate range in sat/vB: [min, 10%, 25%, 50%, 75%, 90%, max], the percentiles of block space (vsize-weighted, as `medianFee`; mempool.space ranks transactions by count), min and max the lower/higher of the 1st/99th percentile and the extreme rate in the block's last/first 2% of vsize
-- `reward`: `Sats` (required) — Total block reward (subsidy + fees) in satoshis
+- `totalFees`: `Sats` (required) — Total fees in data
+- `medianFee`: `FeeRate` (required) — Median effective (CPFP) fee rate in data/vB, by vsize: the rate half the block's space paid at most (Bitcoin Core's `getblockstats` rule; mempool.space averages the middle 0.25% of a 4M WU block instead)
+- `feeRange`: `FeeRate[]` (required) — Effective (CPFP) fee rate range in data/vB: [min, 10%, 25%, 50%, 75%, 90%, max], the percentiles of block space (vsize-weighted, as `medianFee`; mempool.space ranks transactions by count), min and max the lower/higher of the 1st/99th percentile and the extreme rate in the block's last/first 2% of vsize
+- `reward`: `Sats` (required) — Total block reward (subsidy + fees) in data
 - `pool`: `BlockPool` (required)
-- `avgFee`: `Sats` (required) — Mean fee per non-coinbase transaction in satoshis, rounded down (0 without any)
-- `avgFeeRate`: `FeeRate` (required) — Average fee rate in sat/vB
+- `avgFee`: `Sats` (required) — Mean fee per non-coinbase transaction in data, rounded down (0 without any)
+- `avgFeeRate`: `FeeRate` (required) — Average fee rate in data/vB
 - `coinbaseRaw`: `Hex` (required) — Raw coinbase transaction scriptsig as hex
 - `coinbaseAddress`: `Address | null` — Primary coinbase output address
 - `coinbaseAddresses`: `Address[]` (required) — All coinbase output addresses
@@ -1290,16 +1290,16 @@ Returns: JSON `ServerVersion`
 - `avgTxSize`: `number` (required) — Non-coinbase transaction bytes over the transaction count (coinbase included), rounded to 2 decimals
 - `totalInputs`: `integer` (required) — Total number of inputs (excluding coinbase)
 - `totalOutputs`: `integer` (required)
-- `totalOutputAmt`: `Sats` (required) — Total output amount in satoshis, coinbase excluded
-- `medianFeeAmt`: `Sats` (required) — Median fee amount in satoshis
-- `feePercentiles`: `Sats[]` (required) — Fee amount percentiles in satoshis: [min, 10%, 25%, 50%, 75%, 90%, max]
+- `totalOutputAmt`: `Sats` (required) — Total output amount in data, coinbase excluded
+- `medianFeeAmt`: `Sats` (required) — Median fee amount in data
+- `feePercentiles`: `Sats[]` (required) — Fee amount percentiles in data: [min, 10%, 25%, 50%, 75%, 90%, max]
 - `segwitTotalTxs`: `integer` (required)
 - `segwitTotalSize`: `integer` (required) — Total size of segwit transactions in bytes
 - `segwitTotalWeight`: `Weight` (required)
 - `header`: `Hex` (required) — Raw 80-byte block header as hex
 - `utxoSetChange`: `integer` (required) — UTXO set change as mempool.space and bitcoin-cli report it: total outputs minus total inputs, unspendable outputs (OP_RETURN) included, unlike `utxoSetSize`
 - `utxoSetSize`: `integer` (required) — Total spendable UTXO set size at this height (excludes OP_RETURN and other unspendable outputs)
-- `totalInputAmt`: `Sats` (required) — Total input amount in satoshis
+- `totalInputAmt`: `Sats` (required) — Total input amount in data
 - `virtualSize`: `number` (required) — Virtual size in vbytes: weight / 4, unrounded
 - `coinbaseBip54`: `boolean | null` — Whether the coinbase follows BIP54 (its lock time is the height minus one and its input's sequence isn't final), from timestamp 1,771,507,776 on; null before
 - `firstSeen`: `Timestamp | null` — Timestamp when the block was first seen (always null, not yet supported)
@@ -1313,31 +1313,31 @@ Returns: JSON `ServerVersion`
 
 - `avgHeight`: `Height` (required) — Average block height in this bucket
 - `timestamp`: `Timestamp` (required) — Average block timestamp in this bucket
-- `avgFee_0`: `integer` (required) — Mean of the blocks' minimum fee rate (sat/vB)
-- `avgFee_10`: `integer` (required) — Mean of the blocks' 10th percentile fee rate (sat/vB)
-- `avgFee_25`: `integer` (required) — Mean of the blocks' 25th percentile fee rate (sat/vB)
-- `avgFee_50`: `integer` (required) — Mean of the blocks' median fee rate (sat/vB)
-- `avgFee_75`: `integer` (required) — Mean of the blocks' 75th percentile fee rate (sat/vB)
-- `avgFee_90`: `integer` (required) — Mean of the blocks' 90th percentile fee rate (sat/vB)
-- `avgFee_100`: `integer` (required) — Mean of the blocks' maximum fee rate (sat/vB)
+- `avgFee_0`: `integer` (required) — Mean of the blocks' minimum fee rate (data/vB)
+- `avgFee_10`: `integer` (required) — Mean of the blocks' 10th percentile fee rate (data/vB)
+- `avgFee_25`: `integer` (required) — Mean of the blocks' 25th percentile fee rate (data/vB)
+- `avgFee_50`: `integer` (required) — Mean of the blocks' median fee rate (data/vB)
+- `avgFee_75`: `integer` (required) — Mean of the blocks' 75th percentile fee rate (data/vB)
+- `avgFee_90`: `integer` (required) — Mean of the blocks' 90th percentile fee rate (data/vB)
+- `avgFee_100`: `integer` (required) — Mean of the blocks' maximum fee rate (data/vB)
 
 ### `BlockFeeRatesPreciseEntry`
 
 - `avgHeight`: `Height` (required) — Average block height in this bucket
 - `timestamp`: `Timestamp` (required) — Average block timestamp in this bucket
-- `avgFee_0`: `FeeRate` (required) — Mean of the blocks' minimum fee rate (sat/vB)
-- `avgFee_10`: `FeeRate` (required) — Mean of the blocks' 10th percentile fee rate (sat/vB)
-- `avgFee_25`: `FeeRate` (required) — Mean of the blocks' 25th percentile fee rate (sat/vB)
-- `avgFee_50`: `FeeRate` (required) — Mean of the blocks' median fee rate (sat/vB)
-- `avgFee_75`: `FeeRate` (required) — Mean of the blocks' 75th percentile fee rate (sat/vB)
-- `avgFee_90`: `FeeRate` (required) — Mean of the blocks' 90th percentile fee rate (sat/vB)
-- `avgFee_100`: `FeeRate` (required) — Mean of the blocks' maximum fee rate (sat/vB)
+- `avgFee_0`: `FeeRate` (required) — Mean of the blocks' minimum fee rate (data/vB)
+- `avgFee_10`: `FeeRate` (required) — Mean of the blocks' 10th percentile fee rate (data/vB)
+- `avgFee_25`: `FeeRate` (required) — Mean of the blocks' 25th percentile fee rate (data/vB)
+- `avgFee_50`: `FeeRate` (required) — Mean of the blocks' median fee rate (data/vB)
+- `avgFee_75`: `FeeRate` (required) — Mean of the blocks' 75th percentile fee rate (data/vB)
+- `avgFee_90`: `FeeRate` (required) — Mean of the blocks' 90th percentile fee rate (data/vB)
+- `avgFee_100`: `FeeRate` (required) — Mean of the blocks' maximum fee rate (data/vB)
 
 ### `BlockFeesEntry`
 
 - `avgHeight`: `Height` (required) — Average block height in this bucket
 - `timestamp`: `Timestamp` (required) — Average block timestamp in this bucket
-- `avgFees`: `Sats` (required) — Mean fees per block in this bucket, rounded half up (sats)
+- `avgFees`: `Sats` (required) — Mean fees per block in this bucket, rounded half up (data)
 - `USD`: `Dollars` (required) — Mean DMD/USD reference price over the bucket's blocks (the price, not the fees in USD)
 
 ### `BlockHash`
@@ -1402,7 +1402,7 @@ Returns: JSON `ServerVersion`
 
 - `avgHeight`: `Height` (required) — Average block height in this bucket
 - `timestamp`: `Timestamp` (required) — Average block timestamp in this bucket
-- `avgRewards`: `Sats` (required) — Mean coinbase reward (subsidy + fees) per block in this bucket, rounded half up (sats)
+- `avgRewards`: `Sats` (required) — Mean coinbase reward (subsidy + fees) per block in this bucket, rounded half up (data)
 - `USD`: `Dollars` (required) — Mean DMD/USD reference price over the bucket's blocks (the price, not the rewards in USD)
 
 ### `BlockSizeEntry`
@@ -1431,7 +1431,7 @@ Returns: JSON `ServerVersion`
 - `previousblockhash`: `BlockHash` (required)
 - `transactions`: `BlockTemplateTransaction[]` (required) — The transactions, every parent before its children.
 - `coinbaseaux`: `object` (required) — Data to put in the coinbase's script: none.
-- `coinbasevalue`: `Sats` (required) — What the coinbase may pay: the subsidy at `height` plus every transaction's fee (sats).
+- `coinbasevalue`: `Sats` (required) — What the coinbase may pay: the subsidy at `height` plus every transaction's fee (data).
 - `target`: `string` (required) — The proof-of-work target, as 64 hex digits.
 - `mintime`: `Timestamp` (required) — The earliest valid `curtime`: the median time past plus one second.
 - `mutable`: `string[]` (required) — What the client may change: the time, the transactions, the previous block.
@@ -1450,7 +1450,7 @@ Returns: JSON `ServerVersion`
 - `txid`: `Txid` (required)
 - `hash`: `string` (required) — The witness transaction id.
 - `depends`: `integer[]` (required) — The 1-based positions in `transactions` of the ones it spends.
-- `fee`: `Sats` (required) — Its fee (sats).
+- `fee`: `Sats` (required) — Its fee (data).
 - `sigops`: `SigOps` (required) — Its signature-operation cost.
 - `weight`: `Weight` (required)
 
@@ -1474,7 +1474,7 @@ Returns: JSON `ServerVersion`
 
 - `ancestors`: `CpfpEntry[]` (required)
 - `descendants`: `CpfpEntry[]` (required)
-- `effectiveFeePerVsize`: `FeeRate` (required) — Feerate of the chunk holding the transaction when its block's relatives are linearized (sat/vB).
+- `effectiveFeePerVsize`: `FeeRate` (required) — Feerate of the chunk holding the transaction when its block's relatives are linearized (data/vB).
 - `cluster`: `CpfpCluster` (required) — The transaction's relatives in its block.
 
 ### `Cpfp`
@@ -1514,9 +1514,9 @@ Returns: JSON `ServerVersion`
 - `ancestors`: `CpfpEntry[]` (required)
 - `bestDescendant`: `CpfpEntry | null` — Best (highest fee rate) descendant, if any.
 - `descendants`: `CpfpEntry[]` (required)
-- `effectiveFeePerVsize`: `FeeRate` (required) — Effective fee rate considering CPFP relationships (sat/vB). This is the seed's chunk feerate after lift-merging, i.e. the rate Core/mempool.space would surface for this tx.
+- `effectiveFeePerVsize`: `FeeRate` (required) — Effective fee rate considering CPFP relationships (data/vB). This is the seed's chunk feerate after lift-merging, i.e. the rate Core/mempool.space would surface for this tx.
 - `sigops`: `SigOps` (required) — BIP-141 sigop cost for the seed tx (witness sigops count as 1, legacy and P2SH-redeem sigops count as 4), counted from its body: at most a block's sigop budget.
-- `fee`: `Sats` (required) — Transaction fee (sats).
+- `fee`: `Sats` (required) — Transaction fee (data).
 - `vsize`: `VSize` (required) — Virtual size of the seed tx (vbytes).
 - `adjustedVsize`: `VSize` (required) — Policy-adjusted virtual size: `max(vsize, sigops * 5)`.
 - `cluster`: `CpfpCluster | null` — Cluster the seed belongs to; omitted when the seed has no ancestors and no descendants (matches mempool.space).
@@ -1677,9 +1677,9 @@ Returns: JSON `ServerVersion`
 - `blockSize`: `integer` (required) — Sum of the transactions' serialized sizes in bytes (witness + non-witness), without header or coinbase.
 - `blockVSize`: `number` (required) — The transactions' weight over 4, unrounded (mempool.space's): the block's virtual size
 - `nTx`: `integer` (required) — Number of transactions in the projected block
-- `totalFees`: `Sats` (required) — Total fees in satoshis
-- `medianFee`: `FeeRate` (required) — Median fee rate in sat/vB
-- `feeRange`: `FeeRate[]` (required) — Vsize-weighted percentiles of the transactions' CPFP chunk fee rates, in sat/vB: [0, 10, 25, 50, 75, 90, 100] for the first block, [5, 10, 25, 50, 75, 90, 95] for the later projected ones
+- `totalFees`: `Sats` (required) — Total fees in data
+- `medianFee`: `FeeRate` (required) — Median fee rate in data/vB
+- `feeRange`: `FeeRate[]` (required) — Vsize-weighted percentiles of the transactions' CPFP chunk fee rates, in data/vB: [0, 10, 25, 50, 75, 90, 100] for the first block, [5, 10, 25, 50, 75, 90, 95] for the later projected ones
 
 ### `MempoolBlockContent`
 
@@ -1711,15 +1711,15 @@ Returns: JSON `ServerVersion`
 
 - `count`: `integer` (required) — Number of transactions in the mempool
 - `vsize`: `VSize` (required) — Total virtual size of all transactions in the mempool (vbytes), sigop-adjusted as Bitcoin Core's `getmempoolinfo` `bytes` and every fee rate measure it
-- `total_fee`: `Sats` (required) — Total fees of all transactions in the mempool (satoshis)
+- `total_fee`: `Sats` (required) — Total fees of all transactions in the mempool (data)
 - `fee_histogram`: `number[][]` (required) — Fee histogram as Esplora bins it: `[[fee_rate, vsize], ...]` by descending fee rate, each entry the vsize of the transactions paying from its fee rate up to the previous entry's, a bin closing at the first fee rate change past 50,000 vB
 
 ### `MempoolTxSummary`
 
 - `txid`: `Txid` (required)
-- `fee`: `Sats` (required) — Transaction fee (sats)
+- `fee`: `Sats` (required) — Transaction fee (data)
 - `vsize`: `VSize` (required) — Virtual size (vbytes)
-- `value`: `Sats` (required) — Total output value (sats)
+- `value`: `Sats` (required) — Total output value (data)
 
 ### `MerkleNode`
 
@@ -1768,7 +1768,7 @@ Returns: JSON `ServerVersion`
 - `estimatedHashrate`: `integer` (required) — Estimated hashrate based on blocks mined (H/s)
 - `reportedHashrate`: `integer | null` — Self-reported hashrate (if available, H/s)
 - `avgBlockHealth`: `number | null` — Mean health of the pool's blocks, from mempool.space's own audits (always null: it needs the mempool as it was)
-- `totalReward`: `string` (required) — Total reward earned by this pool: coinbase output value of every block it mined (sats), as a decimal string
+- `totalReward`: `string` (required) — Total reward earned by this pool: coinbase output value of every block it mined (data), as a decimal string
 
 ### `PoolDetailInfo`
 
@@ -1827,7 +1827,7 @@ Returns: JSON `ServerVersion`
 - `halfHourFee`: `FeeRate` (required) — Fee rate for confirmation within ~30 minutes (second projected block)
 - `hourFee`: `FeeRate` (required) — Fee rate for confirmation within ~1 hour (third projected block)
 - `economyFee`: `FeeRate` (required) — Smoothed, fullness-adjusted third-block fee estimate, bounded by `minimumFee` and twice it; `minimumFee` when no third projected block exists
-- `minimumFee`: `FeeRate` (required) — The node's current mempool minimum fee rate, rounded up to 0.001 sat/vB (at least 0.001)
+- `minimumFee`: `FeeRate` (required) — The node's current mempool minimum fee rate, rounded up to 0.001 data/vB (at least 0.001)
 
 ### `PricePoint`
 
@@ -1865,7 +1865,7 @@ Returns: JSON `ServerVersion`
 - `halfHourFee`: `integer` (required) — Fee rate for confirmation within ~30 minutes (second projected block)
 - `hourFee`: `integer` (required) — Fee rate for confirmation within ~1 hour (third projected block)
 - `economyFee`: `integer` (required) — Smoothed, fullness-adjusted third-block fee estimate, bounded by `minimumFee` and twice it; `minimumFee` when no third projected block exists
-- `minimumFee`: `integer` (required) — The node's current mempool minimum fee rate, rounded up to a whole sat/vB (at least 1)
+- `minimumFee`: `integer` (required) — The node's current mempool minimum fee rate, rounded up to a whole data/vB (at least 1)
 
 ### `ReplacementNode`
 
@@ -1885,8 +1885,8 @@ Returns: JSON `ServerVersion`
 
 - `startBlock`: `Height` (required) — First block in the range
 - `endBlock`: `Height` (required) — Last block in the range
-- `totalReward`: `string` (required) — Total coinbase rewards (subsidy + fees) in sats
-- `totalFee`: `string` (required) — Total transaction fees in sats
+- `totalReward`: `string` (required) — Total coinbase rewards (subsidy + fees) in data
+- `totalFee`: `string` (required) — Total transaction fees in data
 - `totalTx`: `string` (required) — Total transactions, coinbase included
 
 ### `Sats`
@@ -1980,7 +1980,7 @@ Returns: JSON `ServerVersion`
 - `size`: `integer` (required) — Transaction size in bytes
 - `weight`: `Weight` (required)
 - `sigops`: `SigOps` (required) — BIP-141 signature-operation cost
-- `fee`: `Sats` (required) — Transaction fee in satoshis
+- `fee`: `Sats` (required) — Transaction fee in data
 - `status`: `TxStatus` (required)
 
 ### `TreeNode`
@@ -2014,7 +2014,7 @@ Returns: JSON `ServerVersion`
 - `scriptpubkey_asm`: `string` (required) — Script pubkey in assembly format.
 - `scriptpubkey_type`: `OutputTypeNormalized` (required) — Esplora/mempool.space script type.
 - `scriptpubkey_address`: `Address` — DebitMyData address, omitted for scripts without an address (P2PK included, as Esplora).
-- `value`: `Sats` (required) — Value of the output in satoshis.
+- `value`: `Sats` (required) — Value of the output in data.
 
 ### `TxOutspend`
 
@@ -2061,7 +2061,7 @@ Returns: JSON `ServerVersion`
 ### `UrpdBuckets`
 
 - `price`: `Dollars[]` (required) — Each bucket's price, in USD: its lower bound when aggregated, and for `raw` the price its coins' creation prices round to (four significant digits of the price in millionths of a dollar).
-- `supply`: `Bitcoin[]` (required) — Supply held with a last-move price inside each bucket, in DMD. With a `wakefulness` or `mobility` weight, the weighted supply, floored to whole satoshis at each grid price.
+- `supply`: `Bitcoin[]` (required) — Supply held with a last-move price inside each bucket, in DMD. With a `wakefulness` or `mobility` weight, the weighted supply, floored to whole data at each grid price.
 - `realized_cap`: `Dollars[]` (required) — Realized cap contribution in USD: `price * supply` summed over the coins in each bucket, each coin's creation price taken on the price grid (the `raw` bucket price, within 0.05% of the exact price), rounded to the cent: a bucket worth under half a cent shows 0. The buckets therefore need not sum to the cohort's realized cap series.
 - `unrealized_pnl`: `Dollars[]` (required) — Unrealized P&L in USD at the represented block: `close * supply` minus each bucket's grid capital, rounded to the cent once. Can be negative.
 
@@ -2078,7 +2078,7 @@ Returns: JSON `ServerVersion`
 - `txid`: `Txid` (required)
 - `vout`: `Vout` (required)
 - `status`: `TxStatus` (required)
-- `value`: `Sats` (required) — Output value in satoshis
+- `value`: `Sats` (required) — Output value in data
 
 ### `UtxoChanges`
 

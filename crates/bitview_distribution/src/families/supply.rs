@@ -7,7 +7,7 @@ use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode, WritableVec};
 
 use super::import_stored;
 
-/// One cohort's sats, stored as `{name}_sats` and valued at the block's spot price.
+/// One cohort's data, stored as `{name}_sats` and valued at the block's spot price.
 #[derive(Traversable)]
 pub struct Supply<M: StorageMode = Rw> {
     #[traversable(flatten)]

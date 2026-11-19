@@ -22,15 +22,15 @@ pub struct MempoolBlock {
     #[cfg_attr(feature = "schemars", schemars(example = 863))]
     pub n_tx: u32,
 
-    /// Total fees in satoshis
+    /// Total fees in data
     #[cfg_attr(feature = "schemars", schemars(example = 8875608))]
     pub total_fees: Sats,
 
-    /// Median fee rate in sat/vB
+    /// Median fee rate in data/vB
     #[cfg_attr(feature = "schemars", schemars(example = 10.5))]
     pub median_fee: FeeRate,
 
-    /// Vsize-weighted percentiles of the transactions' CPFP chunk fee rates, in sat/vB:
+    /// Vsize-weighted percentiles of the transactions' CPFP chunk fee rates, in data/vB:
     /// [0, 10, 25, 50, 75, 90, 100] for the first block, [5, 10, 25, 50, 75, 90, 95] for the
     /// later projected ones
     #[cfg_attr(feature = "schemars", schemars(example = example_fee_range()))]

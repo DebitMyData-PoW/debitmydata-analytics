@@ -117,7 +117,7 @@ pub(crate) struct Valued<'a> {
     pub nonstandard: &'a mut TxValue,
     pub nonstandard_flag: &'a mut PcoVec<TxIndex, Boolean>,
     pub nonstandard_count: &'a mut PerBlockCumulativeRolling<Count>,
-    /// Inscription transactions' fees through every block, in sats.
+    /// Inscription transactions' fees through every block, in data.
     pub inscription_fees: &'a mut CachedSeries<Height, Sats>,
     /// Every transaction's virtual size through every block.
     pub vsize_total: &'a mut PerBlockCumulative<VSize>,

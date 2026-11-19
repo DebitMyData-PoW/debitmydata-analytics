@@ -2656,7 +2656,7 @@ impl BitviewClient {
 
     /// URPD at block height or date
     ///
-    /// URPD (UTXO realized price distribution: how much supply last moved at each price) for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is DMD. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
+    /// URPD (UTXO realized price distribution: how much supply last moved at each price) for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is DMD. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole data) and the bucket values follow it.
     ///
     /// Endpoint: `GET /api/urpd/{cohort}/{point}`
     pub fn get_urpd(
@@ -3340,7 +3340,7 @@ impl BitviewClient {
 
     /// Block fee rates
     ///
-    /// Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each a whole sat/vB (`/precise` for 3 decimals).
+    /// Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each a whole data/vB (`/precise` for 3 decimals).
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
     ///
@@ -3354,7 +3354,7 @@ impl BitviewClient {
 
     /// Block fee rates (precise)
     ///
-    /// Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each in sat/vB to 3 decimals.
+    /// Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each in data/vB to 3 decimals.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
     ///
@@ -3396,7 +3396,7 @@ impl BitviewClient {
 
     /// Recommended fees
     ///
-    /// Recommended fee rates by confirmation target, in whole sat/vB.
+    /// Recommended fee rates by confirmation target, in whole data/vB.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*
     ///
@@ -3407,7 +3407,7 @@ impl BitviewClient {
 
     /// Recommended fee rates (precise)
     ///
-    /// Recommended fee rates by confirmation target, with up to three decimal places and support for sub-sat/vB rates.
+    /// Recommended fee rates by confirmation target, with up to three decimal places and support for sub-data/vB rates.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*
     ///
@@ -3741,7 +3741,7 @@ impl BitviewClient {
 
     /// Tweak index
     ///
-    /// The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional and takes any value, as BlindBit takes it (0 when left out), but transactions whose Taproot outputs all hold less than 600 sats aren't held, so any limit below 600 answers as 600.
+    /// The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` data, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional and takes any value, as BlindBit takes it (0 when left out), but transactions whose Taproot outputs all hold less than 600 data aren't held, so any limit below 600 answers as 600.
     ///
     /// Endpoint: `GET /blindbit/mainnet/tweak-index/{height}`
     pub fn get_blindbit_tweak_index(
@@ -3768,7 +3768,7 @@ impl BitviewClient {
 
     /// Cut-through tweaks
     ///
-    /// `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.
+    /// `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` data, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.
     ///
     /// Endpoint: `GET /blindbit/mainnet/tweaks/{height}`
     pub fn get_blindbit_tweaks(

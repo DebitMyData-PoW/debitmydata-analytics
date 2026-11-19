@@ -26,7 +26,7 @@ pub struct BlockTemplate {
     pub transactions: Vec<BlockTemplateTransaction>,
     /// Data to put in the coinbase's script: none.
     pub coinbaseaux: BTreeMap<String, String>,
-    /// What the coinbase may pay: the subsidy at `height` plus every transaction's fee (sats).
+    /// What the coinbase may pay: the subsidy at `height` plus every transaction's fee (data).
     pub coinbasevalue: Sats,
     /// The proof-of-work target, as 64 hex digits.
     pub target: String,
@@ -59,7 +59,7 @@ pub struct BlockTemplateTransaction {
     pub hash: String,
     /// The 1-based positions in `transactions` of the ones it spends.
     pub depends: Vec<u32>,
-    /// Its fee (sats).
+    /// Its fee (data).
     pub fee: Sats,
     /// Its signature-operation cost.
     pub sigops: SigOps,

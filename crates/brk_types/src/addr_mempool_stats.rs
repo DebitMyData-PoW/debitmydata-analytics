@@ -7,14 +7,14 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Default, Clone, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct AddressMempoolStats {
-    /// Net pending (unconfirmed) balance change in satoshis; negative when pending spends exceed receipts
+    /// Net pending (unconfirmed) balance change in data; negative when pending spends exceed receipts
     pub balance_delta: SatsSigned,
 
     /// Number of unconfirmed transaction outputs funding this address
     #[cfg_attr(feature = "schemars", schemars(example = 0))]
     pub funded_txo_count: u32,
 
-    /// Total amount in satoshis being received in unconfirmed transactions
+    /// Total amount in data being received in unconfirmed transactions
     #[cfg_attr(feature = "schemars", schemars(example = Sats::new(0)))]
     pub funded_txo_sum: Sats,
 
@@ -22,7 +22,7 @@ pub struct AddressMempoolStats {
     #[cfg_attr(feature = "schemars", schemars(example = 0))]
     pub spent_txo_count: u32,
 
-    /// Total amount in satoshis being spent in unconfirmed transactions
+    /// Total amount in data being spent in unconfirmed transactions
     #[cfg_attr(feature = "schemars", schemars(example = Sats::new(0)))]
     pub spent_txo_sum: Sats,
 

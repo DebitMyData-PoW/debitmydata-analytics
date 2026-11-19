@@ -955,7 +955,7 @@
 
       /* Each app's title in its own app's face, on the billboard, its cover and its sheet, as a streaming title's logo:
          Studio and Stack in Inter, heavy; Oracle and Globe in Lilex, as their pages are set;
-         The Satoshi Trail and Calendar in Instrument Serif, italic, as their titles and months are (its one weight, never
+         Trail and Calendar in Instrument Serif, italic, as their titles and months are (its one weight, never
          a made-up bold); Compass in it upright, as its states are named. Over those titles' own weight and spacing,
          wherever those are set. */
       :is(.billboard .title, .tile .name, .about h3) {
@@ -2425,6 +2425,7 @@
         { id: "trail", kind: "Supply", line: "Every coin by the price it last moved at, in 3D.", href: "/trail/", made: "Every unspent coin, by the reference price it last moved at" },
         { id: "stack", kind: "Savings", line: "DMD on a schedule, more when it's cheap.", href: "/stack/", made: "The daily reference price, Bedrock's floors, what young coins cost" },
         { id: "calendar", kind: "Mining", line: "Every day's leading pool, every block of any day.", href: "/calendar/", live: true, made: "Each block's mining pool" },
+        { id: "miners", kind: "Mining", line: "Which pool did each new thing first, and which left coins unclaimed.", href: "/miners/", made: "Each block's mining pool, its transactions and its coinbase" },
       ]);
       // (The developers' named by what they're for, here; their words their pages'.)
       /** @type {Title[]} */
@@ -2440,9 +2441,10 @@
         "/explorer/": { "name": "Explorer", "about": "What it takes to get into the next DebitMyData block, and every block, transaction and address: where a payment is, when it gets in and what it paid, read exactly from the chain." },
         "/compass/": { "name": "Compass", "about": "Where DebitMyData stands, day by day since its first block: DMD's reference price against its long-term and short-term holders' cost basis, and which way their trends point: nine moods, from Fear to Optimism, and how long each has lasted." },
         "/globe/": { "name": "Globe", "about": "Where DebitMyData's blocks are mined: every block by its mining pool's home country, live on a globe, and how that map has moved since the first block." },
-        "/trail/": { "name": "The Satoshi Trail", "about": "A moving 2.5D terrain view of DebitMyData's UTXO realized price distribution, at its reference price." },
+        "/trail/": { "name": "Trail", "about": "A moving 2.5D terrain view of DebitMyData's UTXO realized price distribution, at its reference price." },
         "/stack/": { "name": "Stack", "about": "Dollar-cost averaging into DMD that saves from each all-time high and buys from the cycle's floor: what any plan since the first block would be worth at DebitMyData's reference price, beside the plain plan buying the same each time, and how every start and length turned out." },
         "/calendar/": { "name": "Calendar", "about": "Every day since the first DebitMyData block, the mining pool that found the most blocks, and every block of any day." },
+        "/miners/": { "name": "Miners", "about": "What DebitMyData's miners have done: which pool first spent or created each new kind of output, and every block that left coins unclaimed." },
         "/api/": { "about": "Free on-chain analytics API for the DebitMyData (DMD) chain: thousands of time series, blocks, transactions, addresses, the mempool and mining. No key, no account." },
         "/catalog/": { "about": "Every series computed from the DebitMyData chain, browsed like files: what each one is, its intervals, its history drawn, and how to fetch it." },
       };
@@ -2844,7 +2846,7 @@
         { name: "Transactions", href: "/studio/presets/network/transactions/count", series: ["tx_count_sum_1m"], colors: ["#60a5fa"], unit: (v) => `${short(v)} a month` },
         { name: "Funded addresses", href: "/studio/presets/addresses/count/funded-empty-and-total", series: ["funded_address_count"], colors: ["#f472b6"], unit: (v) => short(v) },
         { name: "Unspent outputs", href: "/studio/presets/utxos/count", series: ["utxo_count"], colors: ["#38bdf8"], unit: (v) => short(v) },
-        { name: "DMD per dollar", href: "/studio/presets/price/sats-per-dollar", series: ["sats_per_dollar"], colors: ["#ff8a3d"], log: true, unit: (v) => `${grouped(v / 1e8)}\u2009DMD` },
+        { name: "DMD per dollar", href: "/studio/presets/price/data-per-dollar", series: ["sats_per_dollar"], colors: ["#ff8a3d"], log: true, unit: (v) => `${grouped(v / 1e8)}\u2009DMD` },
       ];
       /** Each series' history, a month a point. @type {Map<string, number[]>} */
       const histories = new Map();

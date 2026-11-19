@@ -12,11 +12,11 @@ pub struct RewardStats {
     pub start_block: Height,
     /// Last block in the range
     pub end_block: Height,
-    /// Total coinbase rewards (subsidy + fees) in sats
+    /// Total coinbase rewards (subsidy + fees) in data
     #[serde(with = "decimal_string")]
     #[schemars(with = "String", extend("pattern" = "^[0-9]+$"))]
     pub total_reward: Sats,
-    /// Total transaction fees in sats
+    /// Total transaction fees in data
     #[serde(with = "decimal_string")]
     #[schemars(with = "String", extend("pattern" = "^[0-9]+$"))]
     pub total_fee: Sats,

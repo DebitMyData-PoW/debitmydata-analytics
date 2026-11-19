@@ -41,11 +41,11 @@ pub struct CostBasisByCoin<M: StorageMode = Rw> {
 #[derive(Traversable)]
 pub struct CostBasisByDollar<M: StorageMode = Rw> {
     /// The weighted mean; undefined (null) while the cohort's USD value at creation is zero.
-    #[traversable(lead = "Capitalized price: what the bitcoin held cost, on average, each coin weighted by the dollars it cost.")]
+    #[traversable(lead = "Capitalized price: what the DMD held cost, on average, each coin weighted by the dollars it cost.")]
     pub avg: PriceWithRatio<M>,
     /// Capitalized price: the weighted mean; undefined (null) while the cohort's USD value at
     /// creation is zero.
-    #[traversable(lead = "Capitalized price: what the bitcoin held cost, on average, each coin weighted by the dollars it cost.")]
+    #[traversable(lead = "Capitalized price: what the DMD held cost, on average, each coin weighted by the dollars it cost.")]
     capitalized_price: Price<LazyPerBlock<Cents>>,
     /// On the price grid: creation prices rounded to four significant digits of the price in millionths of a dollar
     /// (exact under $0.01, then steps of at most 0.1% up to $4,294.97, where higher

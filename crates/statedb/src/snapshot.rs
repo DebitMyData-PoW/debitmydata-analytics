@@ -17,7 +17,7 @@ const MAX_GAP: u32 = 16;
 pub(crate) const MAX_RECORD: u64 = 2 * 1024 * 1024 * 1024;
 const MAX_LEN: usize = 100_000_000;
 
-/// Magic, length, hash, versions, then a format word: the sats section length of a packed
+/// Magic, length, hash, versions, then a format word: the data section length of a packed
 /// checkpoint, the page file generation of a tip.
 pub(crate) fn header(
     magic: &[u8; 8],

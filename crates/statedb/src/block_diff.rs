@@ -26,7 +26,7 @@ impl<'a> BlockDiff<'a> {
         self.spent().chain(self.correction)
     }
     /// `spent` is the block's decoded spend record: its hash, total and rows (origins, counts,
-    /// sats, of one length).
+    /// data, of one length).
     pub(crate) fn new(
         height: usize,
         (hash, total): ([u8; 32], Amount),

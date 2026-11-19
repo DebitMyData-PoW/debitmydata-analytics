@@ -14,7 +14,7 @@ pub struct Modes<T> {
     /// calibrates against the resulting weighted share of supply in loss.
     #[traversable(lead = "Mobile mode: coins weighted by how likely they are to be spent.")]
     pub mobile: T,
-    /// Bedrock's unweighted mode gives every unspent satoshi equal weight and
+    /// Bedrock's unweighted mode gives every unspent data equal weight and
     /// calibrates against the share of all-chain supply whose creation price
     /// exceeds spot.
     #[traversable(lead = "Unweighted mode: every coin counts the same.")]

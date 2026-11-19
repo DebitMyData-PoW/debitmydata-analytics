@@ -202,6 +202,11 @@ function notYet(t, facts) {
  */
 export function studioPresets(client, facts, report = (problem) => console.error(`Studio presets: ${problem}`)) {
   const t = client.series, absent = notYet(t, facts);
+  // (DebitMyData: the server reads its pool list from GitHub every day, so it can have pools this client was made
+  // before: each made the same way as the others, by its slug (client.poolSeries), the pools that have found a block.)
+  const listedPools = facts
+    ? [...facts.pools].filter((slug) => slug !== "unknown" && !(slug in t.pools) && !(`_${slug}` in t.pools)).map((slug) => /** @type {[string, any]} */ ([slug, client.poolSeries(slug)]))
+    : [];
   /** A node's members that have been, by key. @param {any} n */
   const members = (n) => entries(n).filter(([, node]) => !absent.has(node));
   /**
@@ -1159,7 +1164,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
   const tree = [
     section("Price", [
       chart("In dollars", "DMD reference price", [price()]),
-      chart("Sats per dollar", "Sats per dollar", [series(t.price.satsPerDollar, "Sats per dollar", { color: "orange" })], { log: [1] }),
+      chart("Data per dollar", "Data per dollar", [series(t.price.satsPerDollar, "Data per dollar", { color: "orange" })], { log: [1] }),
       section("All-time high", [
         chart("Drawdown", "Price drawdown from its all-time high", [price(), series(m.ath.high, "All-time high", { color: "green" }), series(m.ath.drawdown, "Drawdown", { pane: 2, color: "red", type: "area" })]),
         chart("Days since", "Days since the price's all-time high", [series(m.ath.daysSince, "Days since", { color: "orange" }), series(m.ath.daysBetweenMax, "Longest between", { color: "gray" })]),
@@ -1496,7 +1501,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
           ...entries(t.opReturn.sizes).map(([key, node]) => section(spanLabel(key), opReturnCharts(node, (what) => `OP_RETURN ${what} with data ${spanLabel(key, true)}`))),
         ]),
       ]),
-      chainStatistics({ t, facts, chart, section, ramp, flowWindow, underOneSatVb }),
+      chainStatistics({ t, facts, chart, section, ramp, flowWindow, underOneSatVb, poolSeries: (/** @type {string} */ slug) => client.poolSeries(slug) }),
     ], { workings: true, icon: "nodes" }),
     section("Cointime", [
       // (HODLed or lost is the vaulted supply by another name: one line.)
@@ -1889,7 +1894,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
    * facts) opens on its whole history: in the default 8 years, most of them none.
    */
   function poolCharts() {
-    const list = members(t.pools).filter(([, node]) => node.blockCount).map(([key, node]) => /** @type {[string, any, string]} */ ([key, node, client.POOL_SLUG_TO_NAME[key.replace(/^_/, "")] ?? key])).sort((a, b) => a[2].localeCompare(b[2]));
+    const list = [...members(t.pools), ...listedPools].filter(([, node]) => node.blockCount).map(([key, node]) => /** @type {[string, any, string]} */ ([key, node, client.POOL_SLUG_TO_NAME[key.replace(/^_/, "")] ?? facts?.names.get(key.replace(/^_/, "")) ?? key])).sort((a, b) => a[2].localeCompare(b[2]));
     // (Those mining most of the blocks in recent years: compared, and first; the others after, by name.)
     // (DebitMyData's: the chain's current top pools, by its facts, then the blocks no pool claims.)
     const MAJOR = [...(facts?.topPools ?? []), "unknown"];

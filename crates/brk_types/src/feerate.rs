@@ -18,7 +18,7 @@ use vecdb::{Formattable, Pco};
 
 const MILLIS_PER_SAT_VBYTE: u64 = 1_000;
 
-/// Fee rate stored in milli-sat/vB and exposed as sat/vB.
+/// Fee rate stored in milli-data/vB and exposed as data/vB.
 #[derive(Debug, Default, Clone, Copy)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
@@ -64,7 +64,7 @@ impl FeeRate {
         self.0 == u64::MAX
     }
 
-    /// A rate of whole sat/vB as that integer, exactly (no float on the way): one that isn't whole
+    /// A rate of whole data/vB as that integer, exactly (no float on the way): one that isn't whole
     /// is a bug (checked in dev builds), rounded down in release.
     pub fn whole_sats(self) -> u64 {
         debug_assert!(
@@ -102,7 +102,7 @@ impl FeeRate {
         }
     }
 
-    /// Arithmetic mean rounded to the nearest milli-sat/vB.
+    /// Arithmetic mean rounded to the nearest milli-data/vB.
     #[inline]
     pub fn mean(a: Self, b: Self) -> Self {
         if a.is_nan() || b.is_nan() {

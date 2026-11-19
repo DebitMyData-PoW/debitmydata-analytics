@@ -5,7 +5,7 @@ use brk_types::{Sats, Timestamp};
 pub struct Age {
     /// Age in hours (primary internal unit for cohort boundaries)
     hours: usize,
-    /// Fractional age in days, for satoshi-days destroyed.
+    /// Fractional age in days, for data-days destroyed.
     days: f64,
 }
 
@@ -24,7 +24,7 @@ impl Age {
         self.hours
     }
 
-    /// Supply in satoshis times fractional age in days, rounded down.
+    /// Supply in data times fractional age in days, rounded down.
     #[inline]
     pub fn satdays_destroyed(&self, supply: Sats) -> Sats {
         Sats::from((u64::from(supply) as f64 * self.days).floor() as u64)

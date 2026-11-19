@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "storage")]
 use vecdb::Bytes;
 
-/// Raw cents squared (u128) - stores cents² × sats without division.
-/// Used for precise accumulation of capitalized cap values: Σ(price² × sats).
+/// Raw cents squared (u128) - stores cents² × data without division.
+/// Used for precise accumulation of capitalized cap values: Σ(price² × data).
 /// capitalized_price = capitalized_cap_raw / realized_cap_raw
 #[derive(
     Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
@@ -27,7 +27,7 @@ impl CentsSquaredSats {
         self.0
     }
 
-    /// Capitalized cap (price² × sats) = price × (price × sats)
+    /// Capitalized cap (price² × data) = price × (price × data)
     #[inline(always)]
     pub fn from_price_cents_sats(price: Cents, value: CentsSats) -> Self {
         Self(price.inner() as u128 * value.inner())

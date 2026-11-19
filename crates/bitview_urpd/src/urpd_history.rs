@@ -18,7 +18,7 @@ use crate::{
 /// Revision of the cells' layout and meaning, part of their version.
 const FORMAT: Version = Version::ONE;
 
-/// The UTXO set's realized price distribution after every block: an age range's sats at one
+/// The UTXO set's realized price distribution after every block: an age range's data at one
 /// rounded creation price is a cell (key `age × PRICE_PLACES + place`), kept as each block's
 /// changes with periodic checkpoints. A read restores one block's cells without the origins.
 pub struct UrpdHistory {
@@ -212,12 +212,12 @@ fn round(prices: &[Cents]) -> Result<Vec<u32>> {
         .collect()
 }
 
-/// One block's distribution: each age range's sats over every price place, with each place's
+/// One block's distribution: each age range's data over every price place, with each place's
 /// nonzero ages, so a projection walks the occupied places in price order.
 pub struct UrpdCells {
     amounts: [Vec<u64>; AGE_RANGE_COUNT],
     occupied: Vec<u32>,
-    /// Past the highest place ever occupied: prices above it have never held sats, so a
+    /// Past the highest place ever occupied: prices above it have never held data, so a
     /// projection stops there (about 37,000 of the 64,000 places at today's prices).
     top: usize,
     hash: [u8; 32],

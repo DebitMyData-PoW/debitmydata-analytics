@@ -59,11 +59,11 @@ pub struct BySupply<M: StorageMode = Rw> {
 /// A supply's means and medians.
 #[derive(Traversable)]
 pub struct CohortComponents<M: StorageMode = Rw> {
-    /// Realized price: the satoshi-weighted mean creation price.
-    #[traversable(lead = "Realized price: what the bitcoin held cost, on average.")]
+    /// Realized price: the data-weighted mean creation price.
+    #[traversable(lead = "Realized price: what the DMD held cost, on average.")]
     realized_price: Component<M>,
     /// Capitalized price: the mean creation price weighted by value at creation.
-    #[traversable(lead = "Capitalized price: what the bitcoin held cost, on average, each coin weighted by the dollars it cost.")]
+    #[traversable(lead = "Capitalized price: what the DMD held cost, on average, each coin weighted by the dollars it cost.")]
     capitalized_price: Component<M>,
     /// The median creation price, weighted by BTC supply.
     #[traversable(lead = "Median realized price: about half the coins last moved below it, half above.")]

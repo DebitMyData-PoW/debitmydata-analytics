@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::FeeRate;
 
-/// Recommended fee rates in sat/vB, to the thousandth (`/api/v1/fees/precise`)
+/// Recommended fee rates in data/vB, to the thousandth (`/api/v1/fees/precise`)
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
@@ -18,6 +18,6 @@ pub struct PreciseRecommendedFees {
     /// Smoothed, fullness-adjusted third-block fee estimate, bounded by `minimumFee` and twice
     /// it; `minimumFee` when no third projected block exists
     pub economy_fee: FeeRate,
-    /// The node's current mempool minimum fee rate, rounded up to 0.001 sat/vB (at least 0.001)
+    /// The node's current mempool minimum fee rate, rounded up to 0.001 data/vB (at least 0.001)
     pub minimum_fee: FeeRate,
 }

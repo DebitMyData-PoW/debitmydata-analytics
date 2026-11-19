@@ -2,7 +2,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// Recommended fee rates in whole sat/vB (`/api/v1/fees/recommended`)
+/// Recommended fee rates in whole data/vB (`/api/v1/fees/recommended`)
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
@@ -16,6 +16,6 @@ pub struct RecommendedFees {
     /// Smoothed, fullness-adjusted third-block fee estimate, bounded by `minimumFee` and twice
     /// it; `minimumFee` when no third projected block exists
     pub economy_fee: u64,
-    /// The node's current mempool minimum fee rate, rounded up to a whole sat/vB (at least 1)
+    /// The node's current mempool minimum fee rate, rounded up to a whole data/vB (at least 1)
     pub minimum_fee: u64,
 }

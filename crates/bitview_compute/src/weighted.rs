@@ -5,9 +5,9 @@ use bitview_primitives::{BoundedRatio, CentsSquaredSats};
 use brk_types::{Cents, CentsSats, Sats};
 
 /// Exact moments of disjoint age ranges, each under its own weight: their total supply, and
-/// their weighted supply, supply in loss, cap (creation price times satoshis) and capitalized
-/// cap (squared creation price times satoshis). Every published value derives from the unrounded
-/// moments, rounded once: the weighted supply to the nearest satoshi (the complement is the rest
+/// their weighted supply, supply in loss, cap (creation price times data) and capitalized
+/// cap (squared creation price times data). Every published value derives from the unrounded
+/// moments, rounded once: the weighted supply to the nearest data (the complement is the rest
 /// of the total), the realized cap and prices to the nearest cent. Unweighted moment totals fit
 /// in u128.
 #[derive(Clone, Copy, Default)]

@@ -27,14 +27,14 @@ const AMOUNT_RANGE_BOUNDS: AmountRange<Range<Sats>> = AmountRange {
 };
 
 pub const AMOUNT_RANGE_NAMES: AmountRange<CohortName> = AmountRange {
-    _0_sats: CohortName::new("0_sats", "0 sats", "0 Sats"),
-    _1_to_10_sats: CohortName::new("1_to_10_sats", "1-10 sats", "1-10 Sats"),
-    _10_to_100_sats: CohortName::new("10_to_100_sats", "10-100 sats", "10-100 Sats"),
-    _100_to_1k_sats: CohortName::new("100_to_1k_sats", "100-1k sats", "100-1K Sats"),
-    _1k_to_10k_sats: CohortName::new("1k_to_10k_sats", "1k-10k sats", "1K-10K Sats"),
-    _10k_to_100k_sats: CohortName::new("10k_to_100k_sats", "10k-100k sats", "10K-100K Sats"),
-    _100k_to_1m_sats: CohortName::new("100k_to_1m_sats", "100k-1M sats", "100K-1M Sats"),
-    _1m_to_10m_sats: CohortName::new("1m_to_10m_sats", "1M-10M sats", "1M-10M Sats"),
+    _0_sats: CohortName::new("0_sats", "0 data", "0 Data"),
+    _1_to_10_sats: CohortName::new("1_to_10_sats", "1-10 data", "1-10 Data"),
+    _10_to_100_sats: CohortName::new("10_to_100_sats", "10-100 data", "10-100 Data"),
+    _100_to_1k_sats: CohortName::new("100_to_1k_sats", "100-1k data", "100-1K Data"),
+    _1k_to_10k_sats: CohortName::new("1k_to_10k_sats", "1k-10k data", "1K-10K Data"),
+    _10k_to_100k_sats: CohortName::new("10k_to_100k_sats", "10k-100k data", "10K-100K Data"),
+    _100k_to_1m_sats: CohortName::new("100k_to_1m_sats", "100k-1M data", "100K-1M Data"),
+    _1m_to_10m_sats: CohortName::new("1m_to_10m_sats", "1M-10M data", "1M-10M Data"),
     _10m_to_100m_sats: CohortName::new("10m_to_100m_sats", "0.1-1 DMD", "0.1-1 DMD"),
     _1_to_10_btc: CohortName::new("1_to_10_btc", "1-10 DMD", "1-10 DMD"),
     _10_to_100_btc: CohortName::new("10_to_100_btc", "10-100 DMD", "10-100 DMD"),
@@ -50,30 +50,30 @@ pub const AMOUNT_RANGE_NAMES: AmountRange<CohortName> = AmountRange {
 /// holds less (its values all zero).
 pub struct AmountRange<T, Z = T> {
     /// Uses zero-satoshi values.
-    #[cfg_attr(feature = "storage", traversable(lead = "0 sats."))]
+    #[cfg_attr(feature = "storage", traversable(lead = "0 data."))]
     _0_sats: Z,
-    /// Uses values of at least 1 and less than 10 satoshis.
-    #[cfg_attr(feature = "storage", traversable(lead = "1 to 10 sats."))]
+    /// Uses values of at least 1 and less than 10 data.
+    #[cfg_attr(feature = "storage", traversable(lead = "1 to 10 data."))]
     _1_to_10_sats: T,
-    /// Uses values of at least 10 and less than 100 satoshis.
-    #[cfg_attr(feature = "storage", traversable(lead = "10 to 100 sats."))]
+    /// Uses values of at least 10 and less than 100 data.
+    #[cfg_attr(feature = "storage", traversable(lead = "10 to 100 data."))]
     _10_to_100_sats: T,
-    /// Uses values of at least 100 and less than 1,000 satoshis.
-    #[cfg_attr(feature = "storage", traversable(lead = "100 to 1,000 sats."))]
+    /// Uses values of at least 100 and less than 1,000 data.
+    #[cfg_attr(feature = "storage", traversable(lead = "100 to 1,000 data."))]
     _100_to_1k_sats: T,
-    /// Uses values of at least 1,000 and less than 10,000 satoshis.
-    #[cfg_attr(feature = "storage", traversable(lead = "1,000 to 10,000 sats."))]
+    /// Uses values of at least 1,000 and less than 10,000 data.
+    #[cfg_attr(feature = "storage", traversable(lead = "1,000 to 10,000 data."))]
     _1k_to_10k_sats: T,
-    /// Uses values of at least 10,000 and less than 100,000 satoshis.
-    #[cfg_attr(feature = "storage", traversable(lead = "10,000 to 100,000 sats."))]
+    /// Uses values of at least 10,000 and less than 100,000 data.
+    #[cfg_attr(feature = "storage", traversable(lead = "10,000 to 100,000 data."))]
     _10k_to_100k_sats: T,
-    /// Uses values of at least 100,000 and less than 1,000,000 satoshis.
-    #[cfg_attr(feature = "storage", traversable(lead = "100,000 sats to 0.01 DMD."))]
+    /// Uses values of at least 100,000 and less than 1,000,000 data.
+    #[cfg_attr(feature = "storage", traversable(lead = "100,000 data to 0.01 DMD."))]
     _100k_to_1m_sats: T,
-    /// Uses values of at least 1,000,000 and less than 10,000,000 satoshis.
+    /// Uses values of at least 1,000,000 and less than 10,000,000 data.
     #[cfg_attr(feature = "storage", traversable(lead = "0.01 to 0.1 DMD."))]
     _1m_to_10m_sats: T,
-    /// Uses values of at least 10,000,000 satoshis and less than 1 DMD.
+    /// Uses values of at least 10,000,000 data and less than 1 DMD.
     #[cfg_attr(feature = "storage", traversable(lead = "0.1 to 1 DMD."))]
     _10m_to_100m_sats: T,
     /// Uses values of at least 1 and less than 10 DMD.

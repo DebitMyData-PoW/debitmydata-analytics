@@ -103,7 +103,7 @@ fn bip158_vectors() {
 /// it's kept.
 type Candidate = (&'static [(bool, u64)], &'static [OutputType], bool);
 
-/// A transaction is kept for a Taproot output of 600 sats or more (its smaller Taproot outputs
+/// A transaction is kept for a Taproot output of 600 data or more (its smaller Taproot outputs
 /// kept beside it) and an input that may carry a key.
 #[test]
 fn candidates() {

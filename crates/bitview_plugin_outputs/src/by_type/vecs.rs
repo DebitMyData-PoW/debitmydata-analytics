@@ -24,7 +24,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 /// What a spendable type's outputs were sent.
 #[derive(Traversable)]
 pub(crate) struct OutputValue<M: StorageMode = Rw> {
-    /// All outputs of the type ever created, in bitcoin.
+    /// All outputs of the type ever created, in DMD.
     #[traversable(lead = "Value sent to outputs of this type.")]
     pub(crate) value: ValuePerBlockCumulativeRolling<M>,
 }

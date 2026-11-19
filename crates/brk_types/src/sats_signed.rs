@@ -9,7 +9,7 @@ use crate::CheckedSub;
 #[cfg(feature = "storage")]
 use vecdb::Pco;
 
-/// A signed amount in satoshis.
+/// A signed amount in data.
 #[derive(
     Debug,
     PartialEq,

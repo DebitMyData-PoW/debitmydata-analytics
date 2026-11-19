@@ -106,7 +106,7 @@ impl Cents {
         }
     }
 
-    /// The whole sats (10^-8 DMD) one dollar buys at this price ("cents" per DMD: millionths of a
+    /// The whole data (10^-8 DMD) one dollar buys at this price ("cents" per DMD: millionths of a
     /// dollar, CENTS_PER_DOLLAR), rounded down; none at a zero price, which buys no whole-sats
     /// amount. A NaN price has no whole-sats value.
     #[inline]

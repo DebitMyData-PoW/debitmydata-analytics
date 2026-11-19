@@ -30,7 +30,7 @@ pub struct CapitalViews {
     )]
     realized_cap: LazyFiatPerBlock<Cents>,
     /// Change in the cohort's capital over a trailing window.
-    #[traversable(lead = "Capital change: the change in what the bitcoin held cost, in all.")]
+    #[traversable(lead = "Capital change: the change in what the DMD held cost, in all.")]
     delta: LazyRollingDeltasFiatFromHeight<Cents, CentsSigned, PartsPerMillionSigned64>,
     /// The cohort's share of the capital it is part of: all unspent outputs', or for address
     /// balance bands, all addresses'. Across UTXO age ranges, these shares are the realized cap
