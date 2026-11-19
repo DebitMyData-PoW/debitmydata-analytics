@@ -1,7 +1,7 @@
 #![doc = include_str!("../README.md")]
 
-#[cfg(feature = "price")]
-use std::thread;
+#[cfg(feature = "full-api")]
+use std::{sync::mpsc::sync_channel, thread};
 use std::{
     path::PathBuf,
     thread::sleep,
@@ -12,7 +12,7 @@ use bitview_query::AsyncQuery;
 use bitview_server::{Server, ServerConfig};
 use brk_exit::Exit;
 use brk_logger::init;
-#[cfg(feature = "price")]
+#[cfg(feature = "full-api")]
 use brk_mempool::Mempool;
 use brk_reader::Reader;
 use brk_rpc::Client;
@@ -35,6 +35,11 @@ pub use config::{Config, DEFAULT_CACHE_BUDGET};
 
 use bitview_plugin::ComputePluginSet;
 use update::update;
+
+/// How often an idle server reads what the next update will: an update a minute after the last
+/// still finds it in memory, one ten minutes after mostly on disk.
+#[cfg(feature = "full-api")]
+const WARM_INTERVAL: Duration = Duration::from_secs(30);
 
 /// Fully resolved settings for one Bitview runner.
 pub struct RunConfig {
@@ -126,36 +131,91 @@ where
     )?;
 
     // Only the chain and price reads use the mempool: without them no driver runs.
-    #[cfg(feature = "price")]
+    #[cfg(feature = "full-api")]
     let mut mempool = Mempool::new(&client);
-    #[cfg(feature = "price")]
+    // The RBF trees, removal reasons and first sightings outlive restarts: saved every few
+    // minutes, and the last publication's at shutdown.
+    #[cfg(feature = "full-api")]
+    {
+        let graveyard = mempool.keep_graveyard(server.data_path.join("mempool").join("graveyard"));
+        exit.register_cleanup(move || graveyard.save());
+    }
+    #[cfg(feature = "full-api")]
     let query = AsyncQuery::build(&plugins, Some(mempool.read_only_clone()));
-    #[cfg(not(feature = "price"))]
+    #[cfg(not(feature = "full-api"))]
     let query = AsyncQuery::build(&plugins, None);
+
+    // Before the server answers: a row first served without its stale blocks can stay so on the
+    // CDN.
+    #[cfg(feature = "full-api")]
+    query.sync(refresh_stale_blocks);
 
     let runtime = Builder::new_multi_thread().enable_all().build()?;
     let server = runtime.block_on(Server::bind(&query, server))?;
     let server_handle = runtime.spawn(server.serve());
 
-    #[cfg(feature = "price")]
+    #[cfg(feature = "full-api")]
+    let template = mempool.read_only_clone();
+    #[cfg(feature = "full-api")]
     let published = {
-        let resolver = query.sync(|q| q.indexer_prevout_resolver());
+        // The indexer first; what it can't give (a parent above its tip, or a script it reads
+        // from a block file that won't read), Core's UTXO set.
+        let indexer = query.sync(|q| q.indexer_prevout_resolver());
+        let node = brk_mempool::rpc_resolver(client.clone());
+        let resolver = move |holes: &[_]| {
+            let mut resolved = indexer(holes);
+            let rest: Vec<_> = holes
+                .iter()
+                .filter(|hole| !resolved.contains_key(*hole))
+                .copied()
+                .collect();
+            resolved.extend(node(&rest));
+            resolved
+        };
         let chain = query.sync(bitview_query::Query::clone);
         let published = mempool.chain_waker();
         thread::spawn(move || {
-            mempool.start_with(resolver, || chain.tip_blockhash());
+            let facts = chain.clone();
+            let tip_facts = move |tip: &_| {
+                facts
+                    .tip_facts(tip)
+                    .inspect_err(|error| warn!(%error, %tip, "block template: the chain's facts at the tip"))
+                    .ok()
+            };
+            mempool.start_with(resolver, || chain.tip_blockhash(), tip_facts);
         });
         published
+    };
+    // On its own thread: a block arriving meanwhile never waits on the node's answers.
+    #[cfg(feature = "full-api")]
+    let stale_blocks = {
+        let query = query.sync(bitview_query::Query::clone);
+        let (refresh, wanted) = sync_channel(1);
+        thread::spawn(move || {
+            for () in wanted {
+                refresh_stale_blocks(&query);
+            }
+        });
+        refresh
     };
 
     info!("Waiting for new blocks...");
 
     loop {
+        #[cfg(feature = "full-api")]
+        let mut warmed = Instant::now();
         // Compare against published state, not a cached node observation: a
         // reorg can replace the tip without changing its height.
         while query.sync(|q| q.tip_blockhash()) == client.get_best_block_hash()? {
             if server_handle.is_finished() {
                 return server_stopped(&runtime, server_handle);
+            }
+            // Idle minutes leave what the next update reads on disk: read it again before it
+            // goes cold, from the template the next block most likely shares.
+            #[cfg(feature = "full-api")]
+            if warmed.elapsed() >= WARM_INTERVAL {
+                plugins.warm(&template.load().template_transactions());
+                warmed = Instant::now();
             }
             sleep(Duration::from_secs(1));
         }
@@ -171,12 +231,23 @@ where
             "Updated to block {height} {hash} in {:.2?}",
             start.elapsed()
         );
-        #[cfg(feature = "price")]
+        #[cfg(feature = "full-api")]
         published.published();
+        // Full, a read not yet started is due: it will see this publication.
+        #[cfg(feature = "full-api")]
+        let _ = stale_blocks.try_send(());
 
         if server_handle.is_finished() {
             return server_stopped(&runtime, server_handle);
         }
+    }
+}
+
+/// A failed read keeps the list as it was.
+#[cfg(feature = "full-api")]
+fn refresh_stale_blocks(query: &bitview_query::Query) {
+    if let Err(error) = query.refresh_stale_blocks() {
+        warn!("Stale blocks not refreshed: {error}");
     }
 }
 

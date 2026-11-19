@@ -8,7 +8,7 @@
 
 > **MappingsHour1** = `object`
 
-Defined in: modules/bitview-client/index.js:6456
+Defined in: [modules/bitview-client/index.js:6430](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6430)
 
 ## Type Parameters
 
@@ -16,4 +16,4 @@ Defined in: modules/bitview-client/index.js:6456
 
 ### firstHeight
 
-> **firstHeight**: [`SeriesPattern5`](SeriesPattern5.md)\<[`Height`](Height.md)\>
+> **firstHeight**: [`SeriesPattern6`](SeriesPattern6.md)\<[`Height`](Height.md)\>

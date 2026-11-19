@@ -2,11 +2,12 @@ use bitview_cohort::AgeAggregateId;
 use bitview_primitives::{Multiple, PartsPerMillion32};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyFiatPerBlockCumulativeWithSums, RatioRollingWindows, RollingWindows, ops::Quotient,
+    LazyFiatPerBlockCumulativeWithSums, LazyIndexedVec, RatioRollingWindows, RollingWindows,
+    ops::Quotient,
 };
 use brk_error::Result;
-use brk_types::{Cents, CentsSigned};
-use vecdb::{ComputeVec, Rw, StorageMode};
+use brk_types::{Cents, CentsSigned, Height};
+use vecdb::{ComputeVec, ReadableCloneableVec, Rw, StorageMode};
 
 use crate::section::{CohortCompute, Imports, Section};
 
@@ -14,11 +15,11 @@ use crate::section::{CohortCompute, Imports, Section};
 pub struct Realized<M: StorageMode = Rw> {
     /// Profit realized by the cohort's outputs: spending value minus
     /// creation-date value, counted only for profitable spends.
-    #[traversable(lead = "Realized profit: what sellers gained over what their coins cost.")]
+    #[traversable(lead = "Realized profit: what spent coins were worth above what they cost.")]
     pub profit: LazyFiatPerBlockCumulativeWithSums<Cents>,
     /// Loss realized by the cohort's outputs: creation-date value minus
     /// spending value, counted only for losing spends.
-    #[traversable(lead = "Realized loss: what sellers lost against what their coins cost.")]
+    #[traversable(lead = "Realized loss: what spent coins were worth below what they cost.")]
     pub loss: LazyFiatPerBlockCumulativeWithSums<Cents>,
     /// Net realized profit and loss of the cohort's outputs when spent:
     /// realized profit minus realized loss.
@@ -36,23 +37,23 @@ pub struct Realized<M: StorageMode = Rw> {
     /// Creation-time value of the outputs spent.
     #[traversable(lead = "Value destroyed: what the coins spent had cost their holders.")]
     pub value_destroyed: LazyFiatPerBlockCumulativeWithSums<Cents>,
-    /// Peak regret: the value sellers forgo relative to each spent output's
-    /// highest spot price from its creation block through its spending block.
+    /// Peak regret: how much more each spent output was worth at its highest spot price from
+    /// its creation block through its spending block than when it was spent.
     #[traversable(
-        lead = "Peak regret: what sellers gave up against the highest price their coins saw while they held them."
+        lead = "Peak regret: how much more spent coins were worth at the highest price they saw since they last moved."
     )]
     pub peak_regret: LazyFiatPerBlockCumulativeWithSums<Cents>,
     /// Spent output profit ratio (SOPR): spend-time value in US dollars of the outputs spent
     /// over the window divided by their creation-time value (value destroyed); undefined (null)
     /// when that value is zero.
     #[traversable(
-        lead = "SOPR (spent output profit ratio): what coins sold for against what they cost. Above 1, sellers take profits; below 1, they sell at a loss."
+        lead = "SOPR (spent output profit ratio): what spent coins were worth against what they cost. Above 1, coins are spent at a profit; below 1, at a loss."
     )]
     pub sopr: RollingWindows<Multiple, M>,
     /// Gross realized profit and loss over the window divided by the realized cap; undefined
     /// (null) when the realized cap is zero.
     #[traversable(
-        lead = "Sell-side risk: realized profit and loss together, against the realized cap: how much value sellers move."
+        lead = "Sell-side risk: realized profit and loss together, against the realized cap."
     )]
     pub sell_side_risk_ratio: RatioRollingWindows<PartsPerMillion32, M>,
 }
@@ -66,7 +67,7 @@ impl Section for Realized {
             ..
         } = *cx;
         let c = id.select(cx.columns);
-        let flow = |metric: &str, source| {
+        let flow = |metric: &str, source: &dyn ReadableCloneableVec<Height, Cents>| {
             LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
                 &id.metric_name(metric),
                 v,
@@ -75,17 +76,32 @@ impl Section for Realized {
                 windows,
             )
         };
+        // Net and gross are the running totals' difference and sum: read, not stored.
+        let net_pnl = LazyIndexedVec::new(
+            &id.metric_name("net_realized_pnl_cumulative_cents_source"),
+            v,
+            &c.profit,
+            &c.loss,
+            |_, profit: Cents, loss: Cents| CentsSigned::from_difference(profit, loss),
+        );
+        let gross_pnl = LazyIndexedVec::new(
+            &id.metric_name("gross_realized_pnl_cumulative_cents_source"),
+            v,
+            &c.profit,
+            &c.loss,
+            |_, profit: Cents, loss: Cents| profit + loss,
+        );
         Ok(Self {
             profit: flow("realized_profit", &c.profit),
             loss: flow("realized_loss", &c.loss),
             net_pnl: LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
                 &id.metric_name("net_realized_pnl"),
                 v,
-                &c.net_pnl,
+                &net_pnl,
                 mappings,
                 windows,
             ),
-            gross_pnl: flow("gross_realized_pnl", &c.gross_pnl),
+            gross_pnl: flow("gross_realized_pnl", &gross_pnl),
             profit_to_loss: RollingWindows::import(
                 db,
                 &id.metric_name("realized_profit_to_loss"),

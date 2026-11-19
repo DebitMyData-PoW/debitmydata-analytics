@@ -33,7 +33,7 @@ impl Vecs {
             || -> Result<()> {
                 // Activity (liveliness, vaultedness, etc.) and the age ranges are independent.
                 let (activity, age_ranges) = join(
-                    || self.activity.compute(indexer, age, holders, exit),
+                    || self.activity.compute(indexer, age, exit),
                     || self.age_ranges.compute(indexer, age, exit),
                 );
                 activity?;
@@ -70,14 +70,8 @@ impl Vecs {
                 self.caps
                     .compute(indexer, holders, &self.activity, &self.value, exit)?;
                 let from = indexer.compute_start().height;
-                self.prices.compute(
-                    from,
-                    holders,
-                    &self.activity,
-                    &self.supply,
-                    &self.caps,
-                    exit,
-                )?;
+                self.prices
+                    .compute(from, holders, &self.supply, &self.caps, exit)?;
                 self.prices
                     .compute_ratios(from, &prices.spot.cents.height, exit)
             },
@@ -105,12 +99,12 @@ impl ComputePlugin for Vecs {
         let supplies = dependencies.age.age_supplies();
         let weights = self.age_ranges.urpd_weight_sources();
         compute_cost_basis(
-            &mut self.urpd_replay,
+            &mut self.urpd_walk,
             self.aggregate
                 .cohorts
                 .as_array_mut()
                 .map(|cohort| &mut cohort.awake.cost_basis),
-            dependencies.age.all_supply().version() + dependencies.urpd.timestamps.version(),
+            dependencies.age.all_supply().version(),
             usize::from(dependencies.indexer.compute_start().height),
             dependencies.urpd,
             &weights,

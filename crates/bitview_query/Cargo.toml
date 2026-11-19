@@ -9,38 +9,32 @@ repository.workspace = true
 
 [features]
 default = ["full-api"]
-full-api = ["chain", "series", "urpd"]
-chain = [
-    "price",
-    "dep:brk_cpfp",
-    "dep:smallvec",
-    "dep:bitview_plugin_blocks",
+# Every endpoint, and the plugins they read.
+full-api = [
+    "series",
+    "dep:bitview_cohort",
     "dep:bitview_plugin_addresses",
+    "dep:bitview_plugin_age",
+    "dep:bitview_plugin_blocks",
+    "dep:bitview_plugin_coinflow",
+    "dep:bitview_plugin_cointime",
     "dep:bitview_plugin_inputs",
     "dep:bitview_plugin_mining",
     "dep:bitview_plugin_outputs",
     "dep:bitview_plugin_pools",
+    "dep:bitview_plugin_price",
+    "dep:bitview_plugin_silent_payments",
     "dep:bitview_plugin_transactions",
     "dep:bitview_plugin_utxo_set",
-]
-series = ["dep:arc-swap", "dep:bitview_catalog", "dep:bitview_plugin_mappings", "dep:itoa", "dep:quickmatch"]
-urpd = [
-    "price",
-    "dep:bitview_cohort",
-    "dep:bitview_urpd",
-    "dep:bitview_plugin_utxo_set",
-    "dep:bitview_plugin_coinflow",
-    "dep:bitview_plugin_cointime",
-    "dep:bitview_plugin_age",
-]
-price = [
-    "dep:arc-swap",
-    "dep:bitview_plugin_mappings",
-    "dep:bitview_plugin_price",
     "dep:bitview_vecs",
+    "dep:brk_cpfp",
     "dep:brk_oracle",
     "dep:parking_lot",
+    "dep:smallvec",
+    "dep:statedb",
 ]
+# The generic series API: any composition with the mappings plugin can serve it.
+series = ["dep:arc-swap", "dep:bitview_catalog", "dep:bitview_plugin_mappings", "dep:itoa", "dep:quickmatch"]
 
 [dependencies]
 arc-swap = { workspace = true, optional = true }
@@ -57,12 +51,12 @@ bitview_plugin_inputs = { workspace = true, optional = true }
 bitview_plugin_mining = { workspace = true, optional = true }
 bitview_plugin_outputs = { workspace = true, optional = true }
 bitview_plugin_pools = { workspace = true, optional = true }
+bitview_plugin_silent_payments = { workspace = true, optional = true }
 bitview_plugin_price = { workspace = true, optional = true }
 bitview_plugin_transactions = { workspace = true, optional = true }
 bitview_plugin_utxo_set = { workspace = true, optional = true }
 bitview_primitives = { workspace = true, features = ["storage"] }
 bitview_types = { workspace = true }
-bitview_urpd = { workspace = true, optional = true }
 bitview_vecs = { workspace = true, optional = true }
 bitview_catalog = { workspace = true, optional = true }
 brk_cpfp = { workspace = true, optional = true }
@@ -78,9 +72,11 @@ itoa = { workspace = true, optional = true }
 jiff = { workspace = true }
 parking_lot = { workspace = true, optional = true }
 quickmatch = { workspace = true, optional = true }
+rapidhash = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 smallvec = { workspace = true, optional = true }
+statedb = { workspace = true, optional = true }
 tokio = { workspace = true, features = ["sync", "time", "rt"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

@@ -1,20 +1,26 @@
 use std::ops::Range;
 
 use brk_types::{
-    CpfpCluster, CpfpClusterChunk, CpfpClusterTx, CpfpClusterTxIndex, FeeRate, Sats, Txid, VSize,
-    Weight,
+    CpfpCluster, CpfpClusterChunk, CpfpClusterTx, CpfpClusterTxIndex, FeeRate, Sats, Txid, Weight,
 };
 
 use crate::linearize::{Scratch, linearize};
+#[cfg(test)]
+use crate::linearize::ancestor_sets;
 
-/// One member: its fee, size and range in [`Cluster::parents`]' flat buffer.
+/// One member: the fee it pays (served), the fee it ranks by (Core's authoritative signed
+/// modified fee), its weight, its place in the fallback order
+/// that settles equal feerates (Core's: by txid) and its range in [`Cluster::parents`]' flat
+/// buffer.
 pub(crate) struct Node {
     pub fee: Sats,
-    pub vsize: VSize,
+    pub modified: i64,
+    pub weight: Weight,
+    pub fallback: u32,
     pub parents: Range<usize>,
 }
 
-/// A dependency component in topological order: each member's `(fee, vsize)` and its
+/// A dependency component in topological order: each member's `(fee, weight)` and its
 /// in-cluster parents as local indices of earlier members. Reuse one across components:
 /// [`Cluster::clear`] keeps every buffer, the linearization scratch included.
 #[derive(Default)]
@@ -30,24 +36,60 @@ impl Cluster {
         self.parents.clear();
     }
 
-    /// `parents` must be local indices of earlier members.
+    /// `weight` is what feerates are measured over (the mempool's sigop-adjusted, as Core's);
+    /// `parents` must be local indices of earlier members. It ranks by what it pays.
+    /// A member weight must be positive and fit u32 (the node's are checked where they're read);
+    /// a component holds at most u32::MAX members.
     pub fn push(
         &mut self,
         fee: Sats,
-        vsize: VSize,
+        weight: Weight,
+        parents: impl IntoIterator<Item = CpfpClusterTxIndex>,
+    ) {
+        let fallback = self.nodes.len() as u32;
+        self.push_ranked(
+            fee,
+            i64::try_from(u64::from(fee)).unwrap(),
+            weight,
+            fallback,
+            parents,
+        );
+    }
+
+    /// [`Self::push`], ranked by `modified` instead (Core's modified fee), `fee` still served.
+    /// `modified` is the node's full signed 64-bit amount. Sums use 128 bits. `fallback`: its
+    /// place among the members in the order settling equal feerates, distinct (Core's: by txid;
+    /// [`Self::push`] takes the push order).
+    pub fn push_ranked(
+        &mut self,
+        fee: Sats,
+        modified: i64,
+        weight: Weight,
+        fallback: u32,
         parents: impl IntoIterator<Item = CpfpClusterTxIndex>,
     ) {
         let start = self.parents.len();
         self.parents.extend(parents);
+        // Every tier relies on it (the ancestor rows index by parent): in dev builds a caller's
+        // mistake fails here, not as a wrong linearization.
         debug_assert!(
             self.parents[start..]
                 .iter()
                 .all(|&parent| (u32::from(parent) as usize) < self.nodes.len()),
             "CPFP parents must precede their children"
         );
+        // At most u32 members, each at most u32 weight: sums fit u64, signed fee sums
+        // fit i128. The exact tier's <=64-member flow capacities then stay below 2^114.
+        debug_assert!(self.nodes.len() < u32::MAX as usize, "bounded component membership");
+        debug_assert!(
+            u64::from(weight) > 0 && u32::try_from(u64::from(weight)).is_ok(),
+            "bounded positive member weight"
+        );
         self.nodes.push(Node {
             fee,
-            vsize,
+            modified,
+            weight,
+            fallback,
             parents: start..self.parents.len(),
         });
     }
@@ -56,12 +98,20 @@ impl Cluster {
         self.nodes[local].fee
     }
 
-    /// Linearize into descending-feerate chunks and pass each chunk's members (ascending
-    /// local indices) and feerate to `emit`, in chunk order. Order: the best remaining ancestor set
-    /// first (exact feerate, then more members, then earliest); a group paying more than the chunk
-    /// before it merges into it.
+    /// Linearize into chunks of non-increasing feerate and pass each chunk's members (in order)
+    /// and feerate to `emit`, in chunk order: optimal up to 64 members, in Core's order, the
+    /// best remaining ancestor sets up to 4,096, the push order chunked beyond (`linearize/`).
     pub fn linearize(&mut self, emit: impl FnMut(&[CpfpClusterTxIndex], FeeRate)) {
         linearize(&self.nodes, &self.parents, &mut self.scratch, emit);
+    }
+
+    /// [`Self::linearize`] through the ancestor-set tier, whatever the size.
+    #[cfg(test)]
+    pub(crate) fn linearize_ancestor_sets(
+        &mut self,
+        emit: impl FnMut(&[CpfpClusterTxIndex], FeeRate),
+    ) {
+        ancestor_sets(&self.nodes, &self.parents, &mut self.scratch, emit);
     }
 
     /// The cluster as served for the member `seed`, and the seed's effective feerate: that of
@@ -73,21 +123,44 @@ impl Cluster {
         member: impl Fn(usize) -> (Txid, Weight),
     ) -> (Option<CpfpCluster>, FeeRate) {
         if self.nodes.len() == 1 {
+            // A lone transaction's rate is what it pays (its ranked fee only orders).
             let node = &self.nodes[u32::from(seed) as usize];
-            return (None, FeeRate::from((node.fee, node.vsize)));
+            return (None, FeeRate::from((node.fee, node.weight)));
         }
         let mut chunks = Vec::new();
-        let mut seed_chunk = None;
         self.linearize(|txs, feerate| {
-            if txs.contains(&seed) {
-                seed_chunk = Some((chunks.len() as u32, feerate));
-            }
             chunks.push(CpfpClusterChunk {
                 txs: txs.to_vec(),
                 feerate,
             });
         });
-        let (chunk_index, rate) = seed_chunk.expect("every member is in a chunk");
+        self.project_from(seed, member, chunks)
+    }
+
+    /// [`Self::project`] from this cluster's linearization made already: its chunks in order,
+    /// each its members' local indices in the linearization's order.
+    pub fn project_from(
+        &self,
+        seed: CpfpClusterTxIndex,
+        member: impl Fn(usize) -> (Txid, Weight),
+        chunks: Vec<CpfpClusterChunk>,
+    ) -> (Option<CpfpCluster>, FeeRate) {
+        if self.nodes.len() == 1 {
+            // A lone transaction's rate is what it pays (its ranked fee only orders).
+            let node = &self.nodes[u32::from(seed) as usize];
+            return (None, FeeRate::from((node.fee, node.weight)));
+        }
+        debug_assert_eq!(
+            chunks.iter().map(|chunk| chunk.txs.len()).sum::<usize>(),
+            self.nodes.len(),
+            "every member in one chunk"
+        );
+        let (chunk_index, rate) = chunks
+            .iter()
+            .enumerate()
+            .find(|(_, chunk)| chunk.txs.contains(&seed))
+            .map(|(i, chunk)| (i as u32, chunk.feerate))
+            .expect("every member is in a chunk");
         let txs = self
             .nodes
             .iter()

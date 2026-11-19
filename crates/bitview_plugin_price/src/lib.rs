@@ -10,7 +10,7 @@ mod split;
 
 pub use dependencies::Dependencies;
 pub use has::HasPrice;
-pub use oracle_feed::{block_payments, block_tally, feed_blocks_for_warmup, feed_blocks_with};
+pub use oracle_feed::{block_payments, block_tally, feed_blocks_with, warm_oracle};
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::Float64;
@@ -53,9 +53,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(lead = "DMD's reference price in US dollars, block by block: the cost of mining one DMD, at least $0.001. Not a market price.")]
     pub spot: Price<PerBlock<Cents, M>>,
     /// Whole sats (10^-8 DMD) one US dollar buys at the reference price, rounded down:
-    /// 100,000,000 divided by the price in USD per DMD. 0 while the price is zero.
+    /// 100,000,000 divided by the price in USD per DMD. Null while the price is zero.
     #[traversable(lead = "Sats per dollar: how many 10^-8 DMD units one US dollar buys at the reference price.")]
-    sats_per_dollar: LazyPerBlock<Sats, Cents>,
+    sats_per_dollar: LazyPerBlock<Option<Sats>, Cents>,
     /// The price on the oracle's log scale at each height. Kept for Bitview's format; the
     /// oracle does not price DebitMyData's blocks.
     #[traversable(hidden)]

@@ -3,13 +3,12 @@ use axum::{
     extract::Query,
     response::{IntoResponse, Response},
 };
+use bitview_http::CachePolicy;
 use bitview_types::{LogLevel, LogLine, Logs};
 use brk_logger::{Line, Recent};
 use tracing::Level;
 
-use crate::{
-    Error, cache::CDN_LIVE, error::Result, extended::HeaderMapExtended, params::LogsQuery,
-};
+use crate::{Error, error::Result, params::LogsQuery};
 
 pub async fn get(Query(query): Query<LogsQuery>) -> Result<Response> {
     let started = brk_logger::started().as_millisecond();
@@ -30,10 +29,8 @@ pub async fn get(Query(query): Query<LogsQuery>) -> Result<Response> {
         next: format!("{started}-{next}"),
     })
     .into_response();
-    let headers = response.headers_mut();
     // A second, for browsers and the CDN alike: readers polling together share one answer.
-    headers.insert_cache_control(CDN_LIVE);
-    headers.insert_cdn_cache_control(CDN_LIVE);
+    CachePolicy::Revalidate.apply(response.headers_mut());
     Ok(response)
 }
 
@@ -42,6 +39,7 @@ fn cursor(after: &str) -> Result<(i64, u64)> {
     after
         .rsplit_once('-')
         .and_then(|(process, seq)| Some((process.parse().ok()?, seq.parse().ok()?)))
+        .filter(|(process, seq)| format!("{process}-{seq}") == after)
         .ok_or_else(|| Error::bad_request("`after` takes an answer's `next`, as it is"))
 }
 

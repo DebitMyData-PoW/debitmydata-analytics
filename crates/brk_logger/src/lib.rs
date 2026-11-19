@@ -1,15 +1,17 @@
 #![doc = include_str!("../README.md")]
 
-use std::{backtrace::Backtrace, env, fs, io, panic, path::Path, time::Duration};
+use std::{backtrace::Backtrace, env, io, panic, path::Path};
 
 use format::Formatter;
 use hook::HookLayer;
 use rate_limit::RateLimitedFile;
+use retention::delete_old_daily;
 pub use rate_limit::{LEVEL_NAMES, log_file_date};
-pub use tail::{Line, Recent, recent, started};
 use tail::TailLayer;
-use tracing::{Event, Level, error, field};
+pub use tail::{Line, Recent, recent, started};
+use tracing::{Event, error, field};
 use tracing_log::LogTracer;
+pub use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::{
     filter::Targets, fmt, layer::SubscriberExt, registry as TracingSubscriberRegistry,
     util::SubscriberInitExt,
@@ -18,54 +20,79 @@ use tracing_subscriber::{
 mod format;
 mod hook;
 mod rate_limit;
+mod retention;
 mod tail;
-
-const MAX_LOG_AGE_DAYS: u64 = 7;
 
 /// Initialize the global tracing subscriber with a colorized console layer.
 ///
 /// If `dir` is `Some`, also writes daily log files to that directory:
 /// `YYYY-MM-DD.txt` for the combined log and `YYYY-MM-DD_<level>.txt` for each
 /// tracing level. The directory is created if it does not exist, and those
-/// files older than 7 days are pruned on startup.
+/// files older than 7 days are deleted at start, then once a day.
 pub fn init(dir: Option<&Path>) -> io::Result<()> {
-    #[cfg(debug_assertions)]
-    const DEFAULT_LEVEL: &str = "debug";
-    #[cfg(not(debug_assertions))]
-    const DEFAULT_LEVEL: &str = "info";
-
-    init_with_default_level(dir, DEFAULT_LEVEL)
+    init_with_default_level(
+        dir,
+        if cfg!(debug_assertions) {
+            LevelFilter::DEBUG
+        } else {
+            LevelFilter::INFO
+        },
+    )
 }
 
 /// Initialize the logger with a caller-selected fallback level.
 ///
-/// `RUST_LOG` takes precedence over `LOG`, which takes precedence over `default_level`.
-pub fn init_with_default_level(dir: Option<&Path>, default_level: &str) -> io::Result<()> {
+/// `RUST_LOG` (a full filter) takes precedence over `LOG` (a level), which takes precedence over
+/// `default_level`. A value that doesn't parse is an error, not a silent fallback: a typo there
+/// would otherwise mute errors too.
+pub fn init_with_default_level(dir: Option<&Path>, default_level: LevelFilter) -> io::Result<()> {
     LogTracer::init().ok();
 
-    let level = env::var("LOG").unwrap_or_else(|_| default_level.to_string());
-
-    let directives = env::var("RUST_LOG").unwrap_or_else(|_| {
-        format!(
+    let invalid = |name: &str, value: &str, error: &dyn std::fmt::Display| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("{name}={value}: {error}"),
+        )
+    };
+    // Set but empty is unset (an empty LOG would parse as `error`).
+    let var = |name| {
+        env::var(name)
+            .ok()
+            .filter(|value: &String| !value.is_empty())
+    };
+    let filter: Targets = match var("RUST_LOG") {
+        Some(value) => value
+            .parse()
+            .map_err(|error| invalid("RUST_LOG", &value, &error))?,
+        None => {
+            let level = match var("LOG") {
+                Some(value) => value.parse::<LevelFilter>().map_err(|_| {
+                    invalid(
+                        "LOG",
+                        &value,
+                        &"not a level (off, error, warn, info, debug, trace)",
+                    )
+                })?,
+                None => default_level,
+            };
+            format!(
             "{level},bitcoin=off,corepc=off,tracing=off,aide=off,fjall=off,lsm_tree=off,tower_http=off,rmcp=warn"
         )
-    });
+            .parse()
+            .expect("the default filter parses")
+        }
+    };
 
-    let filter: Targets = directives
-        .parse()
-        .unwrap_or_else(|_| Targets::new().with_default(Level::INFO));
-
+    // Layers see an event in this order: the hook and the tail read the clock before the
+    // console and the log file write it out.
     let registry = TracingSubscriberRegistry()
         .with(filter)
-        .with(fmt::layer().event_format(Formatter::<true>))
         .with(HookLayer)
-        .with(TailLayer);
+        .with(TailLayer)
+        .with(fmt::layer().event_format(Formatter::<true>));
 
     if let Some(dir) = dir {
         let writer = RateLimitedFile::new(dir)?;
-
-        cleanup_old_logs(dir);
-
         registry
             .with(
                 fmt::layer()
@@ -73,6 +100,7 @@ pub fn init_with_default_level(dir: Option<&Path>, default_level: &str) -> io::R
                     .with_writer(writer),
             )
             .init();
+        delete_old_daily(dir);
     } else {
         registry.init();
     }
@@ -102,29 +130,4 @@ where
     F: for<'a> Fn(&Event<'a>) + Send + Sync + 'static,
 {
     hook::register(hook)
-}
-
-fn cleanup_old_logs(dir: &Path) {
-    let max_age = Duration::from_secs(MAX_LOG_AGE_DAYS * 24 * 60 * 60);
-    let Ok(entries) = fs::read_dir(dir) else {
-        return;
-    };
-
-    for entry in entries.flatten() {
-        let path = entry.path();
-        let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
-            continue;
-        };
-        if log_file_date(name).is_none() {
-            continue;
-        }
-
-        if let Ok(meta) = path.metadata()
-            && let Ok(modified) = meta.modified()
-            && let Ok(age) = modified.elapsed()
-            && age > max_age
-        {
-            let _ = fs::remove_file(&path);
-        }
-    }
 }

@@ -6,7 +6,7 @@
 
 # Interface: ErrorBody
 
-Defined in: modules/bitview-client/index.js:579
+Defined in: [modules/bitview-client/index.js:583](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L583)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: modules/bitview-client/index.js:579
 
 > **error**: [`ErrorDetail`](ErrorDetail.md)
 
-Defined in: modules/bitview-client/index.js:580
+Defined in: [modules/bitview-client/index.js:584](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L584)

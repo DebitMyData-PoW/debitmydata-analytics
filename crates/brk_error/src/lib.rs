@@ -14,7 +14,7 @@ use fjall::Error as FjallError;
 use jiff::Error as JiffError;
 #[cfg(feature = "serde_json")]
 use serde_json::Error as SerdeJsonError;
-use std::{borrow::Cow, io, path::PathBuf, result::Result as StdResult};
+use std::{borrow::Cow, io, panic::Location, path::PathBuf, result::Result as StdResult};
 
 use thiserror::Error;
 
@@ -37,6 +37,25 @@ impl<T> OptionData<T> for Option<T> {
     #[inline]
     fn data(self) -> Result<T> {
         self.ok_or(Error::Internal("data unavailable"))
+    }
+}
+
+/// Where a read found the state updating (a 503): the guard that answered so, logged beside the
+/// request. Made only by [`Updating::here`], so every such error names its site.
+#[derive(Debug, Clone, Copy)]
+pub struct Updating(&'static Location<'static>);
+
+impl Updating {
+    /// The caller's location. Call it (or an error's `updating`) directly, or from a closure:
+    /// passed as a function (`ok_or_else(Error::updating)`), it reports a location in `core`.
+    #[track_caller]
+    #[inline]
+    pub fn here() -> Self {
+        Self(Location::caller())
+    }
+
+    pub fn location(self) -> &'static Location<'static> {
+        self.0
     }
 }
 
@@ -97,7 +116,7 @@ pub enum Error {
     InvalidNetwork,
 
     #[error("State is updating")]
-    StateUpdating,
+    StateUpdating(Updating),
 
     #[error("Unsupported type ({0})")]
     UnsupportedType(String),
@@ -111,8 +130,16 @@ pub enum Error {
     #[error("{0}")]
     Parse(String),
 
+    /// Stored data failed an owner-level consistency check and must be rebuilt.
+    #[error("Invalid data: {0}")]
+    InvalidData(&'static str),
+
     #[error("Internal error: {0}")]
     Internal(&'static str),
+
+    /// A request asking for more than one of the server's bounds serves.
+    #[error("{0}")]
+    LimitExceeded(&'static str),
 
     #[error(
         "No RPC credentials: no rpcpassword is set and there's no cookie file at {cookie:?} (is bitcoind running?)"
@@ -157,6 +184,13 @@ impl From<RawDBError> for Error {
 }
 
 impl Error {
+    /// [`Error::StateUpdating`] at the caller's location ([`Updating::here`]).
+    #[track_caller]
+    #[inline]
+    pub fn updating() -> Self {
+        Self::StateUpdating(Updating::here())
+    }
+
     /// Returns true if this error is due to a file lock (another process has the database open).
     /// Lock errors are transient and should not trigger data deletion.
     pub fn is_lock_error(&self) -> bool {
@@ -177,7 +211,7 @@ impl Error {
             Error::VecDB(e) => e.is_data_error(),
             #[cfg(feature = "fjall")]
             Error::Fjall(e) => e.is_data_error(),
-            Error::VersionMismatch { .. } | Error::MissingVersion { .. } => true,
+            Error::VersionMismatch { .. } | Error::MissingVersion { .. } | Error::InvalidData(_) => true,
             _ => false,
         }
     }

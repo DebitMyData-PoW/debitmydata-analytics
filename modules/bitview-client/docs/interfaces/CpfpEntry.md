@@ -6,7 +6,7 @@
 
 # Interface: CpfpEntry
 
-Defined in: modules/bitview-client/index.js:435
+Defined in: [modules/bitview-client/index.js:446](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L446)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: modules/bitview-client/index.js:435
 
 > **fee**: `number`
 
-Defined in: modules/bitview-client/index.js:438
+Defined in: [modules/bitview-client/index.js:449](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L449)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: modules/bitview-client/index.js:438
 
 > **txid**: `string`
 
-Defined in: modules/bitview-client/index.js:436
+Defined in: [modules/bitview-client/index.js:447](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L447)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: modules/bitview-client/index.js:436
 
 > **weight**: `number`
 
-Defined in: modules/bitview-client/index.js:437
+Defined in: [modules/bitview-client/index.js:448](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L448)

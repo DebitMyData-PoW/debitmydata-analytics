@@ -1,17 +1,13 @@
-/**
- * @typedef {Object} BitviewClientOptions
- * @property {string} baseUrl
- * @property {number} [timeout] - Request timeout in milliseconds, the download included. Default: 30000
- * @property {string|boolean} [browserCache] - Enable browser Cache API with default name (true), custom name (string), or disable (false). No effect in Node.js. Default: true
- * @property {number|boolean} [memCache] - LRU capacity of the in-memory parsed-response cache, which lets 304 responses skip the JSON parse: true/undefined → 1000, false/0 → disabled
- */
+/** @import { _MemEntry, AddressOutputType, BitviewClient, BitviewClientOptions, ClientFetchOptions, DateSeriesData, DateSeriesEndpoint, DateSeriesFetchArg, DateRangeBuilder, DateSkippedBuilder, ErrorCode, ErrorDetail, Frozen, Index, SeriesData } from './index.js' */
 
 const _isBrowser = typeof window !== 'undefined' && 'caches' in window;
 const _runIdle = (/** @type {VoidFunction} */ fn) => (globalThis.requestIdleCallback ?? setTimeout)(fn);
 const _defaultBrowserCacheName = '__BRK_CLIENT__';
 const _DEFAULT_MEM_CACHE_SIZE = 1000;
+/** How long a server that failed is passed over: a misconfigured `bitview-origin` costs at most
+ * one retried request per period, and a restarted server is taken back after it. */
+const _REFUSE_MS = 600_000;
 
-/** @template T @typedef {{ etag: string | null, value: T }} _MemEntry */
 /** @type {Map<string, string>} */
 const _camelNames = new Map();
 /** `tx_count` → `txCount`; `avgFee_0` and `24h` stay as they are. @param {string} key */
@@ -22,6 +18,31 @@ const _camelName = (key) => {
     _camelNames.set(key, name);
   }
   return name;
+};
+
+/**
+ * `getJson`'s body reader: the JSON, its field names camelCased (map keys as `keep` says).
+ * @param {*} keep
+ */
+const _readJson = (keep) => async (/** @type {Response} */ res) => _camelKeys(await res.json(), keep);
+
+/**
+ * Freezes a parsed value and everything in it, once, before the memory cache shares it: every
+ * caller with the same body reader and schema gets the same object. Typed arrays (byte bodies) can't
+ * be frozen and stay as they are; strings already can't change.
+ * @template T
+ * @param {T} value
+ * @returns {T}
+ */
+const _deepFreeze = (value) => {
+  if (value === null || typeof value !== 'object' || ArrayBuffer.isView(value) || Object.isFrozen(value)) return value;
+  Object.freeze(value);
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) _deepFreeze(value[i]);
+  } else {
+    for (const key in value) _deepFreeze(/** @type {Record<string, unknown>} */ (value)[key]);
+  }
+  return value;
 };
 
 /**
@@ -163,19 +184,19 @@ function _wrapSeriesData(raw) {
       return this.indexes();
     },
     entries() {
-      /** @type {Array<[number, T]>} */
+      /** @type {Array<[number, Frozen<T>]>} */
       const result = new Array(data.length);
       for (let i = 0; i < data.length; i++) result[i] = [start + i, data[i]];
       return result;
     },
     toMap() {
-      /** @type {Map<number, T>} */
+      /** @type {Map<number, Frozen<T>>} */
       const map = new Map();
       for (let i = 0; i < data.length; i++) map.set(start + i, data[i]);
       return map;
     },
     *[Symbol.iterator]() {
-      for (let i = 0; i < data.length; i++) yield /** @type {[number, T]} */ ([start + i, data[i]]);
+      for (let i = 0; i < data.length; i++) yield /** @type {[number, Frozen<T>]} */ ([start + i, data[i]]);
     },
     // DateSeriesData methods (only meaningful for date-based indexes)
     dates() {
@@ -185,13 +206,13 @@ function _wrapSeriesData(raw) {
       return result;
     },
     dateEntries() {
-      /** @type {Array<[globalThis.Date, T]>} */
+      /** @type {Array<[globalThis.Date, Frozen<T>]>} */
       const result = [];
       for (let i = 0; i < data.length; i++) result.push([indexToDate(index, start + i), data[i]]);
       return result;
     },
     toDateMap() {
-      /** @type {Map<globalThis.Date, T>} */
+      /** @type {Map<globalThis.Date, Frozen<T>>} */
       const map = new Map();
       for (let i = 0; i < data.length; i++) map.set(indexToDate(index, start + i), data[i]);
       return map;
@@ -199,120 +220,6 @@ function _wrapSeriesData(raw) {
   });
 }
 
-/**
- * @template T
- * @typedef {Object} SeriesDataBase
- * @property {number} version
- * @property {Index} index
- * @property {string} type - Value type (e.g. "Ratio", "Sats", "Cents")
- * @property {number} start - Start index (inclusive)
- * @property {number} end - End index (exclusive)
- * @property {T[]} data - The series data (`null` where a value is missing or undefined)
- * @property {boolean} isDateBased
- * @property {() => number[]} indexes
- * @property {() => number[]} keys - Alias for indexes
- * @property {() => Array<[number, T]>} entries - Get [index, value] pairs
- * @property {() => Map<number, T>} toMap - Convert to Map<index, value>
- */
-
-/** @template T @typedef {SeriesDataBase<T> & Iterable<[number, T]>} SeriesData */
-
-/**
- * @template T
- * @typedef {Object} DateSeriesDataExtras
- * @property {() => globalThis.Date[]} dates - Get dates for each data point
- * @property {() => Array<[globalThis.Date, T]>} dateEntries
- * @property {() => Map<globalThis.Date, T>} toDateMap
- */
-
-/** @template T @typedef {SeriesData<T> & DateSeriesDataExtras<T>} DateSeriesData */
-/** @typedef {SeriesData<any>} AnySeriesData */
-
-/** @template T @typedef {PromiseLike<SeriesData<T>>['then']} Thenable */
-/** @template T @typedef {PromiseLike<DateSeriesData<T>>['then']} DateThenable */
-
-/**
- * @template T
- * @typedef {Object} SeriesEndpoint
- * @property {(index: number) => RangeBuilder<T>} get
- * @property {(start?: number, end?: number) => RangeBuilder<T>} slice
- * @property {(n: number) => RangeBuilder<T>} first
- * @property {(n: number) => RangeBuilder<T>} last
- * @property {(n: number) => SkippedBuilder<T>} skip - Skip first n items, chain with take()
- * @property {(arg?: SeriesFetchArg<T>, options?: ClientFetchOptions<SeriesData<T>>) => Promise<SeriesData<T>>} fetch - Fetch all data
- * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv - Fetch all data as CSV
- * @property {() => Promise<number>} len - Get total number of data points
- * @property {() => Promise<Version>} version
- * @property {Thenable<T>} then - Thenable (await endpoint)
- * @property {string} path
- */
-
-/**
- * @template T
- * @typedef {Object} DateSeriesEndpoint
- * @property {(index: number | globalThis.Date) => DateRangeBuilder<T>} get
- * @property {(start?: number | globalThis.Date, end?: number | globalThis.Date) => DateRangeBuilder<T>} slice
- * @property {(n: number) => DateRangeBuilder<T>} first
- * @property {(n: number) => DateRangeBuilder<T>} last
- * @property {(n: number) => DateSkippedBuilder<T>} skip - Skip first n items, chain with take()
- * @property {(arg?: DateSeriesFetchArg<T>, options?: ClientFetchOptions<DateSeriesData<T>>) => Promise<DateSeriesData<T>>} fetch - Fetch all data
- * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv - Fetch all data as CSV
- * @property {() => Promise<number>} len - Get total number of data points
- * @property {() => Promise<Version>} version
- * @property {DateThenable<T>} then - Thenable (await endpoint)
- * @property {string} path
- */
-
-/** @typedef {SeriesEndpoint<any>} AnySeriesEndpoint */
-
-/**
- * @template T
- * @typedef {Object} ClientFetchOptions
- * @property {AbortSignal} [signal] - Abort this request
- * @property {boolean} [cache] - Use HTTP/browser/client caches. Set false for a no-store network fetch.
- * @property {boolean} [memCache] - Use the parsed in-memory response cache. Set false for large one-shot reads.
- * @property {(value: T) => void} [onValue] - Receive stale/fresh values as they arrive
- */
-
-/** @template T @typedef {ClientFetchOptions<SeriesData<T>> | ((value: SeriesData<T>) => void)} SeriesFetchArg */
-/** @template T @typedef {ClientFetchOptions<DateSeriesData<T>> | ((value: DateSeriesData<T>) => void)} DateSeriesFetchArg */
-
-/** @template T @typedef {Object} SkippedBuilder
- * @property {(n: number) => RangeBuilder<T>} take - Take n items after skipped position
- * @property {(arg?: SeriesFetchArg<T>, options?: ClientFetchOptions<SeriesData<T>>) => Promise<SeriesData<T>>} fetch - Fetch from skipped position to end
- * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv
- * @property {Thenable<T>} then
- */
-
-/** @template T @typedef {Object} DateSkippedBuilder
- * @property {(n: number) => DateRangeBuilder<T>} take - Take n items after skipped position
- * @property {(arg?: DateSeriesFetchArg<T>, options?: ClientFetchOptions<DateSeriesData<T>>) => Promise<DateSeriesData<T>>} fetch - Fetch from skipped position to end
- * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv
- * @property {DateThenable<T>} then
- */
-
-/** @template T @typedef {Object} RangeBuilder
- * @property {(arg?: SeriesFetchArg<T>, options?: ClientFetchOptions<SeriesData<T>>) => Promise<SeriesData<T>>} fetch - Fetch the selection (one item or a range)
- * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv
- * @property {Thenable<T>} then
- */
-
-/** @template T @typedef {Object} DateRangeBuilder
- * @property {(arg?: DateSeriesFetchArg<T>, options?: ClientFetchOptions<DateSeriesData<T>>) => Promise<DateSeriesData<T>>} fetch - Fetch the selection (one item or a range)
- * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv
- * @property {DateThenable<T>} then
- */
-
-/**
- * @template T
- * @typedef {Object} SeriesPattern
- * @property {string} name
- * @property {Readonly<Partial<Record<Index, SeriesEndpoint<T>>>>} by - Index endpoints as lazy getters
- * @property {() => readonly Index[]} indexes
- * @property {(index: Index) => SeriesEndpoint<T>|undefined} get
- */
-
-/** @typedef {SeriesPattern<any>} AnySeriesPattern */
 
 /**
  * @template T
@@ -409,6 +316,49 @@ class BitviewClientBase {
       : (typeof memOpt === 'number' ? memOpt : _DEFAULT_MEM_CACHE_SIZE);
     /** @type {Map<string, _MemEntry<unknown>>} */
     this._memCache = new Map();
+    /** The server requests go to, if not the configured URL. @type {string | null} */
+    this._pinned = null;
+    /** Servers passed over, until when. @type {Map<string, number>} */
+    this._refused = new Map();
+  }
+
+  /**
+   * Fetch `path` from the pinned server, else the configured URL. When several servers answer
+   * one URL, each names itself in `bitview-origin` and the requests after go to it, so what one
+   * server minted (a diff's `since`) stays with it. A pinned server that fails (network, timeout,
+   * 5xx) is passed over, and the request goes through the configured URL again.
+   * @param {string} path
+   * @param {RequestInit} init
+   * @param {AbortSignal} [signal]
+   * @returns {Promise<Response>}
+   */
+  async _fetch(path, init, signal) {
+    const pinned = this._pinned;
+    if (pinned) {
+      try {
+        const res = await fetch(`${pinned}${path}`, { ...init, signal: this._signal(signal) });
+        if (res.status < 500) return this._follow(res);
+        await res.body?.cancel();
+      } catch (e) {
+        if (signal?.aborted) throw e;
+      }
+      this._refused.set(pinned, Date.now() + _REFUSE_MS);
+      if (this._pinned === pinned) this._pinned = null;
+    }
+    return this._follow(await fetch(`${this.baseUrl}${path}`, { ...init, signal: this._signal(signal) }));
+  }
+
+  /**
+   * Pin the server the answer names, unless it's the configured URL or refused.
+   * @param {Response} res
+   */
+  _follow(res) {
+    const origin = res.headers.get('bitview-origin')?.replace(/\/+$/, '');
+    if (origin && /^https?:\/\//.test(origin)) {
+      if (origin === this.url) this._pinned = null;
+      else if (!((this._refused.get(origin) ?? 0) > Date.now())) this._pinned = origin;
+    }
+    return res;
   }
 
   /**
@@ -437,7 +387,7 @@ class BitviewClientBase {
       const oldest = this._memCache.keys().next().value;
       if (oldest !== undefined) this._memCache.delete(oldest);
     }
-    this._memCache.set(key, { etag, value });
+    this._memCache.set(key, { etag, value: _deepFreeze(value) });
   }
 
   /**
@@ -456,14 +406,13 @@ class BitviewClientBase {
    * @returns {Promise<Response>}
    */
   async get(path, { signal, cache = true, etag } = {}) {
-    const url = `${this.baseUrl}${path}`;
     /** @type {RequestInit} */
-    const init = { signal: this._signal(signal) };
+    const init = {};
     // Let browsers manage HTTP revalidation; explicit validators bypass their HTTP cache.
     const revalidate = cache && etag && typeof location === 'undefined';
     if (revalidate) init.headers = { 'If-None-Match': etag };
     if (!cache) init.cache = 'no-store';
-    const res = await fetch(url, init);
+    const res = await this._fetch(path, init, signal);
     if (!res.ok && !(revalidate && res.status === 304)) throw await _responseError(res);
     return res;
   }
@@ -479,8 +428,8 @@ class BitviewClientBase {
    * - Responses marked `Cache-Control: no-store` are never cached.
    *
    * Layers:
-   * - L1 (memCache): in-memory parsed values keyed by body kind + URL, with their ETag. Lets 304s
-   *   skip the parse entirely.
+   * - L1 (memCache): parsed values keyed by body kind, JSON key-preservation schema and URL. Lets 304s
+   *   skip the parse entirely. A value it holds is shared by every caller, so it's frozen deeply.
    * - L2 (browserCache): Cache API, survives reload and feeds onValue fast on cold start.
    *
    * @template T
@@ -488,9 +437,10 @@ class BitviewClientBase {
    * @param {'json' | 'text' | 'bytes'} kind - The body reader, part of the memCache key
    * @param {(res: Response) => Promise<T>} parse - Response body reader
    * @param {ClientFetchOptions<T>} [options]
+   * @param {*} [schema] - JSON key-preservation schema used by the body reader
    * @returns {Promise<T>}
    */
-  async _getCached(path, kind, parse, { onValue, signal, cache = true, memCache = true } = {}) {
+  async _getCached(path, kind, parse, { onValue, signal, cache = true, memCache = true } = {}, schema) {
     if (!cache) {
       const res = await this.get(path, { signal, cache });
       const value = await parse(res);
@@ -499,7 +449,7 @@ class BitviewClientBase {
     }
 
     const url = `${this.baseUrl}${path}`;
-    const key = `${kind} ${url}`;
+    const key = `${kind} ${JSON.stringify(schema) ?? ''} ${url}`;
     const useMemCache = memCache !== false;
     /** @type {_MemEntry<T> | undefined} */
     const memHit = useMemCache ? this._memGet(key) : undefined;
@@ -526,10 +476,13 @@ class BitviewClientBase {
       if (onValue) onValue(memHit.value);
       const res = await this.get(path, { signal, etag: memHit.etag });
       const netEtag = res.headers.get('ETag');
-      if (res.status === 304 || (netEtag && netEtag === memHit.etag)) {
+      const keep = storable(res);
+      if (res.status === 304 || (keep && netEtag && netEtag === memHit.etag)) {
         await res.body?.cancel();
         return memHit.value;
       }
+      // Now `no-store`: the URL's cached value goes, and this answer is the caller's own.
+      if (!keep) this._memCache.delete(key);
       return fresh(res);
     }
 
@@ -561,8 +514,11 @@ class BitviewClientBase {
     networkSettled = true;
     const netEtag = res.headers.get('ETag');
     // memCache already holds this ETag (our stale snapshot or a concurrent request) → reuse, skip
-    // the parse; deliver it unless this request already showed that very value.
-    const populated = useMemCache ? /** @type {_MemEntry<T> | undefined} */ (this._memGet(key)) : undefined;
+    // the parse; deliver it unless this request already showed that very value. A `no-store`
+    // answer drops the URL's cached value instead and is the caller's own.
+    const keep = storable(res);
+    if (!keep && useMemCache) this._memCache.delete(key);
+    const populated = keep && useMemCache ? /** @type {_MemEntry<T> | undefined} */ (this._memGet(key)) : undefined;
     if (populated && netEtag && netEtag === populated.etag) {
       await res.body?.cancel();
       if (onValue && shown?.value !== populated.value) onValue(populated.value);
@@ -572,15 +528,17 @@ class BitviewClientBase {
   }
 
   /**
-   * Cached and supports `onValue`. Field names come camelCased, map keys as sent (`keep`).
-   * @template T
+   * Cached and supports `onValue`. Field names come camelCased, map keys as sent (`keep`). The
+   * value may be the memory cache's, shared and frozen: typed so, as `Frozen<T>` for the `T` given
+   * (`getJson<T>(…)`, or a cast in JavaScript: `unknown` otherwise).
+   * @template [T=unknown]
    * @param {string} path
-   * @param {ClientFetchOptions<T>} [options]
+   * @param {ClientFetchOptions<Frozen<T>>} [options]
    * @param {*} [keep] Where the response has maps, as `_camelKeys` takes it
-   * @returns {Promise<T>}
+   * @returns {Promise<Frozen<T>>}
    */
   getJson(path, options, keep) {
-    return this._getCached(path, 'json', async (res) => _camelKeys(await res.json(), keep), options);
+    return this._getCached(path, 'json', _readJson(keep), options, keep);
   }
 
   /**
@@ -609,12 +567,12 @@ class BitviewClientBase {
    *
    * @param {string} path
    * @param {string} body
-   * @param {{ signal?: AbortSignal }} [options]
+   * @param {{ signal?: AbortSignal, contentType?: string }} [options]
    * @returns {Promise<Response>}
    */
-  async post(path, body, { signal } = {}) {
-    const url = `${this.baseUrl}${path}`;
-    const res = await fetch(url, { method: 'POST', body, signal: this._signal(signal) });
+  async post(path, body, { signal, contentType } = {}) {
+    const headers = contentType ? { 'Content-Type': contentType } : undefined;
+    const res = await this._fetch(path, { method: 'POST', body, headers }, signal);
     if (!res.ok) throw await _responseError(res);
     return res;
   }
@@ -623,7 +581,7 @@ class BitviewClientBase {
    * @template T
    * @param {string} path
    * @param {string} body
-   * @param {{ signal?: AbortSignal }} [options]
+   * @param {{ signal?: AbortSignal, contentType?: string }} [options]
    * @param {*} [keep] Where the response has maps, as `_camelKeys` takes it
    * @returns {Promise<T>}
    */
@@ -635,7 +593,7 @@ class BitviewClientBase {
   /**
    * @param {string} path
    * @param {string} body
-   * @param {{ signal?: AbortSignal }} [options]
+   * @param {{ signal?: AbortSignal, contentType?: string }} [options]
    * @returns {Promise<string>}
    */
   async postText(path, body, options) {
@@ -646,7 +604,7 @@ class BitviewClientBase {
   /**
    * @param {string} path
    * @param {string} body
-   * @param {{ signal?: AbortSignal }} [options]
+   * @param {{ signal?: AbortSignal, contentType?: string }} [options]
    * @returns {Promise<Uint8Array>}
    */
   async postBytes(path, body, options) {
@@ -667,7 +625,8 @@ class BitviewClientBase {
       : { ...(arg ?? {}), ...(options ?? {}) };
     const onValue = requestOptions.onValue;
     const wrappedOnValue = onValue ? (/** @type {SeriesData<T>} */ raw) => onValue(_wrapSeriesData(raw)) : undefined;
-    const raw = await this.getJson(path, { ...requestOptions, onValue: wrappedOnValue });
+    // `getJson`'s reader, typed as the series it is (its data already frozen).
+    const raw = await this._getCached(path, 'json', _readJson(_SERIES_KEEP), { ...requestOptions, onValue: wrappedOnValue }, _SERIES_KEEP);
     return _wrapSeriesData(raw);
   }
 }
@@ -820,3 +779,4 @@ function addressPayloadHashPrefix(payload, nibbles) {
   return _rapidHashV3(payload).toString(16).padStart(16, "0").slice(0, nibbles);
 }
 
+export { BitviewClientBase, BitviewError, _SERIES_KEEP, _endpoint, _lazy, _readJson, _validateAddressPayloadForType, _wrapSeriesData, addressPayloadHashPrefix, dateToIndex, indexToDate };

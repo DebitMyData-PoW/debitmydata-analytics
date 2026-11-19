@@ -7,7 +7,7 @@ use vecdb::{Database, ImportableVec, PcoVec, Rw, StorageMode, Version};
 
 use bitview_vecs::IndexSources;
 
-use super::TxDistribution;
+use super::{Ranking, TxDistribution};
 
 /// A stored per-transaction value (`tx`) beside its per-block distribution.
 #[derive(Traversable)]
@@ -16,7 +16,8 @@ where
     T: ComputedVecValue + PartialOrd + JsonSchema,
 {
     pub tx: M::Stored<PcoVec<TxIndex, T>>,
-    #[traversable(flatten)]
+    // A block's statistics are read at a point, whatever the transactions' own values are.
+    #[traversable(flatten, accumulation = Level)]
     pub distribution: TxDistribution<T, M>,
 }
 
@@ -29,10 +30,11 @@ where
         name: &str,
         version: Version,
         indexes: &IndexSources,
+        ranking: Ranking,
     ) -> Result<Self> {
         Ok(Self {
             tx: PcoVec::import(db, name, version)?,
-            distribution: TxDistribution::import(db, name, version, indexes)?,
+            distribution: TxDistribution::import(db, name, version, indexes, ranking)?,
         })
     }
 }

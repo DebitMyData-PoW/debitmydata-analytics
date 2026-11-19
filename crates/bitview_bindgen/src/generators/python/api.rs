@@ -168,10 +168,11 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
             (true, _) => "post_text",
         };
 
-        let body_arg = if is_post && endpoint.request_body.is_some() {
-            ", body"
-        } else {
-            ""
+        // A body goes as its declared media type, a JSON one serialized.
+        let body_arg = match endpoint.request_body.as_ref().filter(|_| is_post) {
+            Some(body) if body.is_json() => format!(", json.dumps(body), '{}'", body.content_type),
+            Some(body) => format!(", body, '{}'", body.content_type),
+            None => String::new(),
         };
 
         // Series data gets the same helpers however it is fetched.
@@ -207,10 +208,15 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
                 // Use safe name for Python variable, original name for API query parameter
                 let safe_name = escape_python_keyword(&param.arg);
                 if matches!(param.ty, Ty::List(_)) {
+                    let values = if param.required {
+                        safe_name.to_string()
+                    } else {
+                        format!("({safe_name} or [])")
+                    };
                     writeln!(
                         output,
-                        "        for _v in {}: params.append(('{}', _v))",
-                        safe_name, param.name
+                        "        for _v in {values}: params.append(('{}', _v))",
+                        param.name
                     )
                     .unwrap();
                 } else if param.required {
@@ -261,27 +267,25 @@ fn build_method_params(endpoint: &Endpoint) -> String {
         let py_type = api_type(&param.ty);
         write!(params, ", {}: {}", safe_name, py_type).unwrap();
     }
-    // Required query params must come before optional ones (Python syntax requirement)
-    for param in &endpoint.query_params {
-        if param.required {
-            let safe_name = escape_python_keyword(&param.arg);
-            let py_type = api_type(&param.ty);
-            write!(params, ", {}: {}", safe_name, py_type).unwrap();
-        }
-    }
-    for param in &endpoint.query_params {
-        if !param.required {
-            let safe_name = escape_python_keyword(&param.arg);
-            let py_type = api_type(&param.ty);
-            write!(params, ", {}: Optional[{}] = None", safe_name, py_type).unwrap();
-        }
-    }
     if let Some(body) = &endpoint.request_body {
         let py_type = api_type(&body.ty);
         if body.required {
             write!(params, ", body: {}", py_type).unwrap();
         } else {
             write!(params, ", body: Optional[{}] = None", py_type).unwrap();
+        }
+    }
+    // Query parameters are named: adding one never shifts a caller's other arguments.
+    if !endpoint.query_params.is_empty() {
+        params.push_str(", *");
+    }
+    for param in &endpoint.query_params {
+        let safe_name = escape_python_keyword(&param.arg);
+        let py_type = api_type(&param.ty);
+        if param.required {
+            write!(params, ", {}: {}", safe_name, py_type).unwrap();
+        } else {
+            write!(params, ", {}: Optional[{}] = None", safe_name, py_type).unwrap();
         }
     }
     params

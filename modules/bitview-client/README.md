@@ -2,6 +2,8 @@
 
 Zero-dependency JavaScript/TypeScript client for the [Bitview](https://bitview.space) Bitcoin analytics API.
 
+Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at [bitview.space](https://bitview.space) or beside your own Bitcoin Core node.
+
 [npm](https://www.npmjs.com/package/bitview-client) | [API Reference](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/docs/globals.md) | [Source](https://github.com/bitcoinresearchkit/mono/tree/main/modules/bitview-client)
 
 AI clients can use the same API through the official stateless, read-only MCP
@@ -14,8 +16,9 @@ is required.
 npm install bitview-client
 ```
 
-You can also copy the `index.js` file into a project. The published client is a
-single ES module with no runtime dependencies.
+You can also copy `index.js` and `core.js` (which it imports) into a project. The
+published client has no runtime dependencies. A page that only makes requests
+(`get`, `post`) can import `core.js` alone, for its `BitviewClientBase`.
 
 ## Quick start
 
@@ -26,10 +29,18 @@ import { BitviewClient } from 'bitview-client';
 const client = new BitviewClient('https://bitview.space');
 
 // Mempool.space-compatible blockchain endpoints.
-const blockHash = await client.getBlockByHeight(800000);
+const blockHash = await client.getBlockHashByHeight(800000);
 const tx = await client.getTx(
   'a1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d',
 );
+
+// Path parameters stay positional; query parameters share the request options object.
+const distribution = await client.getUrpd('all', '2025-01-01', {
+  agg: 'log100',
+  weight: 'none',
+  cache: false,
+});
+const matches = await client.searchSeries({ q: 'realized price', limit: 5 });
 
 // Typed, chainable series access.
 const prices = await client.series.price.close.by.day1

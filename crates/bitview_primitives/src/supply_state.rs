@@ -9,7 +9,6 @@ use std::{
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::FundedAddressData;
 use brk_types::Sats;
 
 #[cfg(feature = "storage")]
@@ -57,16 +56,6 @@ impl SubAssign<&SupplyState> for SupplyState {
     }
 }
 
-impl From<&FundedAddressData> for SupplyState {
-    #[inline]
-    fn from(value: &FundedAddressData) -> Self {
-        Self {
-            utxo_count: value.utxo_count() as u64,
-            value: value.balance(),
-        }
-    }
-}
-
 impl fmt::Display for SupplyState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "utxos: {}, value: {}", self.utxo_count, self.value)
@@ -107,6 +96,7 @@ unsafe impl Bytes for SupplyState {
     }
 
     fn from_bytes(bytes: &[u8]) -> VecdbResult<Self> {
+        Self::validate_length(bytes)?;
         Ok(Self {
             utxo_count: u64::from_bytes(&bytes[0..8])?,
             value: Sats::from_bytes(&bytes[8..16])?,

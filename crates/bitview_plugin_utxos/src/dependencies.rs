@@ -14,15 +14,18 @@ impl Dependencies<'_> {
     pub(crate) fn version(&self) -> Version {
         let v = self.indexer.vecs();
         Version::ONE
-            + Version::combine_all([
+            + ([
                 self.price.spot.cents.height.version(),
                 v.inputs.value.version(),
                 v.outputs.first_txout_index.version(),
                 v.inputs.first_txin_index.version(),
                 v.outputs.value.version(),
                 v.outputs.output_type.version(),
+                v.outputs.is_unspendable.version(),
                 v.inputs.txout_index.version(),
                 v.inputs.output_type.version(),
             ])
+            .into_iter()
+            .sum::<Version>()
     }
 }

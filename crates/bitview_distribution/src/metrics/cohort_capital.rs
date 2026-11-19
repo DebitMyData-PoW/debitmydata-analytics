@@ -20,17 +20,17 @@ pub struct CapitalViews {
     /// Capital: the cohort's unspent outputs valued at the reference price when each was
     /// created.
     #[traversable(
-        lead = "Capital: what holders paid for these coins, in all, each at the price it last moved at."
+        lead = "Capital: what these coins cost, in all, each at the price it last moved at."
     )]
     total: LazyFiatPerBlock<Cents>,
     /// Realized cap: the sum of each unspent output's DMD value times the spot price when it was
     /// created.
     #[traversable(
-        lead = "Realized cap: what holders paid for their DMD, in all, each coin at the price it last moved at."
+        lead = "Realized cap: what the DMD held cost, in all, each coin at the price it last moved at."
     )]
     realized_cap: LazyFiatPerBlock<Cents>,
     /// Change in the cohort's capital over a trailing window.
-    #[traversable(lead = "Capital change: the change in what holders paid, in all.")]
+    #[traversable(lead = "Capital change: the change in what the bitcoin held cost, in all.")]
     delta: LazyRollingDeltasFiatFromHeight<Cents, CentsSigned, PartsPerMillionSigned64>,
     /// The cohort's share of the capital it is part of: all unspent outputs', or for address
     /// balance bands, all addresses'. Across UTXO age ranges, these shares are the realized cap
@@ -87,6 +87,11 @@ pub struct CohortCapital<M: StorageMode = Rw> {
 }
 
 impl CohortCapital {
+    /// The shared realized-capital source, in cents, before its display views.
+    pub fn cents_source(&self) -> &impl ReadableCloneableVec<Height, Cents> {
+        &self.stored
+    }
+
     pub fn import(
         db: &Database,
         name: impl Fn(&str) -> String,

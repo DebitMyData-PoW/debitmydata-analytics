@@ -2,14 +2,14 @@
 // Do not edit manually
 
 /**
+ * How a series' values combine over time.
+ *
+ * @typedef {(("flow")|("level")|("cumulative"))} Accumulation
+ */
+/**
  * DebitMyData address (`D…`, `dm1…`), or the hex public key of a P2PK output.
  *
  * @typedef {string} Address
- */
-/**
- * @typedef {Object} AddressAfterTxidParam
- * @property {Address} address
- * @property {Txid} afterTxid - Last txid from the previous page (return transactions strictly older than this)
  */
 /**
  * Address statistics on the blockchain (confirmed transactions only)
@@ -24,14 +24,8 @@
  * @property {Sats} spentTxoSum - Total amount in satoshis spent from this address
  * @property {number} txCount - Total number of confirmed transactions involving this address
  * @property {(TypeIndex|null)=} typeIndex - Index of this address within its type on the blockchain, null for an address without
-confirmed activity
+ *   confirmed activity
  * @property {Dollars} realizedPrice - Realized price (average cost basis) in USD
- */
-/**
- * A page of an address's confirmed transactions.
- *
- * @typedef {Object} AddressChainTxsQuery
- * @property {?number=} maxTxs - Transactions to return, at most 25 (the default); larger values return 25.
  */
 /**
  * @typedef {Object} AddressHashPrefixMatches
@@ -39,12 +33,6 @@ confirmed activity
  * @property {string} prefix - The requested prefix, lowercased.
  * @property {boolean} truncated
  * @property {Address[]} addresses
- */
-/**
- * @typedef {Object} AddressHashPrefixParam
- * @property {AddressOutputType} addressType
- * @property {string} prefix - First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw
-address payload bytes.
  */
 /**
  * Address statistics in the mempool (unconfirmed transactions only), in mempool.space's format.
@@ -58,19 +46,9 @@ address payload bytes.
  * @property {number} txCount - Number of unconfirmed transactions involving this address
  */
 /**
- * A page of an address's mempool transactions.
- *
- * @typedef {Object} AddressMempoolTxsQuery
- * @property {?number=} maxTxs - Transactions to return, at most 50 (the default); larger values return 50.
- */
-/**
  * The output type of an address: any output type but `p2ms`, `op_return`, `empty_script` and `unknown_script`.
  *
  * @typedef {("p2pk65"|"p2pk33"|"p2pkh"|"p2sh"|"p2wpkh"|"p2wsh"|"p2tr"|"p2a")} AddressOutputType
- */
-/**
- * @typedef {Object} AddressParam
- * @property {Address} address
  */
 /**
  * Address information compatible with mempool.space API format.
@@ -83,23 +61,16 @@ address payload bytes.
  * @property {Sats} balance - Total current balance in satoshis, including pending (unconfirmed) mempool changes
  */
 /**
- * A page of an address's transactions, mempool ones first.
- *
- * @typedef {Object} AddressTxsQuery
- * @property {(Txid|null)=} afterTxid - Continue after this transaction, a mempool or a confirmed one: the older ones (a confirmed
-cursor skips the mempool). One that is neither answers 422.
- * @property {?number=} maxTxs - Transactions to return, at most 50 (the default); larger values return 50.
- */
-/**
  * @typedef {Object} AddressValidation
  * @property {boolean} isvalid
  * @property {(Address|null)=} address - The validated address
  * @property {(Hex|null)=} scriptPubKey - The scriptPubKey in hex
  * @property {?boolean=} isscript - Whether the address is P2SH, P2WSH or P2TR
  * @property {?boolean=} iswitness
- * @property {?number=} witnessVersion - Witness version (0 for P2WPKH/P2WSH, 1 for P2TR and P2A)
+ * @property {?number=} witnessVersion - Witness version (0 for P2WPKH/P2WSH, 1 for P2TR, 2 to 16 for future versions; none for P2A)
  * @property {(Hex|null)=} witnessProgram - Witness program in hex
- * @property {?number[]=} errorLocations - Error locations: an empty array for invalid addresses, omitted for valid ones
+ * @property {?number[]=} errorLocations - Positions of the characters at fault in an invalid address (as the node finds them), possibly none;
+ *   omitted for valid ones
  * @property {?string=} error - Error message for invalid addresses
  */
 /**
@@ -108,16 +79,76 @@ cursor skips the mempool). One that is neither answers 422.
  * @typedef {number} Bitcoin
  */
 /**
- * @typedef {Object} BlockCountParam
- * @property {number} blockCount - Number of recent blocks to include
+ * A block's hash.
+ *
+ * @typedef {Object} BlindbitBlockHash
+ * @property {BlockHash} blockHash
+ */
+/**
+ * The last indexed block's height.
+ *
+ * @typedef {Object} BlindbitBlockHeight
+ * @property {Height} blockHeight
+ */
+/**
+ * A BIP158 Golomb-coded set (the basic filters' parameters, keyed by the block hash).
+ *
+ * @typedef {Object} BlindbitFilter
+ * @property {BlockHash} blockHash
+ * @property {Height} blockHeight
+ * @property {Hex} data - The filter: the element count, then the coded deltas.
+ * @property {number} filterType - Always 4, BlindBit's Taproot-only filters.
+ */
+/**
+ * Which of a block's two filters.
+ *
+ * @typedef {(("new-utxos")|("spent"))} BlindbitFilterKind
+ */
+/**
+ * What the server serves.
+ *
+ * @typedef {Object} BlindbitInfo
+ * @property {string} network - The node's chain name: `main`.
+ * @property {Height} height - The last indexed block.
+ * @property {boolean} tweaksOnly - Whether only tweaks are served: `false`, filters and UTXOs are too.
+ * @property {boolean} tweaksFullBasic - Whether the full tweak index is served without dust limits: `false`, transactions whose
+ *   Taproot outputs all hold less than 600 sats aren't held.
+ * @property {boolean} tweaksFullWithDustFilter - Whether the full tweak index takes a dust limit: `true`.
+ * @property {boolean} tweaksCutThroughWithDustFilter - Whether cut-through tweaks (of transactions with an unspent Taproot output) take a dust
+ *   limit: `true`.
+ */
+/**
+ * A block's spends of Taproot outputs.
+ *
+ * @typedef {Object} BlindbitSpentIndex
+ * @property {BlockHash} blockHash
+ * @property {SpentOutputHash[]} data
+ */
+/**
+ * A Taproot output of an eligible transaction.
+ *
+ * @typedef {Object} BlindbitUtxo
+ * @property {Txid} txid
+ * @property {Vout} vout
+ * @property {Sats} value
+ * @property {Hex} scriptpubkey - Its script, `OP_1` and a 32-byte push of the output key.
+ * @property {Height} blockHeight
+ * @property {BlockHash} blockHash
+ * @property {Timestamp} timestamp - The block's header time.
+ * @property {boolean} spent - Whether a published block spends it.
  */
 /**
  * Extended block data matching mempool.space /api/v1/blocks extras
  *
  * @typedef {Object} BlockExtras
  * @property {Sats} totalFees - Total fees in satoshis
- * @property {FeeRate} medianFee - Median fee rate in sat/vB
- * @property {FeeRate[]} feeRange - Fee rate range: [min, 10%, 25%, 50%, 75%, 90%, max]
+ * @property {FeeRate} medianFee - Median effective (CPFP) fee rate in sat/vB, by vsize: the rate half the block's space
+ *   paid at most (Bitcoin Core's `getblockstats` rule; mempool.space averages the middle
+ *   0.25% of a 4M WU block instead)
+ * @property {FeeRate[]} feeRange - Effective (CPFP) fee rate range in sat/vB: [min, 10%, 25%, 50%, 75%, 90%, max], the
+ *   percentiles of block space (vsize-weighted, as `medianFee`; mempool.space ranks
+ *   transactions by count), min and max the lower/higher of the 1st/99th percentile and the
+ *   extreme rate in the block's last/first 2% of vsize
  * @property {Sats} reward - Total block reward (subsidy + fees) in satoshis
  * @property {BlockPool} pool
  * @property {Sats} avgFee - Mean fee per non-coinbase transaction in satoshis, rounded down (0 without any)
@@ -128,7 +159,7 @@ cursor skips the mempool). One that is neither answers 422.
  * @property {string} coinbaseSignature - Coinbase output script in ASM format
  * @property {string} coinbaseSignatureAscii - Coinbase scriptsig with each byte read as the Unicode code point of the same value
  * @property {number} avgTxSize - Non-coinbase transaction bytes over the transaction count (coinbase included), rounded to
-2 decimals
+ *   2 decimals
  * @property {number} totalInputs - Total number of inputs (excluding coinbase)
  * @property {number} totalOutputs
  * @property {Sats} totalOutputAmt - Total output amount in satoshis, coinbase excluded
@@ -139,16 +170,16 @@ cursor skips the mempool). One that is neither answers 422.
  * @property {Weight} segwitTotalWeight
  * @property {Hex} header - Raw 80-byte block header as hex
  * @property {number} utxoSetChange - UTXO set change as mempool.space and bitcoin-cli report it: total outputs minus total
-inputs, unspendable outputs (OP_RETURN) included, unlike `utxoSetSize`
+ *   inputs, unspendable outputs (OP_RETURN) included, unlike `utxoSetSize`
  * @property {number} utxoSetSize - Total spendable UTXO set size at this height (excludes OP_RETURN and other unspendable outputs)
  * @property {Sats} totalInputAmt - Total input amount in satoshis
  * @property {number} virtualSize - Virtual size in vbytes: weight / 4, unrounded
  * @property {?boolean=} coinbaseBip54 - Whether the coinbase follows BIP54 (its lock time is the height minus one and its input's
-sequence isn't final), from timestamp 1,771,507,776 on; null before
+ *   sequence isn't final), from timestamp 1,771,507,776 on; null before
  * @property {(Timestamp|null)=} firstSeen - Timestamp when the block was first seen (always null, not yet supported)
- * @property {BlockOrphan[]} orphans - Stale blocks at this height (always empty, not yet supported)
+ * @property {BlockOrphan[]} orphans - Stale blocks at this height the server's node knows, each server's own
  * @property {?number=} matchRate - Share of the expected block template the block matched, from mempool.space's own audits
-(always null: it needs the mempool as it was)
+ *   (always null: it needs the mempool as it was)
  * @property {(Sats|null)=} expectedFees - Fees of the expected block template (always null: it needs the mempool as it was)
  * @property {(Weight|null)=} expectedWeight - Weight of the expected block template (always null: it needs the mempool as it was)
  * @property {Dollars} price - USD price at block height
@@ -200,20 +231,6 @@ sequence isn't final), from timestamp 1,771,507,776 on; null before
  * @typedef {string} BlockHash
  */
 /**
- * @typedef {Object} BlockHashParam
- * @property {BlockHash} hash
- */
-/**
- * @typedef {Object} BlockHashStartIndex
- * @property {BlockHash} hash
- * @property {BlockTxIndex} startIndex - Starting transaction index within the block (0-based)
- */
-/**
- * @typedef {Object} BlockHashTxIndex
- * @property {BlockHash} hash
- * @property {BlockTxIndex} index - Transaction index within the block (0-based)
- */
-/**
  * Block information matching mempool.space /api/block/{hash}
  *
  * @typedef {Object} BlockInfo
@@ -252,7 +269,7 @@ sequence isn't final), from timestamp 1,771,507,776 on; null before
  * @property {BlockExtras} extras
  */
 /**
- * A stale block at a height of the best chain: a fork tip the node knows (bitcoind's
+ * A stale block at a height of the best chain: a block of a fork the node knows (bitcoind's
  * `getchaintips`), as mempool.space lists it.
  *
  * @typedef {Object} BlockOrphan
@@ -263,10 +280,10 @@ sequence isn't final), from timestamp 1,771,507,776 on; null before
  * @property {BlockHash} prevhash - Hash of the block the stale block builds on
  */
 /**
- * How far the node validated a fork tip (bitcoind's `getchaintips` statuses other than
- * `active`).
+ * How far the node validated a fork (bitcoind's `getchaintips` statuses for the forks it holds
+ * as valid).
  *
- * @typedef {(("invalid")|("headers-only")|("valid-headers")|("valid-fork"))} BlockOrphanStatus
+ * @typedef {(("valid-headers")|("valid-fork"))} BlockOrphanStatus
  */
 /**
  * @typedef {Object} BlockPool
@@ -303,6 +320,45 @@ sequence isn't final), from timestamp 1,771,507,776 on; null before
  * @property {boolean} inBestChain
  * @property {(Height|null)=} height - Block height (null unless in the best chain)
  * @property {(BlockHash|null)=} nextBest - Hash of the next block in the best chain (null if tip)
+ */
+/**
+ * The next block's template in BIP 22/23 form, as Bitcoin Core's `getblocktemplate` answers
+ * (`rules: ["segwit"]`): what pools and mining software read. Complete once a miner adds a
+ * coinbase paying `coinbasevalue` and carrying `default_witness_commitment`. Returned by
+ * `GET /api/block-template`.
+ *
+ * @typedef {Object} BlockTemplate
+ * @property {number} version - The block version: BIP 9 version bits, no deployment signaled.
+ * @property {string[]} rules - The rules the template follows: `!` marks one a client must understand.
+ * @property {{ [key: string]: number }} vbavailable - BIP 9 deployments the client may signal: none.
+ * @property {number} vbrequired - Version bits the client must set: none.
+ * @property {BlockHash} previousblockhash
+ * @property {BlockTemplateTransaction[]} transactions - The transactions, every parent before its children.
+ * @property {{ [key: string]: string }} coinbaseaux - Data to put in the coinbase's script: none.
+ * @property {Sats} coinbasevalue - What the coinbase may pay: the subsidy at `height` plus every transaction's fee (sats).
+ * @property {string} target - The proof-of-work target, as 64 hex digits.
+ * @property {Timestamp} mintime - The earliest valid `curtime`: the median time past plus one second.
+ * @property {string[]} mutable - What the client may change: the time, the transactions, the previous block.
+ * @property {string} noncerange
+ * @property {number} sigoplimit - Consensus limits for the whole block, coinbase included.
+ * @property {number} sizelimit
+ * @property {number} weightlimit
+ * @property {Timestamp} curtime - The block time to use: now, or `mintime` if later.
+ * @property {string} bits - The compact target, as 8 hex digits.
+ * @property {Height} height
+ * @property {string} defaultWitnessCommitment - The coinbase output committing to the transactions' witnesses (BIP 141), as script hex.
+ */
+/**
+ * One transaction of a [`BlockTemplate`].
+ *
+ * @typedef {Object} BlockTemplateTransaction
+ * @property {string} data - The transaction serialized with its witness, as hex.
+ * @property {Txid} txid
+ * @property {string} hash - The witness transaction id.
+ * @property {number[]} depends - The 1-based positions in `transactions` of the ones it spends.
+ * @property {Sats} fee - Its fee (sats).
+ * @property {SigOps} sigops - Its signature-operation cost.
+ * @property {Weight} weight
  */
 /**
  * Block information returned for timestamp queries
@@ -373,13 +429,18 @@ sequence isn't final), from timestamp 1,771,507,776 on; null before
  * @property {CpfpEntry[]} ancestors
  * @property {CpfpEntry[]} descendants
  * @property {FeeRate} effectiveFeePerVsize - Feerate of the chunk holding the transaction when its block's relatives are linearized
-(sat/vB).
+ *   (sat/vB).
  * @property {CpfpCluster} cluster - The transaction's relatives in its block.
  */
 /**
  * A number of things.
  *
  * @typedef {number} Count
+ */
+/**
+ * A number of things that fits 32 bits, such as outputs per block.
+ *
+ * @typedef {number} Count32
  */
 /**
  * A mean number of things.
@@ -445,27 +506,21 @@ sequence isn't final), from timestamp 1,771,507,776 on; null before
  * @property {(CpfpEntry|null)=} bestDescendant - Best (highest fee rate) descendant, if any.
  * @property {CpfpEntry[]} descendants
  * @property {FeeRate} effectiveFeePerVsize - Effective fee rate considering CPFP relationships (sat/vB).
-This is the seed's chunk feerate after lift-merging, i.e. the
-rate Core/mempool.space would surface for this tx.
+ *   This is the seed's chunk feerate after lift-merging, i.e. the
+ *   rate Core/mempool.space would surface for this tx.
  * @property {SigOps} sigops - BIP-141 sigop cost for the seed tx (witness sigops count as 1,
-legacy and P2SH-redeem sigops count as 4).
+ *   legacy and P2SH-redeem sigops count as 4), counted from its body:
+ *   at most a block's sigop budget.
  * @property {Sats} fee - Transaction fee (sats).
  * @property {VSize} vsize - Virtual size of the seed tx (vbytes).
  * @property {VSize} adjustedVsize - Policy-adjusted virtual size: `max(vsize, sigops * 5)`.
  * @property {(CpfpCluster|null)=} cluster - Cluster the seed belongs to; omitted when the seed has no ancestors and no descendants
-(matches mempool.space).
+ *   (matches mempool.space).
  */
 /**
  * A quote currency prices are served in: USD only.
  *
  * @typedef {("USD")} Currency
- */
-/**
- * @typedef {Object} DataRangeFormat
- * @property {(RangeIndex|null)=} start - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
- * @property {(RangeIndex|null)=} end - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
- * @property {(Limit|null)=} limit - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
- * @property {Format=} format
  */
 /**
  * Calendar date in YYYY-MM-DD format.
@@ -514,9 +569,9 @@ legacy and P2SH-redeem sigops count as 4).
  * @property {Height} nextRetargetHeight
  * @property {number} timeAvg - Average block time in current epoch (milliseconds)
  * @property {number} adjustedTimeAvg - Block time the projection uses (milliseconds): `timeAvg`, except in an epoch's first 503
-blocks, where it spans the last 503 blocks, those before the retarget scaled by it
+ *   blocks, where it spans the last 503 blocks, those before the retarget scaled by it
  * @property {number} timeOffset - Testnet's offset for its 20-minute minimum-difficulty rule (milliseconds): always 0 on
-mainnet, as mempool.space
+ *   mainnet, as mempool.space
  * @property {number} expectedBlocks - Blocks expected at the 10-minute target between the epoch's first block and the tip block
  */
 /**
@@ -566,7 +621,7 @@ mainnet, as mempool.space
  * CPFP of a transaction without known relatives: `{"ancestors":[]}`.
  *
  * @typedef {Object} EmptyCpfp
- * @property {*[]} ancestors
+ * @property {CpfpEntry[]} ancestors - Always empty.
  */
 /**
  * Index of an output with an empty script.
@@ -579,7 +634,7 @@ mainnet, as mempool.space
  * @typedef {Object} ErrorBody
  * @property {ErrorDetail} error
  */
-/** @typedef {("not_found"|"invalid_address"|"invalid_network"|"unsupported_type"|"no_series"|"series_unsupported_index"|"weight_exceeded"|"too_many_utxos"|"unknown_after_txid"|"unknown_address"|"unknown_txid"|"unknown_pool"|"out_of_range"|"unindexable_date"|"no_data"|"series_not_found"|"mempool_not_available"|"state_updating"|"internal_error"|"bad_request"|"overloaded"|"timeout"|"method_not_allowed")} ErrorCode */
+/** @typedef {("not_found"|"invalid_address"|"invalid_network"|"unsupported_type"|"no_series"|"series_unsupported_index"|"weight_exceeded"|"too_many_utxos"|"limit_exceeded"|"unknown_after_txid"|"unknown_address"|"unknown_txid"|"unknown_pool"|"out_of_range"|"unindexable_date"|"no_data"|"series_not_found"|"mempool_not_available"|"state_updating"|"internal_error"|"bad_request"|"overloaded"|"timeout"|"method_not_allowed")} ErrorCode */
 /**
  * @typedef {Object} ErrorDetail
  * @property {ErrorType} type - Error category, following the HTTP status
@@ -600,6 +655,11 @@ mainnet, as mempool.space
  * @typedef {Object} ExchangeRates
  */
 /**
+ * A number of things expected from chance: a sum of probabilities.
+ *
+ * @typedef {number} ExpectedCount
+ */
+/**
  * Fee rate stored in milli-sat/vB and exposed as sat/vB.
  *
  * @typedef {number} FeeRate
@@ -610,6 +670,12 @@ mainnet, as mempool.space
  * @typedef {number} Float
  */
 /** @typedef {("json"|"csv")} Format */
+/**
+ * BlindBit's transaction submission body.
+ *
+ * @typedef {Object} ForwardTx
+ * @property {string} data - The raw transaction, hexadecimal.
+ */
 /**
  * Index of a halving epoch (300,000 blocks on DebitMyData).
  *
@@ -653,7 +719,7 @@ mainnet, as mempool.space
  * @property {Height} indexedHeight - Height of the last indexed block
  * @property {Height} computedHeight - Height of the last computed block (series)
  * @property {Height} tipHeight - Height of the node's chain tip; `/health` reports `indexed_height` instead, without
-asking the node
+ *   asking the node
  * @property {Height} blocksBehind - Number of blocks behind the tip
  * @property {string} lastIndexedAt - Human-readable timestamp of the last indexed block (ISO 8601)
  * @property {Timestamp} lastIndexedAtUnix - Unix timestamp of the last indexed block
@@ -674,14 +740,6 @@ asking the node
  * @typedef {(Height|Date)} HeightOrDate
  */
 /**
- * @typedef {Object} HeightOrDateParam
- * @property {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
- */
-/**
- * @typedef {Object} HeightParam
- * @property {Height} height
- */
-/**
  * Hex-encoded data as a JSON string.
  *
  * @typedef {string} Hex
@@ -690,13 +748,6 @@ asking the node
  * @typedef {Object} HistoricalPrice
  * @property {PricePoint[]} prices
  * @property {ExchangeRates} exchangeRates - Exchange rates (currently empty)
- */
-/**
- * Historical price query parameters, as mempool.space's
- *
- * @typedef {Object} HistoricalPriceParam
- * @property {(Timestamp|null)=} timestamp - UNIX timestamp: the latest close at or before it
- * @property {(Currency|null)=} currency - Quote currency: USD, the only one served
  */
 /**
  * Index of an hour.
@@ -736,52 +787,48 @@ asking the node
  * @property {number} seq - Its place in this process's log, from 0 with no gaps.
  * @property {number} unixMs - When it was logged, in Unix milliseconds.
  * @property {LogLevel} level
- * @property {string} text - What the log files show after the level: a request's status, path and duration, or a message and its fields.
+ * @property {string} text - What the log files show after the level: a request's status, method, path and duration, or a message and its fields.
  */
 /**
  * The server's last log lines, oldest first.
  *
  * @typedef {Object} Logs
  * @property {number} startedUnixMs - When this server process began its log, in Unix milliseconds: another than the last answer's shows the
-server restarted.
+ *   server restarted.
  * @property {LogLine[]} lines
  * @property {string} next - Where this answer ends: sent back as `after`, the lines since. `{started_unix_ms}-{seq}`, the process and the
-`seq` of the next line it will log; to pass back as it is, not to read.
- */
-/**
- * Where a reader of the log left off.
- *
- * @typedef {Object} LogsQuery
- * @property {?string=} after - The last answer's `next`: only the lines since. From a process that's since restarted, or none, every kept line.
+ *   `seq` of the next line it will log; to pass back as it is, not to read.
  */
 /**
  * Block info in a mempool.space like format for fee estimation.
  *
  * @typedef {Object} MempoolBlock
  * @property {number} blockSize - Sum of the transactions' serialized sizes in bytes (witness + non-witness), without header
-or coinbase.
- * @property {number} blockVSize - Sum of the transactions' virtual sizes in vbytes
+ *   or coinbase.
+ * @property {number} blockVSize - The transactions' weight over 4, unrounded (mempool.space's): the block's virtual size
  * @property {number} nTx - Number of transactions in the projected block
  * @property {Sats} totalFees - Total fees in satoshis
  * @property {FeeRate} medianFee - Median fee rate in sat/vB
  * @property {FeeRate[]} feeRange - Vsize-weighted percentiles of the transactions' CPFP chunk fee rates, in sat/vB:
-[0, 10, 25, 50, 75, 90, 100] for the first block, [5, 10, 25, 50, 75, 90, 95] for the
-later projected ones
+ *   [0, 10, 25, 50, 75, 90, 100] for the first block, [5, 10, 25, 50, 75, 90, 95] for the
+ *   later projected ones
  */
 /**
- * A projected mempool block with its transactions: block 0 is Bitcoin Core's
- * `getblocktemplate` selection. Returned by `GET /api/mempool-blocks/{index}`.
+ * A projected mempool block with its transactions in block order: every block, block 0 the next,
+ * packed as Core's block assembler packs, ranked by signed modified fees within Core's default
+ * budgets, with paid-fee statistics. Returned by `GET /api/mempool-blocks/{index}`.
  *
  * @typedef {Object} MempoolBlockContent
  * @property {MempoolBlockHash} hash - Pass as `since` to `GET /api/mempool-blocks/{index}/diff/{since}` to follow changes.
  * @property {MempoolBlock} stats
- * @property {Transaction[]} transactions - Full transaction bodies in `getblocktemplate` order.
+ * @property {MempoolTxSummary[]} transactions - The transactions in block order, each in its light shape: the whole body is at
+ *   `GET /api/tx/{txid}`.
  */
 /**
  * A projected mempool block's changes since a prior copy identified by `since`. Returned by
  * `GET /api/mempool-blocks/{index}/diff/{since}`.
  *
- * `removed` lists txids no longer present. A changed body can be emitted as `New` without
+ * `removed` lists txids no longer present. A changed transaction can be emitted as `New` without
  * removing its txid; absence from every retained run alone does not imply removal.
  *
  * @typedef {Object} MempoolBlockDiff
@@ -789,9 +836,9 @@ later projected ones
  * @property {MempoolBlockHash} since - Echoed prior hash the diff was computed against.
  * @property {MempoolBlock} stats - Stats of the new block; they can change while every transaction is retained.
  * @property {MempoolBlockDiffEntry[]} order - The new block in order. Each entry is either a run of the prior copy's transactions,
-`[start, count]`, or a full transaction body.
- * @property {Txid[]} removed - Txids that left the projected next block since `since`
-(confirmed, evicted, replaced, or pushed past block 0).
+ *   `[start, count]`, or a transaction in its light shape.
+ * @property {Txid[]} removed - Txids that left the projected block since `since` (confirmed, evicted, replaced, or moved
+ *   to another block).
  */
 /**
  * One stretch of the new block in a `MempoolBlockDiff`.
@@ -799,17 +846,10 @@ later projected ones
  * Untagged on the wire so JSON type disambiguates the variants:
  * - `Retained(run)` serializes as `[start, count]`: the prior block's transactions
  *   `start..start + count` (which the client cached at `since`), kept in order.
- * - `New(tx)` serializes as a transaction object: a body that was new or changed since the
- *   prior block and takes this position.
+ * - `New(tx)` serializes as a transaction in its light shape: one that was new or changed since
+ *   the prior block and takes this position.
  *
- * @typedef {(RetainedRun|Transaction)} MempoolBlockDiffEntry
- */
-/**
- * The block and the content token a client holds for it.
- *
- * @typedef {Object} MempoolBlockDiffParam
- * @property {MempoolBlockIndex} index
- * @property {MempoolBlockHash} since - The `hash` of the client's copy, from the block or a previous diff
+ * @typedef {(RetainedRun|MempoolTxSummary)} MempoolBlockDiffEntry
  */
 /**
  * Content hash of a projected mempool block, including its statistics and complete
@@ -821,29 +861,27 @@ later projected ones
  */
 /**
  * A projected mempool block's position, as `/api/v1/fees/mempool-blocks` lists them: 0 is the
- * next block, Bitcoin Core's `getblocktemplate` selection.
+ * next block.
  *
  * @typedef {number} MempoolBlockIndex
- */
-/**
- * @typedef {Object} MempoolBlockParam
- * @property {MempoolBlockIndex} index
  */
 /**
  * Mempool statistics with incrementally maintained fee histogram.
  *
  * @typedef {Object} MempoolInfo
  * @property {number} count - Number of transactions in the mempool
- * @property {VSize} vsize - Total virtual size of all transactions in the mempool (vbytes)
+ * @property {VSize} vsize - Total virtual size of all transactions in the mempool (vbytes), sigop-adjusted as Bitcoin
+ *   Core's `getmempoolinfo` `bytes` and every fee rate measure it
  * @property {Sats} totalFee - Total fees of all transactions in the mempool (satoshis)
  * @property {number[][]} feeHistogram - Fee histogram as Esplora bins it: `[[fee_rate, vsize], ...]` by descending fee rate, each
-entry the vsize of the transactions paying from its fee rate up to the previous entry's,
-a bin closing at the first fee rate change past 50,000 vB
+ *   entry the vsize of the transactions paying from its fee rate up to the previous entry's,
+ *   a bin closing at the first fee rate change past 50,000 vB
  */
 /**
- * Simplified mempool transaction for the `/api/mempool/recent` endpoint.
+ * An unconfirmed transaction in esplora's light shape, as `/api/mempool/recent` and the projected
+ * mempool blocks list them: the whole body is at `GET /api/tx/{txid}`.
  *
- * @typedef {Object} MempoolRecentTx
+ * @typedef {Object} MempoolTxSummary
  * @property {Txid} txid
  * @property {Sats} fee - Transaction fee (sats)
  * @property {VSize} vsize - Virtual size (vbytes)
@@ -901,7 +939,7 @@ a bin closing at the first fee rate change past 50,000 vB
 /**
  * Protocol or format detected in an OP_RETURN output.
  *
- * @typedef {("runes"|"witness_commitment"|"veriblock"|"omni"|"stacks"|"blockstack"|"colu"|"open_assets"|"komodo"|"coinspark"|"poet"|"docproof"|"factom"|"eternity_wall"|"memo"|"bitproof"|"ascribe"|"stampery"|"bare_hash"|"text"|"empty"|"unknown")} OpReturnKind
+ * @typedef {("runes"|"witness_commitment"|"veriblock"|"omni"|"stacks"|"blockstack"|"colu"|"open_assets"|"komodo"|"coinspark"|"poet"|"docproof"|"factom"|"eternity_wall"|"memo"|"bitproof"|"ascribe"|"stampery"|"bip47"|"bare_hash"|"text"|"empty"|"unknown")} OpReturnKind
  */
 /**
  * Index of an OP_RETURN output.
@@ -1023,11 +1061,6 @@ a bin closing at the first fee rate change past 50,000 vB
  * @property {SeriesName[]} series
  */
 /**
- * @typedef {Object} Pagination
- * @property {number=} page - Zero-based page number (default: 0)
- * @property {number=} perPage - Results per page, 1 to 1,000 (default: 1000)
- */
-/**
  * A fraction per day.
  *
  * @typedef {number} PerDay
@@ -1066,9 +1099,9 @@ a bin closing at the first fee rate change past 50,000 vB
  * @property {number} estimatedHashrate - Estimated hashrate based on blocks mined (H/s)
  * @property {?number=} reportedHashrate - Self-reported hashrate (if available, H/s)
  * @property {?number=} avgBlockHealth - Mean health of the pool's blocks, from mempool.space's own audits (always null: it needs
-the mempool as it was)
+ *   the mempool as it was)
  * @property {string} totalReward - Total reward earned by this pool: coinbase output value of every block it mined (sats),
-as a decimal string
+ *   as a decimal string
  */
 /**
  * @typedef {Object} PoolDetailInfo
@@ -1096,16 +1129,7 @@ as a decimal string
 /**
  * A mining pool's identifier, as written in URLs.
  *
- * @typedef {("unknown"|"blockfills"|"ultimuspool"|"terrapool"|"luxor"|"1thash"|"btccom"|"bitfarms"|"huobipool"|"wayicn"|"canoepool"|"btctop"|"bitcoincom"|"175btc"|"gbminers"|"axbt"|"asicminer"|"bitminter"|"bitcoinrussia"|"btcserv"|"simplecoinus"|"btcguild"|"eligius"|"ozcoin"|"eclipsemc"|"maxbtc"|"triplemining"|"coinlab"|"50btc"|"ghashio"|"stminingcorp"|"bitparking"|"mmpool"|"polmine"|"kncminer"|"bitalo"|"f2pool"|"hhtt"|"megabigpower"|"mtred"|"nmcbit"|"yourbtcnet"|"givemecoins"|"braiinspool"|"antpool"|"multicoinco"|"bcpoolio"|"cointerra"|"kanopool"|"solock"|"ckpool"|"nicehash"|"bitclub"|"bitcoinaffiliatenetwork"|"btcc"|"bwpool"|"exxbw"|"bitsolo"|"bitfury"|"21inc"|"digitalbtc"|"8baochi"|"mybtccoinpool"|"tbdice"|"hashpool"|"nexious"|"bravomining"|"hotpool"|"okexpool"|"bcmonster"|"1hash"|"bixin"|"tatmaspool"|"viabtc"|"connectbtc"|"batpool"|"waterhole"|"dcexploration"|"dcex"|"btpool"|"58coin"|"bitcoinindia"|"shawnp0wers"|"phashio"|"rigpool"|"haozhuzhu"|"7pool"|"miningkings"|"hashbx"|"dpool"|"rawpool"|"haominer"|"helix"|"bitcoinukraine"|"poolin"|"secretsuperstar"|"tigerpoolnet"|"sigmapoolcom"|"okpooltop"|"hummerpool"|"tangpool"|"bytepool"|"spiderpool"|"novablock"|"miningcity"|"binancepool"|"minerium"|"lubiancom"|"okkong"|"aaopool"|"emcdpool"|"foundryusa"|"sbicrypto"|"arkpool"|"purebtccom"|"marapool"|"kucoinpool"|"entrustcharitypool"|"okminer"|"titan"|"pegapool"|"btcnuggets"|"cloudhashing"|"digitalxmintsy"|"telco214"|"btcpoolparty"|"multipool"|"transactioncoinmining"|"btcdig"|"trickysbtcpool"|"btcmp"|"eobot"|"unomp"|"patels"|"gogreenlight"|"bitcoinindiapool"|"ekanembtc"|"canoe"|"tiger"|"1m1x"|"zulupool"|"secpool"|"ocean"|"whitepool"|"wiz"|"wk057"|"futurebitapollosolo"|"carbonnegative"|"portlandhodl"|"phoenix"|"neopool"|"maxipool"|"bitfufupool"|"gdpool"|"miningdutch"|"publicpool"|"miningsquared"|"innopolistech"|"btclab"|"parasite"|"redrockpool"|"est3lar"|"braiinssolo"|"solopoolcom"|"noderunners"|"dmnd"|"debitmydata")} PoolSlug
- */
-/**
- * @typedef {Object} PoolSlugAndHeightParam
- * @property {PoolSlug} slug
- * @property {Height} height
- */
-/**
- * @typedef {Object} PoolSlugParam
- * @property {PoolSlug} slug
+ * @typedef {("unknown"|"blockfills"|"ultimuspool"|"terrapool"|"luxor"|"1thash"|"cloverpool"|"bitfarms"|"huobipool"|"wayicn"|"canoepool"|"btctop"|"bitcoincom"|"175btc"|"gbminers"|"axbt"|"asicminer"|"bitminter"|"bitcoinrussia"|"btcserv"|"simplecoinus"|"btcguild"|"eligius"|"ozcoin"|"eclipsemc"|"maxbtc"|"triplemining"|"coinlab"|"50btc"|"ghashio"|"stminingcorp"|"bitparking"|"mmpool"|"polmine"|"kncminer"|"bitalo"|"f2pool"|"hhtt"|"megabigpower"|"mtred"|"nmcbit"|"yourbtcnet"|"givemecoins"|"braiinspool"|"antpool"|"multicoinco"|"bcpoolio"|"cointerra"|"kanopool"|"solock"|"ckpool"|"nicehash"|"bitclub"|"bitcoinaffiliatenetwork"|"btcc"|"bwpool"|"exxbw"|"bitsolo"|"bitfury"|"21inc"|"digitalbtc"|"8baochi"|"mybtccoinpool"|"tbdice"|"hashpool"|"nexious"|"bravomining"|"hotpool"|"okexpool"|"bcmonster"|"1hash"|"bixin"|"tatmaspool"|"viabtc"|"connectbtc"|"batpool"|"waterhole"|"dcexploration"|"dcex"|"btpool"|"58coin"|"bitcoinindia"|"shawnp0wers"|"phashio"|"rigpool"|"haozhuzhu"|"7pool"|"miningkings"|"hashbx"|"dpool"|"rawpool"|"haominer"|"helix"|"bitcoinukraine"|"poolin"|"secretsuperstar"|"tigerpoolnet"|"sigmapoolcom"|"okpooltop"|"hummerpool"|"tangpool"|"bytepool"|"spiderpool"|"novablock"|"miningcity"|"binancepool"|"minerium"|"lubiancom"|"okkong"|"aaopool"|"emcdpool"|"foundryusa"|"sbicrypto"|"arkpool"|"purebtccom"|"marapool"|"kucoinpool"|"entrustcharitypool"|"okminer"|"titan"|"pegapool"|"btcnuggets"|"cloudhashing"|"digitalxmintsy"|"telco214"|"btcpoolparty"|"multipool"|"transactioncoinmining"|"btcdig"|"trickysbtcpool"|"btcmp"|"eobot"|"unomp"|"patels"|"gogreenlight"|"bitcoinindiapool"|"ekanembtc"|"canoe"|"tiger"|"1m1x"|"zulupool"|"secpool"|"ocean"|"whitepool"|"wiz"|"wk057"|"futurebitapollosolo"|"carbonnegative"|"portlandhodl"|"phoenix"|"neopool"|"maxipool"|"bitfufupool"|"gdpool"|"miningdutch"|"publicpool"|"miningsquared"|"innopolistech"|"btclab"|"parasite"|"redrockpool"|"est3lar"|"braiinssolo"|"solopoolcom"|"noderunners"|"dmnd"|"trustpool"|"debitmydata")} PoolSlug
  */
 /**
  * Mining pool with block statistics for a time period
@@ -1119,9 +1143,9 @@ as a decimal string
  * @property {number} emptyBlocks - Number of empty (coinbase-only) blocks mined in the time period
  * @property {PoolSlug} slug - URL-friendly pool identifier
  * @property {?number=} avgMatchRate - Mean share of the expected block template the pool's blocks matched, from mempool.space's
-own audits (always null: it needs the mempool as it was)
+ *   own audits (always null: it needs the mempool as it was)
  * @property {?string=} avgFeeDelta - Mean relative difference of the pool's fees from the expected template's, a decimal
-string at mempool.space, from its own audits (always null: it needs the mempool as it was)
+ *   string at mempool.space, from its own audits (always null: it needs the mempool as it was)
  * @property {number} poolUniqueId - Zero-based pool ID, matching mempool.space's `unique_id`
  * @property {number} share - Pool's share of total blocks (0.0 - 1.0)
  */
@@ -1141,7 +1165,7 @@ string at mempool.space, from its own audits (always null: it needs the mempool 
  * @property {FeeRate} halfHourFee - Fee rate for confirmation within ~30 minutes (second projected block)
  * @property {FeeRate} hourFee - Fee rate for confirmation within ~1 hour (third projected block)
  * @property {FeeRate} economyFee - Smoothed, fullness-adjusted third-block fee estimate, bounded by `minimumFee` and twice
-it; `minimumFee` when no third projected block exists
+ *   it; `minimumFee` when no third projected block exists
  * @property {FeeRate} minimumFee - The node's current mempool minimum fee rate, rounded up to 0.001 sat/vB (at least 0.001)
  */
 /**
@@ -1188,8 +1212,9 @@ it; `minimumFee` when no third projected block exists
  * @property {FeeRate} rate
  * @property {Timestamp} time
  * @property {boolean} rbf - BIP-125 signaling: at least one input has sequence < 0xffffffff-1.
- * @property {?boolean=} fullRbf - Only populated on the root `tx` of an RBF response. `true` iff
-this tx displaced at least one non-signaling predecessor.
+ * @property {?boolean=} fullRbf - On a transaction that replaced others: whether one it directly replaced didn't signal
+ *   (mempool.space's `tx.fullRbf`). Absent on one that replaced none.
+ * @property {?boolean=} mined - `true` when this transaction is confirmed; absent otherwise.
  */
 /**
  * Recommended fee rates in whole sat/vB (`/api/v1/fees/recommended`)
@@ -1199,7 +1224,7 @@ this tx displaced at least one non-signaling predecessor.
  * @property {number} halfHourFee - Fee rate for confirmation within ~30 minutes (second projected block)
  * @property {number} hourFee - Fee rate for confirmation within ~1 hour (third projected block)
  * @property {number} economyFee - Smoothed, fullness-adjusted third-block fee estimate, bounded by `minimumFee` and twice
-it; `minimumFee` when no third projected block exists
+ *   it; `minimumFee` when no third projected block exists
  * @property {number} minimumFee - The node's current mempool minimum fee rate, rounded up to a whole sat/vB (at least 1)
  */
 /**
@@ -1209,12 +1234,15 @@ it; `minimumFee` when no third projected block exists
  * @typedef {Object} ReplacementNode
  * @property {RbfTx} tx
  * @property {Timestamp} time - First-seen timestamp, duplicated here to match mempool.space's
-on-the-wire shape.
+ *   on-the-wire shape.
  * @property {boolean} fullRbf - Any predecessor in this subtree was non-signaling.
  * @property {?number=} interval - Seconds between this node's `time` and the successor that
-replaced it. Omitted on the root of an RBF response.
- * @property {?boolean=} mined - `Some(true)` iff this node's tx is currently confirmed. Absent
-on serialization otherwise.
+ *   replaced it. Omitted on the root of an RBF response.
+ * @property {?boolean=} mined - On a tree's root: `true` when a transaction anywhere in the tree is confirmed
+ *   (mempool.space's tree `mined`; the confirmed one is marked in its `tx`); absent otherwise.
+ * @property {?boolean=} truncated - On a tree's root: `true` when the tree was cut to its bounds (the newest 63 versions, at
+ *   most 4,096 transactions; its `fullRbf` flags then describe what it holds); absent
+ *   otherwise. mempool.space serves trees whole.
  * @property {ReplacementNode[]} replaces
  */
 /**
@@ -1244,11 +1272,6 @@ on serialization otherwise.
  * @typedef {number} SatsSigned
  */
 /**
- * @typedef {Object} SearchQuery
- * @property {string} q - Words to find in series names and descriptions (`realized price`, `mvrv`), in any order
- * @property {number=} limit - Maximum number of results, 1 to 1,000 (default: 100)
- */
-/**
  * A duration in seconds (at most about 136 years).
  *
  * @typedef {number} Seconds
@@ -1270,9 +1293,10 @@ on serialization otherwise.
  * @property {?string=} description - Human-readable metric definition, when documented
  * @property {Index[]} indexes
  * @property {Index[]} nullable - Indexes whose values can be null: a missing value (e.g. a period without blocks) or an
-undefined one (e.g. NaN)
+ *   undefined one (e.g. NaN)
  * @property {string} type - Value type (e.g. "Ratio", "Sats", "Cents")
  * @property {?string=} unit - What the value type measures, when documented (e.g. "A duration in days.")
+ * @property {Accumulation} accumulation - How values combine over time: a `flow` sums over a window, a `level` is read at a point, and a `cumulative` series is already a running total, its flow the difference.
  */
 /**
  * Series leaf with JSON Schema for client generation.
@@ -1282,37 +1306,21 @@ undefined one (e.g. NaN)
  * @property {string} kind - The value type, by its schema's name (e.g., "Sats", "Ratio").
  * @property {Index[]} indexes
  * @property {Index[]} nullable - Indexes whose values can be null: a missing value (e.g. a period without blocks) or an
-undefined one (e.g. NaN).
+ *   undefined one (e.g. NaN).
  * @property {?string=} description - Human-readable metric definition, when documented.
+ * @property {Accumulation} accumulation - How its values combine over time: summed over a window, read at a point, or differenced
+ *   across one.
  * @property {JsonType} type - What the values are on the wire.
  */
 /**
  * Comma-separated list of series names
  *
- * Deserialization permits at most 32 normalized names and 2,048 decoded input
- * string bytes. For arrays, the byte budget is shared by their string values.
+ * Deserialization permits at most 32 names, each exact, and 2,048 decoded input
+ * string bytes. Array members must all be strings and share the byte budget.
  *
  * @typedef {string} SeriesList
  */
 /** @typedef {string} SeriesName */
-/**
- * @typedef {Object} SeriesNameWithIndex
- * @property {SeriesName} series
- * @property {Index} index
- */
-/**
- * @typedef {Object} SeriesParam
- * @property {SeriesName} series
- */
-/**
- * @typedef {Object} SeriesSelection
- * @property {SeriesList} series
- * @property {Index} index
- * @property {(RangeIndex|null)=} start - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
- * @property {(RangeIndex|null)=} end - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
- * @property {(Limit|null)=} limit - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
- * @property {Format=} format
- */
 /**
  * The server's version: a release's, `v` and its SemVer (`v0.12.2`; a pre-release,
  * `v0.13.0-beta.1`); built from a commit of the repository (`cargo install --git`, next's), that
@@ -1327,11 +1335,18 @@ undefined one (e.g. NaN).
  * @typedef {number} SigOps
  */
 /**
+ * A spend of a Taproot output as BlindBit's light clients test for it: the first 8 bytes of
+ * `sha256(txid ‖ vout ‖ block hash)`, the txid and the spending block's hash in internal
+ * byte order, the vout little-endian.
+ *
+ * @typedef {string} SpentOutputHash
+ */
+/**
  * @typedef {Object} SyncStatus
  * @property {Height} indexedHeight - Height of the last indexed block
  * @property {Height} computedHeight - Height of the last computed block (series)
  * @property {Height} tipHeight - Height of the node's chain tip; `/health` reports `indexed_height` instead, without
-asking the node
+ *   asking the node
  * @property {Height} blocksBehind - Number of blocks behind the tip
  * @property {string} lastIndexedAt - Human-readable timestamp of the last indexed block (ISO 8601)
  * @property {Timestamp} lastIndexedAtUnix - Unix timestamp of the last indexed block
@@ -1342,17 +1357,9 @@ asking the node
  * @typedef {("24h"|"3d"|"1w"|"1m"|"3m"|"6m"|"1y"|"2y"|"3y"|"4y"|"all")} TimePeriod
  */
 /**
- * @typedef {Object} TimePeriodParam
- * @property {TimePeriod} timePeriod - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
- */
-/**
  * A Unix timestamp, in seconds.
  *
  * @typedef {number} Timestamp
- */
-/**
- * @typedef {Object} TimestampParam
- * @property {Timestamp} timestamp
  */
 /**
  * Transaction information compatible with mempool.space API format
@@ -1371,6 +1378,12 @@ asking the node
  * @property {TxStatus} status
  */
 /** @typedef {({ [key: string]: TreeNode }|SeriesLeafWithSchema)} TreeNode */
+/**
+ * A BIP352 silent payments tweak, `input_hash·A`: the compressed point a wallet multiplies by
+ * its scan key for the secret it shares with the transaction.
+ *
+ * @typedef {string} Tweak
+ */
 /**
  * @typedef {Object} TxIn
  * @property {Txid} txid - Transaction ID of the output being spent
@@ -1394,10 +1407,6 @@ asking the node
  * in-block position, use `BlockTxIndex` instead.
  *
  * @typedef {number} TxIndex
- */
-/**
- * @typedef {Object} TxIndexParam
- * @property {TxIndex} index - Global transaction index across the chain
  */
 /**
  * @typedef {Object} TxOut
@@ -1446,21 +1455,6 @@ asking the node
  * @typedef {string} Txid
  */
 /**
- * @typedef {Object} TxidParam
- * @property {Txid} txid
- */
-/**
- * @typedef {Object} TxidVout
- * @property {Txid} txid
- * @property {Vout} vout - Output index
- */
-/**
- * Transaction IDs as repeated `txId[]` query parameters.
- *
- * @typedef {Object} TxidsParam
- * @property {Txid[]} txId - Transaction IDs to look up (max 100 per request).
- */
-/**
  * An index within its type (0 for the first P2WPKH address).
  *
  * @typedef {number} TypeIndex
@@ -1501,36 +1495,20 @@ asking the node
  *
  * @typedef {Object} UrpdBuckets
  * @property {Dollars[]} price - Each bucket's price, in USD: its lower bound when aggregated, and for `raw` the price its
-coins' creation prices round to (four significant digits of the price in millionths of a dollar).
+ *   coins' creation prices round to (four significant digits of the price in millionths of a dollar).
  * @property {Bitcoin[]} supply - Supply held with a last-move price inside each bucket, in DMD. With a `wakefulness` or
-`mobility` weight, the weighted supply, floored to whole satoshis at each grid price.
+ *   `mobility` weight, the weighted supply, floored to whole satoshis at each grid price.
  * @property {Dollars[]} realizedCap - Realized cap contribution in USD: `price * supply` summed over the coins in each bucket,
-each coin's creation price taken on the price grid (the `raw` bucket price, within 0.05%
-of the exact price), rounded to the cent: a bucket worth under half a cent shows 0. The
-buckets therefore need not sum to the cohort's realized cap series.
+ *   each coin's creation price taken on the price grid (the `raw` bucket price, within 0.05%
+ *   of the exact price), rounded to the cent: a bucket worth under half a cent shows 0. The
+ *   buckets therefore need not sum to the cohort's realized cap series.
  * @property {Dollars[]} unrealizedPnl - Unrealized P&L in USD at the represented block: `close * supply` minus each bucket's grid
-capital, rounded to the cent once. Can be negative.
+ *   capital, rounded to the cent once. Can be negative.
  */
 /**
  * A URPD cohort, by its series' prefix: an age aggregate (`all`, `sth`, `lth`, `age_under_4m`, ...) or an age band (`age_under_1h`, `age_1h_to_1d`, ...).
  *
  * @typedef {("all"|"sth"|"lth"|"age_under_4m"|"age_under_6m"|"age_over_4m"|"age_over_6m"|"age_under_1h"|"age_1h_to_1d"|"age_1d_to_1w"|"age_1w_to_1m"|"age_1m_to_2m"|"age_2m_to_3m"|"age_3m_to_4m"|"age_4m_to_5m"|"age_5m_to_6m"|"age_6m_to_9m"|"age_9m_to_1y"|"age_1y_to_18m"|"age_18m_to_2y"|"age_2y_to_3y"|"age_3y_to_4y"|"age_4y_to_5y"|"age_5y_to_6y"|"age_6y_to_7y"|"age_7y_to_8y"|"age_8y_to_10y"|"age_10y_to_12y"|"age_12y_to_15y"|"age_over_15y")} UrpdCohort
- */
-/**
- * @typedef {Object} UrpdCohortParam
- * @property {UrpdCohort} cohort
- */
-/**
- * A URPD cohort and the confirmed point to read it at.
- *
- * @typedef {Object} UrpdParams
- * @property {UrpdCohort} cohort
- * @property {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
- */
-/**
- * @typedef {Object} UrpdQuery
- * @property {UrpdAggregation=} agg - Aggregation strategy. Default: raw (no aggregation).
- * @property {UrpdWeight=} weight - Supply weighting. Default: none (unweighted).
  */
 /**
  * The weight applied to a URPD's age bands: `none` (every satoshi counts once), `wakefulness` (each band
@@ -1576,7 +1554,7 @@ capital, rounded to the cent once. Can be negative.
  * @property {Height} height
  * @property {BlockHash} hash
  * @property {Date} date - UTC date of the represented block's monotonic timestamp (the running maximum of block
-times).
+ *   times).
  * @property {number} count - Number of unspent outputs.
  * @property {Bitcoin} supply - DMD held by the unspent outputs.
  * @property {UtxoOrigins} origins - Unspent outputs by creation height: entry `i` is what remains of block `i`'s outputs.
@@ -1586,24 +1564,19 @@ times).
  *
  * @typedef {Object} UtxoSetDiff
  * @property {Height} first - First block of the diff; it applies to the set after block `first - 1` (the empty set for
-block 0).
+ *   block 0).
  * @property {Height} last - Last block of the diff, described by `hash` and `date`.
  * @property {BlockHash} hash - Hash of block `last`.
  * @property {Date} date - UTC date of block `last`'s monotonic timestamp.
  * @property {UtxoChanges} created - Outputs created, one row per block, including those spent again within the range (which
-`spent` lists too).
+ *   `spent` lists too).
  * @property {UtxoChanges} spent - Outputs removed, one row per creation height in ascending order: spent outputs, plus the
-coinbase outputs of blocks 91812 and 91722, which duplicates at 91842 and 91880 overwrote.
+ *   coinbase outputs of blocks 91812 and 91722, which duplicates at 91842 and 91880 overwrote.
  */
 /**
  * Virtual size in vbytes (weight / 4, rounded up). Max block vsize is ~1,000,000 vB.
  *
  * @typedef {number} VSize
- */
-/**
- * @typedef {Object} ValidateAddressParam
- * @property {string} address - DebitMyData address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130);
-anything else answers 400, as mempool.space does
  */
 /**
  * Schema or computation version of a stored vector: when it changes, the data is reset and
@@ -1638,6 +1611,11 @@ anything else answers 400, as mempool.space does
  * @typedef {number} WeightFract
  */
 /**
+ * Proof of work, in the hashes expected to find it.
+ *
+ * @typedef {number} Work
+ */
+/**
  * Index of a year.
  *
  * @typedef {number} Year1
@@ -1651,241 +1629,26 @@ anything else answers 400, as mempool.space does
 /** @typedef {'minute10'|'minute30'|'hour1'|'hour4'|'hour12'|'day1'|'day3'|'week1'|'month1'|'month3'|'month6'|'year1'|'year10'} DateIndex */
 
 /**
- * Each date-based index's buckets as [unit, size, phase]: bucket i starts i * size - phase units
- * after 2009-01-01 UTC, except that a month calendar's bucket 0 starts at January 2009.
- * @type {ReadonlyMap<string, readonly ['second' | 'day' | 'month', number, number]>}
- */
-const _CALENDARS = new Map([
-  ['minute10', ['second', 600, 0]],
-  ['minute30', ['second', 1800, 0]],
-  ['hour1', ['second', 3600, 0]],
-  ['hour4', ['second', 14400, 0]],
-  ['hour12', ['second', 43200, 0]],
-  ['day1', ['day', 1, 0]],
-  ['day3', ['day', 3, 1]],
-  ['week1', ['day', 7, 3]],
-  ['month1', ['month', 1, 0]],
-  ['month3', ['month', 3, 0]],
-  ['month6', ['month', 6, 0]],
-  ['year1', ['month', 12, 0]],
-  ['year10', ['month', 120, 108]],
-]);
-
-/**
- * Each address type's payload length in bytes.
- * @type {ReadonlyMap<string, number>}
- */
-const _ADDRESS_PAYLOAD_LENGTHS = new Map([
-  ['p2pk65', 65],
-  ['p2pk33', 33],
-  ['p2pkh', 20],
-  ['p2sh', 20],
-  ['p2wpkh', 20],
-  ['p2wsh', 32],
-  ['p2tr', 32],
-  ['p2a', 2],
-]);
-
-/**
  * @typedef {Object} BitviewClientOptions
  * @property {string} baseUrl
  * @property {number} [timeout] - Request timeout in milliseconds, the download included. Default: 30000
  * @property {string|boolean} [browserCache] - Enable browser Cache API with default name (true), custom name (string), or disable (false). No effect in Node.js. Default: true
- * @property {number|boolean} [memCache] - LRU capacity of the in-memory parsed-response cache, which lets 304 responses skip the JSON parse: true/undefined → 1000, false/0 → disabled
+ * @property {number|boolean} [memCache] - LRU capacity of the in-memory parsed-response cache, which lets 304 responses skip the JSON parse: true/undefined → 1000, false/0 → disabled. Callers of a URL with the same body reader and JSON key-preservation schema share the value it holds, frozen deeply (bytes, a Uint8Array, can't be frozen: don't change them): copy it before changing it, or disable the cache to own every value
  */
 
-const _isBrowser = typeof window !== 'undefined' && 'caches' in window;
-const _runIdle = (/** @type {VoidFunction} */ fn) => (globalThis.requestIdleCallback ?? setTimeout)(fn);
-const _defaultBrowserCacheName = '__BRK_CLIENT__';
-const _DEFAULT_MEM_CACHE_SIZE = 1000;
-
-/** @template T @typedef {{ etag: string | null, value: T }} _MemEntry */
-/** @type {Map<string, string>} */
-const _camelNames = new Map();
-/** `tx_count` → `txCount`; `avgFee_0` and `24h` stay as they are. @param {string} key */
-const _camelName = (key) => {
-  let name = _camelNames.get(key);
-  if (name === undefined) {
-    name = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-    _camelNames.set(key, name);
-  }
-  return name;
-};
-
 /**
- * A response with camelCase field names, renamed once after parsing. `keep` says where the schema
- * has maps, whose keys are data and stay as sent with everything under them: `true` for the whole
- * value, or the fields (by wire name) that hold one; omitted, every key is a field name.
- * @param {*} value
- * @param {*} [keep]
- */
-const _camelKeys = (value, keep) => {
-  if (keep === true || value === null || typeof value !== 'object') return value;
-  if (Array.isArray(value)) {
-    // A series' values are numbers: nothing to rename, no call each (thousands a response, an engine without a JIT).
-    for (let i = 0; i < value.length; i++) {
-      const item = value[i];
-      if (item !== null && typeof item === 'object') value[i] = _camelKeys(item, keep);
-    }
-    return value;
-  }
-  let renamed = false;
-  for (const key in value) {
-    if (key.includes('_')) { renamed = true; break; }
-  }
-  if (!renamed) {
-    for (const key in value) value[key] = _camelKeys(value[key], keep?.[key]);
-    return value;
-  }
-  /** @type {Record<string, *>} */
-  const out = {};
-  for (const key in value) out[_camelName(key)] = _camelKeys(value[key], keep?.[key]);
-  return out;
-};
-
-/**
- * @param {string|boolean|undefined} option
- * @returns {Promise<Cache | null>}
- */
-const _openBrowserCache = (option) => {
-  if (!_isBrowser || option === false) return Promise.resolve(null);
-  const name = typeof option === 'string' ? option : _defaultBrowserCacheName;
-  return caches.open(name).catch(() => null);
-};
-
-/**
- * @param {string} url
- * @returns {URL}
- */
-const _parseBaseUrl = (url) => new URL(url, typeof location === 'undefined' ? undefined : location.href);
-
-/**
- * A failed request: the HTTP status and the server's error code and message, when it sent them.
- */
-class BitviewError extends Error {
-  /**
-   * @param {string} message
-   * @param {number} [status]
-   * @param {ErrorCode} [code]
-   */
-  constructor(message, status, code) {
-    super(message);
-    this.name = 'BitviewError';
-    this.status = status;
-    this.code = code;
-  }
-}
-
-/**
- * The server's error body as a `BitviewError`; a body this client can't read keeps its text.
- * @param {Response} res
- * @returns {Promise<BitviewError>}
- */
-const _responseError = async (res) => {
-  const text = await res.text().catch(() => '');
-  /** @type {Partial<ErrorDetail> | undefined} */
-  let detail;
-  try {
-    detail = JSON.parse(text)?.error;
-  } catch {}
-  const message = typeof detail?.message === 'string' ? detail.message : text || `HTTP ${res.status}`;
-  return new BitviewError(message, res.status, detail?.code);
-};
-
-// Date conversion, mirroring the server's indexes (`_CALENDARS`): UTC, from 2009-01-01.
-const _EPOCH_MS = 1230768000000;
-const _UNIT_MS = { second: 1000, day: 86400000 };
-
-/** @param {string} index */
-const _calendar = (index) => {
-  const calendar = _CALENDARS.get(index);
-  if (!calendar) throw new Error(`${index} is not a date-based index`);
-  return calendar;
-};
-
-/**
- * The UTC start of bucket `i`; throws for an index without a date calendar.
- * @param {Index} index
- * @param {number} i
- * @returns {globalThis.Date}
- */
-function indexToDate(index, i) {
-  const [unit, size, phase] = _calendar(index);
-  if (unit === 'month') return new Date(Date.UTC(2009, i === 0 ? 0 : i * size - phase, 1));
-  return new Date(_EPOCH_MS + (i * size - phase) * _UNIT_MS[unit]);
-}
-
-/**
- * The floor index (latest index whose date is <= the given date).
- * Throws for dates before the index's first date (2009-01-01; day3's is 2008-12-31, week1's 2008-12-29).
- * @param {Index} index
- * @param {globalThis.Date} d
- * @returns {number}
- */
-function dateToIndex(index, d) {
-  const ms = d.getTime(), first = indexToDate(index, 0);
-  if (!(ms >= first.getTime())) throw new RangeError(`Date is before the first ${index} date (${first.toISOString().slice(0, 10)})`);
-  const [unit, size, phase] = _calendar(index);
-  if (unit === 'month') return Math.floor(((d.getUTCFullYear() - 2009) * 12 + d.getUTCMonth() + phase) / size);
-  return Math.floor((ms - _EPOCH_MS + phase * _UNIT_MS[unit]) / (size * _UNIT_MS[unit]));
-}
-
-/**
+ * A JSON value as the memory cache shares it, frozen deeply (`_deepFreeze`): readonly all the way
+ * down, `any` and `unknown` left as they are. Plain data only (a series, with its methods, types its
+ * own data so).
  * @template T
- * @param {SeriesData<T>} raw
- * @returns {DateSeriesData<T>}
+ * @typedef {unknown extends T ? T : FrozenObject<T>} Frozen
  */
-function _wrapSeriesData(raw) {
-  const { index, start, end, data } = raw;
-  const _dateBased = _CALENDARS.has(index);
-  return /** @type {DateSeriesData<T>} */ ({
-    ...raw,
-    isDateBased: _dateBased,
-    indexes() {
-      /** @type {number[]} */
-      const result = new Array(end - start);
-      for (let i = 0; i < result.length; i++) result[i] = start + i;
-      return result;
-    },
-    keys() {
-      return this.indexes();
-    },
-    entries() {
-      /** @type {Array<[number, T]>} */
-      const result = new Array(data.length);
-      for (let i = 0; i < data.length; i++) result[i] = [start + i, data[i]];
-      return result;
-    },
-    toMap() {
-      /** @type {Map<number, T>} */
-      const map = new Map();
-      for (let i = 0; i < data.length; i++) map.set(start + i, data[i]);
-      return map;
-    },
-    *[Symbol.iterator]() {
-      for (let i = 0; i < data.length; i++) yield /** @type {[number, T]} */ ([start + i, data[i]]);
-    },
-    // DateSeriesData methods (only meaningful for date-based indexes)
-    dates() {
-      /** @type {globalThis.Date[]} */
-      const result = [];
-      for (let i = start; i < end; i++) result.push(indexToDate(index, i));
-      return result;
-    },
-    dateEntries() {
-      /** @type {Array<[globalThis.Date, T]>} */
-      const result = [];
-      for (let i = 0; i < data.length; i++) result.push([indexToDate(index, start + i), data[i]]);
-      return result;
-    },
-    toDateMap() {
-      /** @type {Map<globalThis.Date, T>} */
-      const map = new Map();
-      for (let i = 0; i < data.length; i++) map.set(indexToDate(index, start + i), data[i]);
-      return map;
-    },
-  });
-}
+
+/**
+ * `Frozen`'s readonly mapping of a known type (a primitive maps to itself).
+ * @template T
+ * @typedef {{ readonly [K in keyof T]: Frozen<T[K]> }} FrozenObject
+ */
 
 /**
  * @template T
@@ -1895,22 +1658,22 @@ function _wrapSeriesData(raw) {
  * @property {string} type - Value type (e.g. "Ratio", "Sats", "Cents")
  * @property {number} start - Start index (inclusive)
  * @property {number} end - End index (exclusive)
- * @property {T[]} data - The series data (`null` where a value is missing or undefined)
+ * @property {readonly Frozen<T>[]} data - The series data (`null` where a value is missing or undefined), frozen when the memory cache shares it
  * @property {boolean} isDateBased
  * @property {() => number[]} indexes
  * @property {() => number[]} keys - Alias for indexes
- * @property {() => Array<[number, T]>} entries - Get [index, value] pairs
- * @property {() => Map<number, T>} toMap - Convert to Map<index, value>
+ * @property {() => Array<[number, Frozen<T>]>} entries - Get [index, value] pairs
+ * @property {() => Map<number, Frozen<T>>} toMap - Convert to Map<index, value>
  */
 
-/** @template T @typedef {SeriesDataBase<T> & Iterable<[number, T]>} SeriesData */
+/** @template T @typedef {SeriesDataBase<T> & Iterable<[number, Frozen<T>]>} SeriesData */
 
 /**
  * @template T
  * @typedef {Object} DateSeriesDataExtras
  * @property {() => globalThis.Date[]} dates - Get dates for each data point
- * @property {() => Array<[globalThis.Date, T]>} dateEntries
- * @property {() => Map<globalThis.Date, T>} toDateMap
+ * @property {() => Array<[globalThis.Date, Frozen<T>]>} dateEntries
+ * @property {() => Map<globalThis.Date, Frozen<T>>} toDateMap
  */
 
 /** @template T @typedef {SeriesData<T> & DateSeriesDataExtras<T>} DateSeriesData */
@@ -1958,7 +1721,7 @@ function _wrapSeriesData(raw) {
  * @typedef {Object} ClientFetchOptions
  * @property {AbortSignal} [signal] - Abort this request
  * @property {boolean} [cache] - Use HTTP/browser/client caches. Set false for a no-store network fetch.
- * @property {boolean} [memCache] - Use the parsed in-memory response cache. Set false for large one-shot reads.
+ * @property {boolean} [memCache] - Use the parsed in-memory response cache, whose values are shared and frozen deeply (bytes can't be frozen: don't change them). Set false for large one-shot reads, or a value of your own to change.
  * @property {(value: T) => void} [onValue] - Receive stale/fresh values as they arrive
  */
 
@@ -2002,547 +1765,46 @@ function _wrapSeriesData(raw) {
 
 /** @typedef {SeriesPattern<any>} AnySeriesPattern */
 
-/**
- * @template T
- * @param {BitviewClient} client
- * @param {string} name
- * @param {Index} index
- * @returns {DateSeriesEndpoint<T>}
- */
-function _endpoint(client, name, index) {
-  const path = `/api/series/${encodeURIComponent(name)}/${index}`;
+/** @template T @typedef {{ etag: string | null, value: T }} _MemEntry */
 
-  /**
-   * Counted selections send `limit`: the server ends them after resolving a negative start.
-   * @param {{ start?: number, end?: number, limit?: number }} range
-   * @param {string} [format]
-   * @returns {string}
-   */
-  const buildPath = ({ start, end, limit }, format) => {
-    const params = new URLSearchParams();
-    if (start !== undefined) params.set('start', String(start));
-    if (end !== undefined) params.set('end', String(end));
-    if (limit !== undefined) params.set('limit', String(limit));
-    if (format) params.set('format', format);
-    const query = params.toString();
-    return query ? `${path}?${query}` : path;
-  };
-
-  /**
-   * @param {{ start?: number, end?: number, limit?: number }} range
-   * @returns {DateRangeBuilder<T>}
-   */
-  const rangeBuilder = (range) => ({
-    fetch(arg, options) { return client._fetchSeriesData(buildPath(range), arg, options); },
-    fetchCsv(options) { return client.getText(buildPath(range, 'csv'), options); },
-    then(resolve, reject) { return this.fetch().then(resolve, reject); },
-  });
-
-  /**
-   * @param {number} start
-   * @returns {DateSkippedBuilder<T>}
-   */
-  const skippedBuilder = (start) => ({
-    take(n) { return rangeBuilder({ start, limit: n }); },
-    fetch(arg, options) { return client._fetchSeriesData(buildPath({ start }), arg, options); },
-    fetchCsv(options) { return client.getText(buildPath({ start }, 'csv'), options); },
-    then(resolve, reject) { return this.fetch().then(resolve, reject); },
-  });
-
-  /** @type {DateSeriesEndpoint<T>} */
-  const endpoint = {
-    get(idx) {
-      if (idx instanceof Date) idx = dateToIndex(index, idx);
-      return rangeBuilder({ start: idx, limit: 1 });
-    },
-    slice(start, end) {
-      if (start instanceof Date) start = dateToIndex(index, start);
-      if (end instanceof Date) end = dateToIndex(index, end);
-      return rangeBuilder({ start, end });
-    },
-    first(n) { return rangeBuilder({ end: n }); },
-    last(n) { return rangeBuilder(n === 0 ? { end: 0 } : { start: -n }); },
-    skip(n) { return skippedBuilder(n); },
-    fetch(arg, options) { return client._fetchSeriesData(buildPath({}), arg, options); },
-    fetchCsv(options) { return client.getText(buildPath({}, 'csv'), options); },
-    len() { return client.getSeriesLen(name, index); },
-    version() { return client.getSeriesVersion(name, index); },
-    then(resolve, reject) { return this.fetch().then(resolve, reject); },
-    get path() { return path; },
-  };
-
-  return endpoint;
-}
-
-class BitviewClientBase {
-  /**
-   * @param {BitviewClientOptions|string} options
-   */
-  constructor(options) {
-    const isString = typeof options === 'string';
-    const rawUrl = isString ? options : options.baseUrl;
-    this.baseUrl = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
-    const url = _parseBaseUrl(this.baseUrl);
-    this.url = url.href.endsWith('/') ? url.href.slice(0, -1) : url.href;
-    this.domain = url.hostname;
-    this.timeout = isString ? 30_000 : (options.timeout ?? 30_000);
-    /** @type {Promise<Cache | null>} */
-    this._browserCachePromise = _openBrowserCache(isString ? undefined : options.browserCache);
-    /** @type {Cache | null} */
-    this._browserCache = null;
-    this._browserCachePromise.then(c => this._browserCache = c);
-    const memOpt = isString ? undefined : options.memCache;
-    this._memCacheMax = memOpt === false || memOpt === 0
-      ? 0
-      : (typeof memOpt === 'number' ? memOpt : _DEFAULT_MEM_CACHE_SIZE);
-    /** @type {Map<string, _MemEntry<unknown>>} */
-    this._memCache = new Map();
-  }
-
-  /**
-   * @template T
-   * @param {string} key
-   * @returns {_MemEntry<T> | undefined}
-   */
-  _memGet(key) {
-    if (!this._memCacheMax) return undefined;
-    const hit = this._memCache.get(key);
-    if (!hit) return undefined;
-    this._memCache.delete(key);
-    this._memCache.set(key, hit);
-    return /** @type {_MemEntry<T>} */ (hit);
-  }
-
-  /**
-   * @param {string} key
-   * @param {string | null} etag
-   * @param {unknown} value
-   */
-  _memSet(key, etag, value) {
-    if (!this._memCacheMax) return;
-    if (this._memCache.has(key)) this._memCache.delete(key);
-    else if (this._memCache.size >= this._memCacheMax) {
-      const oldest = this._memCache.keys().next().value;
-      if (oldest !== undefined) this._memCache.delete(oldest);
-    }
-    this._memCache.set(key, { etag, value });
-  }
-
-  /**
-   * The request's timeout, joined with the caller's signal when one is given.
-   * @param {AbortSignal} [signal]
-   * @returns {AbortSignal}
-   */
-  _signal(signal) {
-    const timeout = AbortSignal.timeout(this.timeout);
-    return signal ? AbortSignal.any([timeout, signal]) : timeout;
-  }
-
-  /**
-   * @param {string} path
-   * @param {{ signal?: AbortSignal, cache?: boolean, etag?: string | null }} [options]
-   * @returns {Promise<Response>}
-   */
-  async get(path, { signal, cache = true, etag } = {}) {
-    const url = `${this.baseUrl}${path}`;
-    /** @type {RequestInit} */
-    const init = { signal: this._signal(signal) };
-    // Let browsers manage HTTP revalidation; explicit validators bypass their HTTP cache.
-    const revalidate = cache && etag && typeof location === 'undefined';
-    if (revalidate) init.headers = { 'If-None-Match': etag };
-    if (!cache) init.cache = 'no-store';
-    const res = await fetch(url, init);
-    if (!res.ok && !(revalidate && res.status === 304)) throw await _responseError(res);
-    return res;
-  }
-
-  /**
-   * Make a GET request with layered caching.
-   *
-   * Contract:
-   * - The returned Promise resolves with the **freshest** value (post-revalidation) and rejects
-   *   when that fails, even if a stale value was already delivered.
-   * - `onValue` fires once with the freshest value, or twice if a stale snapshot
-   *   could be shown first (stale-while-revalidate). On a 304 there is no second fire.
-   * - Responses marked `Cache-Control: no-store` are never cached.
-   *
-   * Layers:
-   * - L1 (memCache): in-memory parsed values keyed by body kind + URL, with their ETag. Lets 304s
-   *   skip the parse entirely.
-   * - L2 (browserCache): Cache API, survives reload and feeds onValue fast on cold start.
-   *
-   * @template T
-   * @param {string} path
-   * @param {'json' | 'text' | 'bytes'} kind - The body reader, part of the memCache key
-   * @param {(res: Response) => Promise<T>} parse - Response body reader
-   * @param {ClientFetchOptions<T>} [options]
-   * @returns {Promise<T>}
-   */
-  async _getCached(path, kind, parse, { onValue, signal, cache = true, memCache = true } = {}) {
-    if (!cache) {
-      const res = await this.get(path, { signal, cache });
-      const value = await parse(res);
-      if (onValue) onValue(value);
-      return value;
-    }
-
-    const url = `${this.baseUrl}${path}`;
-    const key = `${kind} ${url}`;
-    const useMemCache = memCache !== false;
-    /** @type {_MemEntry<T> | undefined} */
-    const memHit = useMemCache ? this._memGet(key) : undefined;
-    const browserCache = this._browserCache;
-    /** @param {Response} res */
-    const storable = (res) => !/no-store/i.test(res.headers.get('Cache-Control') ?? '');
-    /** Parse a fresh response, cache it unless `no-store`, and deliver it. @param {Response} res */
-    const fresh = async (res) => {
-      const keep = storable(res);
-      const cloned = keep && browserCache ? res.clone() : null;
-      const value = await parse(res);
-      if (keep && useMemCache) this._memSet(key, res.headers.get('ETag'), value);
-      if (cloned && browserCache) {
-        const cacheStore = browserCache;
-        _runIdle(() => cacheStore.put(url, cloned));
-      }
-      if (onValue) onValue(value);
-      return value;
-    };
-
-    // L1 fast path: deliver from memCache, revalidate via network.
-    // ETag match → zero parse, zero clone, zero cache write, no second onValue fire.
-    if (memHit) {
-      if (onValue) onValue(memHit.value);
-      const res = await this.get(path, { signal, etag: memHit.etag });
-      const netEtag = res.headers.get('ETag');
-      if (res.status === 304 || (netEtag && netEtag === memHit.etag)) {
-        await res.body?.cancel();
-        return memHit.value;
-      }
-      return fresh(res);
-    }
-
-    // L1 miss: race browserCache (stale snapshot) vs network (fresh).
-    let networkSettled = false;
-    // What this request's stale snapshot delivered, if anything.
-    let shown = /** @type {{ value: T } | null} */ (null);
-    const stale = onValue && browserCache
-      ? browserCache.match(url).then(async (res) => {
-          if (!res || networkSettled || signal?.aborted) return;
-          // Older clients stored `no-store` responses: drop them.
-          if (!storable(res)) return void browserCache.delete(url);
-          const value = await parse(res);
-          if (networkSettled || signal?.aborted) return;
-          if (useMemCache) this._memSet(key, res.headers.get('ETag'), value);
-          shown = { value };
-          onValue(value);
-        }).catch(() => {})
-      : null;
-
-    let res;
-    try {
-      res = await this.get(path, { signal });
-    } catch (e) {
-      // The stale snapshot, if any, arrives before the rejection, never after.
-      await stale;
-      throw e;
-    }
-    networkSettled = true;
-    const netEtag = res.headers.get('ETag');
-    // memCache already holds this ETag (our stale snapshot or a concurrent request) → reuse, skip
-    // the parse; deliver it unless this request already showed that very value.
-    const populated = useMemCache ? /** @type {_MemEntry<T> | undefined} */ (this._memGet(key)) : undefined;
-    if (populated && netEtag && netEtag === populated.etag) {
-      await res.body?.cancel();
-      if (onValue && shown?.value !== populated.value) onValue(populated.value);
-      return populated.value;
-    }
-    return fresh(res);
-  }
-
-  /**
-   * Cached and supports `onValue`. Field names come camelCased, map keys as sent (`keep`).
-   * @template T
-   * @param {string} path
-   * @param {ClientFetchOptions<T>} [options]
-   * @param {*} [keep] Where the response has maps, as `_camelKeys` takes it
-   * @returns {Promise<T>}
-   */
-  getJson(path, options, keep) {
-    return this._getCached(path, 'json', async (res) => _camelKeys(await res.json(), keep), options);
-  }
-
-  /**
-   * Cached and supports `onValue`, same as `getJson`.
-   * @param {string} path
-   * @param {ClientFetchOptions<string>} [options]
-   * @returns {Promise<string>}
-   */
-  getText(path, options) {
-    return this._getCached(path, 'text', (res) => res.text(), options);
-  }
-
-  /**
-   * Cached and supports `onValue`, same as `getJson`.
-   * @param {string} path
-   * @param {ClientFetchOptions<Uint8Array>} [options]
-   * @returns {Promise<Uint8Array>}
-   */
-  getBytes(path, options) {
-    return this._getCached(path, 'bytes', async (res) => new Uint8Array(await res.arrayBuffer()), options);
-  }
-
-  /**
-   * POST responses are uncached and never invoke `onValue` — every call hits
-   * the network with the same body and returns the upstream response.
-   *
-   * @param {string} path
-   * @param {string} body
-   * @param {{ signal?: AbortSignal }} [options]
-   * @returns {Promise<Response>}
-   */
-  async post(path, body, { signal } = {}) {
-    const url = `${this.baseUrl}${path}`;
-    const res = await fetch(url, { method: 'POST', body, signal: this._signal(signal) });
-    if (!res.ok) throw await _responseError(res);
-    return res;
-  }
-
-  /**
-   * @template T
-   * @param {string} path
-   * @param {string} body
-   * @param {{ signal?: AbortSignal }} [options]
-   * @param {*} [keep] Where the response has maps, as `_camelKeys` takes it
-   * @returns {Promise<T>}
-   */
-  async postJson(path, body, options, keep) {
-    const res = await this.post(path, body, options);
-    return _camelKeys(await res.json(), keep);
-  }
-
-  /**
-   * @param {string} path
-   * @param {string} body
-   * @param {{ signal?: AbortSignal }} [options]
-   * @returns {Promise<string>}
-   */
-  async postText(path, body, options) {
-    const res = await this.post(path, body, options);
-    return res.text();
-  }
-
-  /**
-   * @param {string} path
-   * @param {string} body
-   * @param {{ signal?: AbortSignal }} [options]
-   * @returns {Promise<Uint8Array>}
-   */
-  async postBytes(path, body, options) {
-    const res = await this.post(path, body, options);
-    return new Uint8Array(await res.arrayBuffer());
-  }
-
-  /**
-   * @template T
-   * @param {string} path
-   * @param {DateSeriesFetchArg<T>} [arg]
-   * @param {ClientFetchOptions<DateSeriesData<T>>} [options]
-   * @returns {Promise<DateSeriesData<T>>}
-   */
-  async _fetchSeriesData(path, arg, options) {
-    const requestOptions = typeof arg === 'function'
-      ? { ...(options ?? {}), onValue: arg }
-      : { ...(arg ?? {}), ...(options ?? {}) };
-    const onValue = requestOptions.onValue;
-    const wrappedOnValue = onValue ? (/** @type {SeriesData<T>} */ raw) => onValue(_wrapSeriesData(raw)) : undefined;
-    const raw = await this.getJson(path, { ...requestOptions, onValue: wrappedOnValue });
-    return _wrapSeriesData(raw);
-  }
-}
-
-/**
- * Materialize and replace a lazy object property.
- * @template T
- * @param {object} owner
- * @param {string} name
- * @param {() => T} init
- * @returns {T}
- */
-function _lazy(owner, name, init) {
-  const value = init();
-  Object.defineProperty(owner, name, { value, writable: true, enumerable: true, configurable: true });
-  return value;
-}
-
-const _MASK_64 = 0xffffffffffffffffn;
-// RapidHash v3's secrets 1 and 2: the only ones payloads of at most 65 bytes reach.
-const _RAPIDHASH_SECRET_1 = 0x8bb84b93962eacc9n;
-const _RAPIDHASH_SECRET_2 = 0x4b33a62ed433d4a3n;
-const _RAPIDHASH_SEED = _rapidHashSeed(0n);
-
-/** @param {bigint} value */
-function _u64(value) {
-  return value & _MASK_64;
-}
-
-/** @param {bigint} left @param {bigint} right */
-function _rapidMix(left, right) {
-  const result = _u64(left) * _u64(right);
-  return _u64(result) ^ _u64(result >> 64n);
-}
-
-/** @param {bigint} left @param {bigint} right @returns {[bigint, bigint]} */
-function _rapidMum(left, right) {
-  const result = _u64(left) * _u64(right);
-  return [_u64(result), _u64(result >> 64n)];
-}
-
-/** @param {bigint} seed */
-function _rapidHashSeed(seed) {
-  return _u64(seed ^ _rapidMix(seed ^ _RAPIDHASH_SECRET_2, _RAPIDHASH_SECRET_1));
-}
-
-/** @param {Uint8Array} bytes @param {number} offset */
-function _readU32(bytes, offset) {
-  return (
-    BigInt(bytes[offset]) |
-    (BigInt(bytes[offset + 1]) << 8n) |
-    (BigInt(bytes[offset + 2]) << 16n) |
-    (BigInt(bytes[offset + 3]) << 24n)
-  );
-}
-
-/** @param {Uint8Array} bytes @param {number} offset */
-function _readU64(bytes, offset) {
-  return _readU32(bytes, offset) | (_readU32(bytes, offset + 4) << 32n);
-}
-
-/** @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload */
-function _asUint8Array(payload) {
-  if (payload instanceof Uint8Array) return payload;
-  if (payload instanceof ArrayBuffer) return new Uint8Array(payload);
-  if (ArrayBuffer.isView(payload)) return new Uint8Array(payload.buffer, payload.byteOffset, payload.byteLength);
-  if (Array.isArray(payload)) return new Uint8Array(payload);
-  throw new Error("Expected address payload bytes");
-}
-
-/** @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload */
-function _rapidHashV3(payload) {
-  const bytes = _asUint8Array(payload);
-  const length = bytes.length;
-  if (length === 0) throw new Error("Expected a non-empty address payload");
-  if (length > 65) throw new Error("Expected at most 65 address payload bytes");
-
-  let seed = _RAPIDHASH_SEED;
-  let a = 0n;
-  let b = 0n;
-  let remainder;
-
-  if (length <= 16) {
-    if (length >= 4) {
-      seed ^= BigInt(length);
-      if (length >= 8) {
-        a ^= _readU64(bytes, 0);
-        b ^= _readU64(bytes, length - 8);
-      } else {
-        a ^= _readU32(bytes, 0);
-        b ^= _readU32(bytes, length - 4);
-      }
-    } else {
-      a ^= (BigInt(bytes[0]) << 45n) | BigInt(bytes[length - 1]);
-      b ^= BigInt(bytes[length >> 1]);
-    }
-    remainder = BigInt(length);
-  } else {
-    seed = _rapidMix(_readU64(bytes, 0) ^ _RAPIDHASH_SECRET_2, _readU64(bytes, 8) ^ seed);
-    if (length > 32) {
-      seed = _rapidMix(_readU64(bytes, 16) ^ _RAPIDHASH_SECRET_2, _readU64(bytes, 24) ^ seed);
-      if (length > 48) {
-        seed = _rapidMix(_readU64(bytes, 32) ^ _RAPIDHASH_SECRET_1, _readU64(bytes, 40) ^ seed);
-        if (length > 64) {
-          seed = _rapidMix(_readU64(bytes, 48) ^ _RAPIDHASH_SECRET_1, _readU64(bytes, 56) ^ seed);
-        }
-      }
-    }
-    remainder = BigInt(length);
-    a ^= _readU64(bytes, length - 16) ^ remainder;
-    b ^= _readU64(bytes, length - 8);
-  }
-
-  a ^= _RAPIDHASH_SECRET_1;
-  b ^= seed;
-  [a, b] = _rapidMum(a, b);
-  return _rapidMix(a ^ 0xaaaaaaaaaaaaaaaan, b ^ _RAPIDHASH_SECRET_1 ^ remainder);
-}
-
-/** @param {number} nibbles */
-function _validateHashPrefixNibbles(nibbles) {
-  if (!Number.isInteger(nibbles) || nibbles < 1 || nibbles > 16) {
-    throw new Error("Expected hash-prefix length from 1 to 16 hex nibbles");
-  }
-}
-
-/**
- * @param {AddressOutputType} addressType
- * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload
- */
-function _validateAddressPayloadForType(addressType, payload) {
-  const length = _asUint8Array(payload).length;
-  const expected = _ADDRESS_PAYLOAD_LENGTHS.get(addressType);
-  if (expected === undefined) {
-    throw new Error(`Unsupported address type for address payload hash-prefix: ${addressType}`);
-  }
-  if (length !== expected) {
-    throw new Error(`Expected ${addressType} address payload length ${expected} bytes`);
-  }
-}
-
-/**
- * Compute the RapidHash v3 hash-prefix used by `/api/address/hash-prefix/{address_type}/{prefix}`.
- * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload
- * @param {number} nibbles - Prefix length from 1 to 16 hex nibbles
- * @returns {string}
- */
-function addressPayloadHashPrefix(payload, nibbles) {
-  _validateHashPrefixNibbles(nibbles);
-  return _rapidHashV3(payload).toString(16).padStart(16, "0").slice(0, nibbles);
-}
+import { BitviewClientBase, BitviewError, _SERIES_KEEP, _endpoint, _lazy, _readJson, _validateAddressPayloadForType, _wrapSeriesData, addressPayloadHashPrefix, dateToIndex, indexToDate } from './core.js';
 
 const _i1 = /** @type {const} */ (["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving_epoch", "difficulty_epoch", "height"]);
-const _i2 = /** @type {const} */ (["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving_epoch", "difficulty_epoch"]);
-const _i3 = /** @type {const} */ (["minute10"]);
-const _i4 = /** @type {const} */ (["minute30"]);
-const _i5 = /** @type {const} */ (["hour1"]);
-const _i6 = /** @type {const} */ (["hour4"]);
-const _i7 = /** @type {const} */ (["hour12"]);
-const _i8 = /** @type {const} */ (["day1"]);
-const _i9 = /** @type {const} */ (["day3"]);
-const _i10 = /** @type {const} */ (["week1"]);
-const _i11 = /** @type {const} */ (["month1"]);
-const _i12 = /** @type {const} */ (["month3"]);
-const _i13 = /** @type {const} */ (["month6"]);
-const _i14 = /** @type {const} */ (["year1"]);
-const _i15 = /** @type {const} */ (["year10"]);
-const _i16 = /** @type {const} */ (["halving_epoch"]);
-const _i17 = /** @type {const} */ (["difficulty_epoch"]);
-const _i18 = /** @type {const} */ (["height"]);
-const _i19 = /** @type {const} */ (["tx_index"]);
-const _i20 = /** @type {const} */ (["txin_index"]);
+const _i2 = /** @type {const} */ (["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving_epoch", "difficulty_epoch", "height"]);
+const _i3 = /** @type {const} */ (["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving_epoch", "difficulty_epoch"]);
+const _i4 = /** @type {const} */ (["minute10"]);
+const _i5 = /** @type {const} */ (["minute30"]);
+const _i6 = /** @type {const} */ (["hour1"]);
+const _i7 = /** @type {const} */ (["hour4"]);
+const _i8 = /** @type {const} */ (["hour12"]);
+const _i9 = /** @type {const} */ (["day1"]);
+const _i10 = /** @type {const} */ (["day3"]);
+const _i11 = /** @type {const} */ (["week1"]);
+const _i12 = /** @type {const} */ (["month1"]);
+const _i13 = /** @type {const} */ (["month3"]);
+const _i14 = /** @type {const} */ (["month6"]);
+const _i15 = /** @type {const} */ (["year1"]);
+const _i16 = /** @type {const} */ (["year10"]);
+const _i17 = /** @type {const} */ (["halving_epoch"]);
+const _i18 = /** @type {const} */ (["difficulty_epoch"]);
+const _i19 = /** @type {const} */ (["height"]);
+const _i20 = /** @type {const} */ (["tx_index"]);
 const _i21 = /** @type {const} */ (["txin_index"]);
-const _i22 = /** @type {const} */ (["txout_index"]);
+const _i22 = /** @type {const} */ (["txin_index"]);
 const _i23 = /** @type {const} */ (["txout_index"]);
-const _i24 = /** @type {const} */ (["empty_script_output_index"]);
-const _i25 = /** @type {const} */ (["op_return_output_index"]);
-const _i26 = /** @type {const} */ (["p2a_address_index"]);
-const _i27 = /** @type {const} */ (["p2ms_output_index"]);
-const _i28 = /** @type {const} */ (["p2pk33_address_index"]);
-const _i29 = /** @type {const} */ (["p2pk65_address_index"]);
-const _i30 = /** @type {const} */ (["p2pkh_address_index"]);
-const _i31 = /** @type {const} */ (["p2sh_address_index"]);
-const _i32 = /** @type {const} */ (["p2tr_address_index"]);
-const _i33 = /** @type {const} */ (["p2wpkh_address_index"]);
-const _i34 = /** @type {const} */ (["p2wsh_address_index"]);
-const _i35 = /** @type {const} */ (["unknown_script_output_index"]);
+const _i24 = /** @type {const} */ (["txout_index"]);
+const _i25 = /** @type {const} */ (["empty_script_output_index"]);
+const _i26 = /** @type {const} */ (["op_return_output_index"]);
+const _i27 = /** @type {const} */ (["p2a_address_index"]);
+const _i28 = /** @type {const} */ (["p2ms_output_index"]);
+const _i29 = /** @type {const} */ (["p2pk33_address_index"]);
+const _i30 = /** @type {const} */ (["p2pk65_address_index"]);
+const _i31 = /** @type {const} */ (["p2pkh_address_index"]);
+const _i32 = /** @type {const} */ (["p2sh_address_index"]);
+const _i33 = /** @type {const} */ (["p2tr_address_index"]);
+const _i34 = /** @type {const} */ (["p2wpkh_address_index"]);
+const _i35 = /** @type {const} */ (["p2wsh_address_index"]);
+const _i36 = /** @type {const} */ (["unknown_script_output_index"]);
 
 /**
  * @template T
@@ -2573,40 +1835,41 @@ function _seriesPattern(client, name, indexes) {
 }
 
 /** @template T @typedef {{ name: string, by: { readonly minute10: DateSeriesEndpoint<T | null>, readonly minute30: DateSeriesEndpoint<T | null>, readonly hour1: DateSeriesEndpoint<T | null>, readonly hour4: DateSeriesEndpoint<T | null>, readonly hour12: DateSeriesEndpoint<T | null>, readonly day1: DateSeriesEndpoint<T | null>, readonly day3: DateSeriesEndpoint<T | null>, readonly week1: DateSeriesEndpoint<T | null>, readonly month1: DateSeriesEndpoint<T | null>, readonly month3: DateSeriesEndpoint<T | null>, readonly month6: DateSeriesEndpoint<T | null>, readonly year1: DateSeriesEndpoint<T | null>, readonly year10: DateSeriesEndpoint<T | null>, readonly halving_epoch: SeriesEndpoint<T>, readonly difficulty_epoch: SeriesEndpoint<T>, readonly height: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T | null>|undefined }} SeriesPattern1 */
-/** @template T @typedef {{ name: string, by: { readonly minute10: DateSeriesEndpoint<T>, readonly minute30: DateSeriesEndpoint<T>, readonly hour1: DateSeriesEndpoint<T>, readonly hour4: DateSeriesEndpoint<T>, readonly hour12: DateSeriesEndpoint<T>, readonly day1: DateSeriesEndpoint<T>, readonly day3: DateSeriesEndpoint<T>, readonly week1: DateSeriesEndpoint<T>, readonly month1: DateSeriesEndpoint<T>, readonly month3: DateSeriesEndpoint<T>, readonly month6: DateSeriesEndpoint<T>, readonly year1: DateSeriesEndpoint<T>, readonly year10: DateSeriesEndpoint<T>, readonly halving_epoch: SeriesEndpoint<T>, readonly difficulty_epoch: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern2 */
-/** @template T @typedef {{ name: string, by: { readonly minute10: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern3 */
-/** @template T @typedef {{ name: string, by: { readonly minute30: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern4 */
-/** @template T @typedef {{ name: string, by: { readonly hour1: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern5 */
-/** @template T @typedef {{ name: string, by: { readonly hour4: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern6 */
-/** @template T @typedef {{ name: string, by: { readonly hour12: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern7 */
-/** @template T @typedef {{ name: string, by: { readonly day1: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern8 */
-/** @template T @typedef {{ name: string, by: { readonly day3: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern9 */
-/** @template T @typedef {{ name: string, by: { readonly week1: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern10 */
-/** @template T @typedef {{ name: string, by: { readonly month1: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern11 */
-/** @template T @typedef {{ name: string, by: { readonly month3: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern12 */
-/** @template T @typedef {{ name: string, by: { readonly month6: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern13 */
-/** @template T @typedef {{ name: string, by: { readonly year1: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern14 */
-/** @template T @typedef {{ name: string, by: { readonly year10: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern15 */
-/** @template T @typedef {{ name: string, by: { readonly halving_epoch: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern16 */
-/** @template T @typedef {{ name: string, by: { readonly difficulty_epoch: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern17 */
-/** @template T @typedef {{ name: string, by: { readonly height: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern18 */
-/** @template T @typedef {{ name: string, by: { readonly tx_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern19 */
-/** @template T @typedef {{ name: string, by: { readonly txin_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern20 */
-/** @template T @typedef {{ name: string, by: { readonly txin_index: SeriesEndpoint<T | null> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T | null>|undefined }} SeriesPattern21 */
-/** @template T @typedef {{ name: string, by: { readonly txout_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern22 */
-/** @template T @typedef {{ name: string, by: { readonly txout_index: SeriesEndpoint<T | null> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T | null>|undefined }} SeriesPattern23 */
-/** @template T @typedef {{ name: string, by: { readonly empty_script_output_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern24 */
-/** @template T @typedef {{ name: string, by: { readonly op_return_output_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern25 */
-/** @template T @typedef {{ name: string, by: { readonly p2a_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern26 */
-/** @template T @typedef {{ name: string, by: { readonly p2ms_output_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern27 */
-/** @template T @typedef {{ name: string, by: { readonly p2pk33_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern28 */
-/** @template T @typedef {{ name: string, by: { readonly p2pk65_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern29 */
-/** @template T @typedef {{ name: string, by: { readonly p2pkh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern30 */
-/** @template T @typedef {{ name: string, by: { readonly p2sh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern31 */
-/** @template T @typedef {{ name: string, by: { readonly p2tr_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern32 */
-/** @template T @typedef {{ name: string, by: { readonly p2wpkh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern33 */
-/** @template T @typedef {{ name: string, by: { readonly p2wsh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern34 */
-/** @template T @typedef {{ name: string, by: { readonly unknown_script_output_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern35 */
+/** @template T @typedef {{ name: string, by: { readonly minute10: DateSeriesEndpoint<T | null>, readonly minute30: DateSeriesEndpoint<T | null>, readonly hour1: DateSeriesEndpoint<T | null>, readonly hour4: DateSeriesEndpoint<T | null>, readonly hour12: DateSeriesEndpoint<T | null>, readonly day1: DateSeriesEndpoint<T | null>, readonly day3: DateSeriesEndpoint<T | null>, readonly week1: DateSeriesEndpoint<T | null>, readonly month1: DateSeriesEndpoint<T | null>, readonly month3: DateSeriesEndpoint<T | null>, readonly month6: DateSeriesEndpoint<T | null>, readonly year1: DateSeriesEndpoint<T | null>, readonly year10: DateSeriesEndpoint<T | null>, readonly halving_epoch: SeriesEndpoint<T | null>, readonly difficulty_epoch: SeriesEndpoint<T | null>, readonly height: SeriesEndpoint<T | null> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T | null>|undefined }} SeriesPattern2 */
+/** @template T @typedef {{ name: string, by: { readonly minute10: DateSeriesEndpoint<T>, readonly minute30: DateSeriesEndpoint<T>, readonly hour1: DateSeriesEndpoint<T>, readonly hour4: DateSeriesEndpoint<T>, readonly hour12: DateSeriesEndpoint<T>, readonly day1: DateSeriesEndpoint<T>, readonly day3: DateSeriesEndpoint<T>, readonly week1: DateSeriesEndpoint<T>, readonly month1: DateSeriesEndpoint<T>, readonly month3: DateSeriesEndpoint<T>, readonly month6: DateSeriesEndpoint<T>, readonly year1: DateSeriesEndpoint<T>, readonly year10: DateSeriesEndpoint<T>, readonly halving_epoch: SeriesEndpoint<T>, readonly difficulty_epoch: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern3 */
+/** @template T @typedef {{ name: string, by: { readonly minute10: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern4 */
+/** @template T @typedef {{ name: string, by: { readonly minute30: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern5 */
+/** @template T @typedef {{ name: string, by: { readonly hour1: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern6 */
+/** @template T @typedef {{ name: string, by: { readonly hour4: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern7 */
+/** @template T @typedef {{ name: string, by: { readonly hour12: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern8 */
+/** @template T @typedef {{ name: string, by: { readonly day1: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern9 */
+/** @template T @typedef {{ name: string, by: { readonly day3: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern10 */
+/** @template T @typedef {{ name: string, by: { readonly week1: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern11 */
+/** @template T @typedef {{ name: string, by: { readonly month1: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern12 */
+/** @template T @typedef {{ name: string, by: { readonly month3: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern13 */
+/** @template T @typedef {{ name: string, by: { readonly month6: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern14 */
+/** @template T @typedef {{ name: string, by: { readonly year1: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern15 */
+/** @template T @typedef {{ name: string, by: { readonly year10: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern16 */
+/** @template T @typedef {{ name: string, by: { readonly halving_epoch: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern17 */
+/** @template T @typedef {{ name: string, by: { readonly difficulty_epoch: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern18 */
+/** @template T @typedef {{ name: string, by: { readonly height: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern19 */
+/** @template T @typedef {{ name: string, by: { readonly tx_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern20 */
+/** @template T @typedef {{ name: string, by: { readonly txin_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern21 */
+/** @template T @typedef {{ name: string, by: { readonly txin_index: SeriesEndpoint<T | null> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T | null>|undefined }} SeriesPattern22 */
+/** @template T @typedef {{ name: string, by: { readonly txout_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern23 */
+/** @template T @typedef {{ name: string, by: { readonly txout_index: SeriesEndpoint<T | null> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T | null>|undefined }} SeriesPattern24 */
+/** @template T @typedef {{ name: string, by: { readonly empty_script_output_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern25 */
+/** @template T @typedef {{ name: string, by: { readonly op_return_output_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern26 */
+/** @template T @typedef {{ name: string, by: { readonly p2a_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern27 */
+/** @template T @typedef {{ name: string, by: { readonly p2ms_output_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern28 */
+/** @template T @typedef {{ name: string, by: { readonly p2pk33_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern29 */
+/** @template T @typedef {{ name: string, by: { readonly p2pk65_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern30 */
+/** @template T @typedef {{ name: string, by: { readonly p2pkh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern31 */
+/** @template T @typedef {{ name: string, by: { readonly p2sh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern32 */
+/** @template T @typedef {{ name: string, by: { readonly p2tr_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern33 */
+/** @template T @typedef {{ name: string, by: { readonly p2wpkh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern34 */
+/** @template T @typedef {{ name: string, by: { readonly p2wsh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern35 */
+/** @template T @typedef {{ name: string, by: { readonly unknown_script_output_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern36 */
 
 /**
  * Builds a series-tree node, or a leaf, from its base or series name.
@@ -2725,9 +1988,9 @@ const _MobileCapital = _s({
 /**
  * @typedef {{
  *   share: SeriesPattern1<?Percent>,
- * }} InLoss
+ * }} MobileSupplyInLoss
  */
-const _InLoss = _s({
+const _MobileSupplyInLoss = _s({
   share: [_i1, '*'],
 });
 
@@ -2875,11 +2138,43 @@ const _Part = _s({
  * @typedef {{
  *   btc: SeriesPattern1<?Bitcoin>,
  *   usd: SeriesPattern1<?Dollars>,
- * }} SpotValue
+ *   marketCap: SeriesPattern1<?Dollars>,
+ *   share: SeriesPattern1<?Percent>,
+ * }} AllSupplyInLoss
  */
-const _SpotValue = _s({
+const _AllSupplyInLoss = _s({
+  btc: [_i1, '*_supply_in_loss'],
+  usd: [_i1, '*_supply_in_loss_usd'],
+  marketCap: [_i1, '*_market_cap_in_loss'],
+  share: [_i1, '*_supply_in_loss_share'],
+});
+
+/**
+ * @typedef {{
+ *   btc: SeriesPattern1<?Bitcoin>,
+ *   usd: SeriesPattern1<?Dollars>,
+ *   marketCap: SeriesPattern1<?Dollars>,
+ *   share: SeriesPattern1<?Percent>,
+ * }} SupplyInProfit
+ */
+const _SupplyInProfit = _s({
+  btc: [_i1, '*_supply_in_profit'],
+  usd: [_i1, '*_supply_in_profit_usd'],
+  marketCap: [_i1, '*_market_cap_in_profit'],
+  share: [_i1, '*_supply_in_profit_share'],
+});
+
+/**
+ * @typedef {{
+ *   btc: SeriesPattern1<?Bitcoin>,
+ *   usd: SeriesPattern1<?Dollars>,
+ *   marketCap: SeriesPattern1<?Dollars>,
+ * }} HoldersSpotValue
+ */
+const _HoldersSpotValue = _s({
   btc: [_i1, '*'],
-  usd: [_i1, 'market_cap'],
+  usd: [_i1, '*_usd'],
+  marketCap: [_i1, 'market_cap'],
 });
 
 /**
@@ -2908,13 +2203,15 @@ const _RespentCount = _s({
  * @typedef {{
  *   btc: SeriesPattern1<?Bitcoin>,
  *   usd: SeriesPattern1<?Dollars>,
+ *   marketCap: SeriesPattern1<?Dollars>,
  *   share: SeriesPattern1<?Percent>,
  * }} PredicateSupply
  */
 const _PredicateSupply = _s({
-  btc: [_i1, '*'],
-  usd: [_i1, '*_usd'],
-  share: [_i1, '*_share'],
+  btc: [_i1, '*_supply'],
+  usd: [_i1, '*_supply_usd'],
+  marketCap: [_i1, '*_market_cap'],
+  share: [_i1, '*_supply_share'],
 });
 
 /**
@@ -2925,7 +2222,7 @@ const _PredicateSupply = _s({
  */
 const _Exposed = _s({
   count: [_FundedTotal, '*'],
-  supply: [_PredicateSupply, '*_exposed_address_supply'],
+  supply: [_PredicateSupply, '*_exposed_address'],
 });
 
 /**
@@ -2974,6 +2271,32 @@ const _CreationUnrealized = _s({
 
 /**
  * @typedef {{
+ *   btc: SeriesPattern1<?Bitcoin>,
+ *   usd: SeriesPattern1<?Dollars>,
+ *   marketCap: SeriesPattern1<?Dollars>,
+ * }} InLoss
+ */
+const _InLoss = _s({
+  btc: [_i1, '*_supply_in_loss'],
+  usd: [_i1, '*_supply_in_loss_usd'],
+  marketCap: [_i1, '*_market_cap_in_loss'],
+});
+
+/**
+ * @typedef {{
+ *   btc: SeriesPattern1<?Bitcoin>,
+ *   usd: SeriesPattern1<?Dollars>,
+ *   marketCap: SeriesPattern1<?Dollars>,
+ * }} InProfit
+ */
+const _InProfit = _s({
+  btc: [_i1, '*_supply_in_profit'],
+  usd: [_i1, '*_supply_in_profit_usd'],
+  marketCap: [_i1, '*_market_cap_in_profit'],
+});
+
+/**
+ * @typedef {{
  *   _24h: SeriesPattern1<?Percent>,
  *   _1w: SeriesPattern1<?Percent>,
  *   _1m: SeriesPattern1<?Percent>,
@@ -2985,6 +2308,161 @@ const _AddressesWindows = _s({
   _1w: [_i1, '*_1w_percent'],
   _1m: [_i1, '*_1m_percent'],
   _1y: [_i1, '*_1y_percent'],
+});
+
+/**
+ * @typedef {{
+ *   btc: SeriesPattern1<?Bitcoin>,
+ *   usd: SeriesPattern1<?Dollars>,
+ *   marketCap: SeriesPattern1<?Dollars>,
+ * }} SpotValue
+ */
+const _SpotValue = _s({
+  btc: [_i1, '*_supply'],
+  usd: [_i1, '*_supply_usd'],
+  marketCap: [_i1, '*_market_cap'],
+});
+
+/**
+ * @typedef {{
+ *   vaulted: SpotValue,
+ *   hodledOrLost: SpotValue,
+ *   active: SpotValue,
+ * }} CointimeSupply
+ */
+const _CointimeSupply = _s({
+  vaulted: [_SpotValue, '*'],
+  hodledOrLost: [_SpotValue, 'hodled_or_lost'],
+  active: [_SpotValue, 'active'],
+});
+
+/**
+ * @typedef {{
+ *   total: SpotValue,
+ *   inLoss: MobileSupplyInLoss,
+ * }} MobileSupply
+ */
+const _MobileSupply = _s({
+  total: [_SpotValue, '*'],
+  inLoss: [_MobileSupplyInLoss, '*_supply_in_loss_share'],
+});
+
+/**
+ * @typedef {{
+ *   supply: SpotValue,
+ * }} Side
+ */
+const _Side = _s({
+  supply: [_SpotValue, '*'],
+});
+
+/**
+ * @typedef {{
+ *   spendingRate: SeriesPattern1<?PerDay>,
+ *   spendingExposure: SeriesPattern1<?Float>,
+ *   mobility: SeriesPattern1<?Ratio>,
+ *   mobile: Side,
+ *   immobile: Side,
+ * }} Range
+ */
+const _Range = _s({
+  spendingRate: [_i1, '*_spending_rate'],
+  spendingExposure: [_i1, '*_spending_exposure'],
+  mobility: [_i1, '*_mobility'],
+  mobile: [_Side, '*_mobile'],
+  immobile: [_Side, '*_immobile'],
+});
+
+/**
+ * @typedef {{
+ *   total: SpotValue,
+ *   share: SeriesPattern1<?Percent>,
+ * }} BandSupply
+ */
+const _BandSupply = _s({
+  total: [_SpotValue, '*'],
+  share: [_i1, '*_supply_share'],
+});
+
+/**
+ * @typedef {{
+ *   supply: BandSupply,
+ *   capital: BandCapital,
+ * }} Band
+ */
+const _Band = _s({
+  supply: [_BandSupply, '*'],
+  capital: [_BandCapital, '*'],
+});
+
+/**
+ * @typedef {{
+ *   profitOver1000Percent: Band,
+ *   profit500To1000Percent: Band,
+ *   profit300To500Percent: Band,
+ *   profit200To300Percent: Band,
+ *   profit100To200Percent: Band,
+ *   profit90To100Percent: Band,
+ *   profit80To90Percent: Band,
+ *   profit70To80Percent: Band,
+ *   profit60To70Percent: Band,
+ *   profit50To60Percent: Band,
+ *   profit40To50Percent: Band,
+ *   profit30To40Percent: Band,
+ *   profit20To30Percent: Band,
+ *   profit10To20Percent: Band,
+ *   profit0To10Percent: Band,
+ *   loss0To10Percent: Band,
+ *   loss10To20Percent: Band,
+ *   loss20To30Percent: Band,
+ *   loss30To40Percent: Band,
+ *   loss40To50Percent: Band,
+ *   loss50To60Percent: Band,
+ *   loss60To70Percent: Band,
+ *   loss70To80Percent: Band,
+ *   loss80To90Percent: Band,
+ *   loss90To100Percent: Band,
+ * }} ProfitabilityRange
+ */
+const _ProfitabilityRange = _s({
+  profitOver1000Percent: [_Band, '*_profit_over_1000_percent'],
+  profit500To1000Percent: [_Band, '*_profit_500_to_1000_percent'],
+  profit300To500Percent: [_Band, '*_profit_300_to_500_percent'],
+  profit200To300Percent: [_Band, '*_profit_200_to_300_percent'],
+  profit100To200Percent: [_Band, '*_profit_100_to_200_percent'],
+  profit90To100Percent: [_Band, '*_profit_90_to_100_percent'],
+  profit80To90Percent: [_Band, '*_profit_80_to_90_percent'],
+  profit70To80Percent: [_Band, '*_profit_70_to_80_percent'],
+  profit60To70Percent: [_Band, '*_profit_60_to_70_percent'],
+  profit50To60Percent: [_Band, '*_profit_50_to_60_percent'],
+  profit40To50Percent: [_Band, '*_profit_40_to_50_percent'],
+  profit30To40Percent: [_Band, '*_profit_30_to_40_percent'],
+  profit20To30Percent: [_Band, '*_profit_20_to_30_percent'],
+  profit10To20Percent: [_Band, '*_profit_10_to_20_percent'],
+  profit0To10Percent: [_Band, '*_profit_0_to_10_percent'],
+  loss0To10Percent: [_Band, '*_loss_0_to_10_percent'],
+  loss10To20Percent: [_Band, '*_loss_10_to_20_percent'],
+  loss20To30Percent: [_Band, '*_loss_20_to_30_percent'],
+  loss30To40Percent: [_Band, '*_loss_30_to_40_percent'],
+  loss40To50Percent: [_Band, '*_loss_40_to_50_percent'],
+  loss50To60Percent: [_Band, '*_loss_50_to_60_percent'],
+  loss60To70Percent: [_Band, '*_loss_60_to_70_percent'],
+  loss70To80Percent: [_Band, '*_loss_70_to_80_percent'],
+  loss80To90Percent: [_Band, '*_loss_80_to_90_percent'],
+  loss90To100Percent: [_Band, '*_loss_90_to_100_percent'],
+});
+
+/**
+ * @typedef {{
+ *   all: ProfitabilityRange,
+ *   sth: ProfitabilityRange,
+ *   lth: ProfitabilityRange,
+ * }} Profitability
+ */
+const _Profitability = _s({
+  all: [_ProfitabilityRange, ''],
+  sth: [_ProfitabilityRange, '*'],
+  lth: [_ProfitabilityRange, 'lth'],
 });
 
 /**
@@ -3075,6 +2553,64 @@ const _CostBasis = _s({
   byDollar: [_CostBasisByDollar, '*'],
   supplyDensity: [_Density, '*_supply_density'],
   capitalDensity: [_Density, '*_capital_density'],
+});
+
+/**
+ * @typedef {{
+ *   supply: MobileSupply,
+ *   capital: MobileCapital,
+ *   costBasis: CostBasis,
+ * }} Awake
+ */
+const _Awake = _s({
+  supply: [_MobileSupply, '*'],
+  capital: [_MobileCapital, '*'],
+  costBasis: [_CostBasis, '*'],
+});
+
+/**
+ * @typedef {{
+ *   mobile: Awake,
+ *   immobile: Side,
+ * }} CoinflowCohort
+ */
+const _CoinflowCohort = _s({
+  mobile: [_Awake, '*_mobile'],
+  immobile: [_Side, '*_immobile'],
+});
+
+/**
+ * @typedef {{
+ *   awake: Awake,
+ *   dormant: Side,
+ * }} CointimeCohort
+ */
+const _CointimeCohort = _s({
+  awake: [_Awake, '*_awake'],
+  dormant: [_Side, '*_dormant'],
+});
+
+/**
+ * @template A
+ * @typedef {{
+ *   all: A,
+ *   sth: A,
+ *   lth: A,
+ *   under4m: A,
+ *   under6m: A,
+ *   over4m: A,
+ *   over6m: A,
+ * }} AgeAggregate
+ */
+/** @type {_Make} */
+const _AgeAggregate = (c, b, f0) => _n(c, b, {
+  all: [f0, ''],
+  sth: [f0, 'sth'],
+  lth: [f0, 'lth'],
+  under4m: [f0, '*_under_4m'],
+  under6m: [f0, '*_under_6m'],
+  over4m: [f0, '*_over_4m'],
+  over6m: [f0, '*_over_6m'],
 });
 
 /**
@@ -3236,6 +2772,23 @@ const _UtxoSetSeries = _s({
 });
 
 /**
+ * @typedef {{
+ *   top2: SeriesPattern9<Count32>,
+ *   top3: SeriesPattern9<Count32>,
+ *   top4: SeriesPattern9<Count32>,
+ *   top5: SeriesPattern9<Count32>,
+ *   top6: SeriesPattern9<Count32>,
+ * }} Concentration
+ */
+const _Concentration = _s({
+  top2: [_i9, 'top_2_*'],
+  top3: [_i9, 'top_3_*'],
+  top4: [_i9, 'top_4_*'],
+  top5: [_i9, 'top_5_*'],
+  top6: [_i9, 'top_6_*'],
+});
+
+/**
  * @template A
  * @typedef {{
  *   value: SeriesPattern1<A>,
@@ -3280,20 +2833,42 @@ const _Rate = _s({
 });
 
 /**
- * @template A
  * @typedef {{
- *   tx: SeriesPattern19<A>,
- *   min: SeriesPattern1<A>,
- *   max: SeriesPattern1<A>,
- *   p10: SeriesPattern1<A>,
- *   p25: SeriesPattern1<A>,
- *   median: SeriesPattern1<A>,
- *   p75: SeriesPattern1<A>,
- *   p90: SeriesPattern1<A>,
- * }} PerTxDistribution
+ *   tx: SeriesPattern20<?FeeRate>,
+ *   min: SeriesPattern1<?FeeRate>,
+ *   max: SeriesPattern1<?FeeRate>,
+ *   p10: SeriesPattern1<?FeeRate>,
+ *   p25: SeriesPattern1<?FeeRate>,
+ *   median: SeriesPattern1<?FeeRate>,
+ *   p75: SeriesPattern1<?FeeRate>,
+ *   p90: SeriesPattern1<?FeeRate>,
+ * }} EffectiveFeeRate
  */
-const _PerTxDistribution = _s({
-  tx: [_i19, '*'],
+const _EffectiveFeeRate = _s({
+  tx: [_i20, '*'],
+  min: [_i1, '*_low_estimate'],
+  max: [_i1, '*_high_estimate'],
+  p10: [_i1, '*_p10'],
+  p25: [_i1, '*_p25'],
+  median: [_i1, '*_median'],
+  p75: [_i1, '*_p75'],
+  p90: [_i1, '*_p90'],
+});
+
+/**
+ * @typedef {{
+ *   tx: SeriesPattern20<Sats>,
+ *   min: SeriesPattern1<Sats>,
+ *   max: SeriesPattern1<Sats>,
+ *   p10: SeriesPattern1<Sats>,
+ *   p25: SeriesPattern1<Sats>,
+ *   median: SeriesPattern1<Sats>,
+ *   p75: SeriesPattern1<Sats>,
+ *   p90: SeriesPattern1<Sats>,
+ * }} Fee
+ */
+const _Fee = _s({
+  tx: [_i20, '*'],
   min: [_i1, '*_min'],
   max: [_i1, '*_max'],
   p10: [_i1, '*_p10'],
@@ -3316,206 +2891,6 @@ const _Value = _s({
 
 /**
  * @typedef {{
- *   vaulted: Value,
- *   hodledOrLost: Value,
- *   active: Value,
- * }} CointimeSupply
- */
-const _CointimeSupply = _s({
-  vaulted: [_Value, 'vaulted_*'],
-  hodledOrLost: [_Value, 'hodled_or_lost_*'],
-  active: [_Value, 'active_*'],
-});
-
-/**
- * @typedef {{
- *   total: Value,
- *   inLoss: InLoss,
- * }} MobileSupply
- */
-const _MobileSupply = _s({
-  total: [_Value, '*'],
-  inLoss: [_InLoss, '*_in_loss_share'],
-});
-
-/**
- * @typedef {{
- *   supply: MobileSupply,
- *   capital: MobileCapital,
- *   costBasis: CostBasis,
- * }} Awake
- */
-const _Awake = _s({
-  supply: [_MobileSupply, '*_supply'],
-  capital: [_MobileCapital, '*'],
-  costBasis: [_CostBasis, '*'],
-});
-
-/**
- * @typedef {{
- *   supply: Value,
- * }} Side
- */
-const _Side = _s({
-  supply: [_Value, '*'],
-});
-
-/**
- * @typedef {{
- *   mobile: Awake,
- *   immobile: Side,
- * }} CoinflowCohort
- */
-const _CoinflowCohort = _s({
-  mobile: [_Awake, '*_mobile'],
-  immobile: [_Side, '*_immobile_supply'],
-});
-
-/**
- * @typedef {{
- *   spendingRate: SeriesPattern1<?PerDay>,
- *   spendingExposure: SeriesPattern1<?Float>,
- *   mobility: SeriesPattern1<?Ratio>,
- *   mobile: Side,
- *   immobile: Side,
- * }} CoinflowRange
- */
-const _CoinflowRange = _s({
-  spendingRate: [_i1, '*_spending_rate'],
-  spendingExposure: [_i1, '*_spending_exposure'],
-  mobility: [_i1, '*_mobility'],
-  mobile: [_Side, '*_mobile_supply'],
-  immobile: [_Side, '*_immobile_supply'],
-});
-
-/**
- * @typedef {{
- *   awake: Awake,
- *   dormant: Side,
- * }} CointimeCohort
- */
-const _CointimeCohort = _s({
-  awake: [_Awake, '*_awake'],
-  dormant: [_Side, '*_dormant_supply'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   all: A,
- *   sth: A,
- *   lth: A,
- *   under4m: A,
- *   under6m: A,
- *   over4m: A,
- *   over6m: A,
- * }} AgeAggregate
- */
-/** @type {_Make} */
-const _AgeAggregate = (c, b, f0) => _n(c, b, {
-  all: [f0, ''],
-  sth: [f0, 'sth'],
-  lth: [f0, 'lth'],
-  under4m: [f0, '*_under_4m'],
-  under6m: [f0, '*_under_6m'],
-  over4m: [f0, '*_over_4m'],
-  over6m: [f0, '*_over_6m'],
-});
-
-/**
- * @typedef {{
- *   total: Value,
- *   share: SeriesPattern1<?Percent>,
- * }} BandSupply
- */
-const _BandSupply = _s({
-  total: [_Value, '*'],
-  share: [_i1, '*_share'],
-});
-
-/**
- * @typedef {{
- *   supply: BandSupply,
- *   capital: BandCapital,
- * }} Band
- */
-const _Band = _s({
-  supply: [_BandSupply, '*_supply'],
-  capital: [_BandCapital, '*'],
-});
-
-/**
- * @typedef {{
- *   profitOver1000Percent: Band,
- *   profit500To1000Percent: Band,
- *   profit300To500Percent: Band,
- *   profit200To300Percent: Band,
- *   profit100To200Percent: Band,
- *   profit90To100Percent: Band,
- *   profit80To90Percent: Band,
- *   profit70To80Percent: Band,
- *   profit60To70Percent: Band,
- *   profit50To60Percent: Band,
- *   profit40To50Percent: Band,
- *   profit30To40Percent: Band,
- *   profit20To30Percent: Band,
- *   profit10To20Percent: Band,
- *   profit0To10Percent: Band,
- *   loss0To10Percent: Band,
- *   loss10To20Percent: Band,
- *   loss20To30Percent: Band,
- *   loss30To40Percent: Band,
- *   loss40To50Percent: Band,
- *   loss50To60Percent: Band,
- *   loss60To70Percent: Band,
- *   loss70To80Percent: Band,
- *   loss80To90Percent: Band,
- *   loss90To100Percent: Band,
- * }} ProfitabilityRange
- */
-const _ProfitabilityRange = _s({
-  profitOver1000Percent: [_Band, '*_profit_over_1000_percent'],
-  profit500To1000Percent: [_Band, '*_profit_500_to_1000_percent'],
-  profit300To500Percent: [_Band, '*_profit_300_to_500_percent'],
-  profit200To300Percent: [_Band, '*_profit_200_to_300_percent'],
-  profit100To200Percent: [_Band, '*_profit_100_to_200_percent'],
-  profit90To100Percent: [_Band, '*_profit_90_to_100_percent'],
-  profit80To90Percent: [_Band, '*_profit_80_to_90_percent'],
-  profit70To80Percent: [_Band, '*_profit_70_to_80_percent'],
-  profit60To70Percent: [_Band, '*_profit_60_to_70_percent'],
-  profit50To60Percent: [_Band, '*_profit_50_to_60_percent'],
-  profit40To50Percent: [_Band, '*_profit_40_to_50_percent'],
-  profit30To40Percent: [_Band, '*_profit_30_to_40_percent'],
-  profit20To30Percent: [_Band, '*_profit_20_to_30_percent'],
-  profit10To20Percent: [_Band, '*_profit_10_to_20_percent'],
-  profit0To10Percent: [_Band, '*_profit_0_to_10_percent'],
-  loss0To10Percent: [_Band, '*_loss_0_to_10_percent'],
-  loss10To20Percent: [_Band, '*_loss_10_to_20_percent'],
-  loss20To30Percent: [_Band, '*_loss_20_to_30_percent'],
-  loss30To40Percent: [_Band, '*_loss_30_to_40_percent'],
-  loss40To50Percent: [_Band, '*_loss_40_to_50_percent'],
-  loss50To60Percent: [_Band, '*_loss_50_to_60_percent'],
-  loss60To70Percent: [_Band, '*_loss_60_to_70_percent'],
-  loss70To80Percent: [_Band, '*_loss_70_to_80_percent'],
-  loss80To90Percent: [_Band, '*_loss_80_to_90_percent'],
-  loss90To100Percent: [_Band, '*_loss_90_to_100_percent'],
-});
-
-/**
- * @typedef {{
- *   all: ProfitabilityRange,
- *   sth: ProfitabilityRange,
- *   lth: ProfitabilityRange,
- * }} Profitability
- */
-const _Profitability = _s({
-  all: [_ProfitabilityRange, ''],
-  sth: [_ProfitabilityRange, '*'],
-  lth: [_ProfitabilityRange, 'lth'],
-});
-
-/**
- * @typedef {{
  *   _24h: Value,
  *   _1w: Value,
  *   _1m: Value,
@@ -3531,33 +2906,37 @@ const _OpReturnWindows = _s({
 
 /**
  * @typedef {{
+ *   cumulative: Value,
+ *   sum: OpReturnWindows,
  *   avg: OpReturnWindows,
  * }} PoolFees
  */
 const _PoolFees = _s({
-  avg: [_OpReturnWindows, '*'],
+  cumulative: [_Value, '*_cumulative'],
+  sum: [_OpReturnWindows, '*_sum'],
+  avg: [_OpReturnWindows, '*_avg'],
 });
 
 /**
  * @typedef {{
  *   cumulative: Value,
  *   sum: OpReturnWindows,
- * }} Coinbase
+ * }} Amount
  */
-const _Coinbase = _s({
+const _Amount = _s({
   cumulative: [_Value, '*_cumulative'],
   sum: [_OpReturnWindows, '*_sum'],
 });
 
 /**
  * @typedef {{
- *   btc: SeriesPattern18<?Bitcoin>,
- *   usd: SeriesPattern18<?Dollars>,
+ *   btc: SeriesPattern19<?Bitcoin>,
+ *   usd: SeriesPattern19<?Dollars>,
  * }} OpReturnValue
  */
 const _OpReturnValue = _s({
-  btc: [_i18, '*'],
-  usd: [_i18, '*_usd'],
+  btc: [_i19, '*'],
+  usd: [_i19, '*_usd'],
 });
 
 /**
@@ -3652,10 +3031,25 @@ const _ValueFlowStats = _s({
  *   block: OpReturnValue,
  *   cumulative: Value,
  *   sum: OpReturnWindows,
- *   share: Share,
- * }} MiningValueFlow
+ *   chainShare: Share,
+ * }} FeesSeries
  */
-const _MiningValueFlow = _s({
+const _FeesSeries = _s({
+  block: [_OpReturnValue, '*_fees'],
+  cumulative: [_Value, '*_fees_cumulative'],
+  sum: [_OpReturnWindows, '*_fees_sum'],
+  chainShare: [_Share, '*_fee_chain_share'],
+});
+
+/**
+ * @typedef {{
+ *   block: OpReturnValue,
+ *   cumulative: Value,
+ *   sum: OpReturnWindows,
+ *   share: Share,
+ * }} TxValue
+ */
+const _TxValue = _s({
   block: [_OpReturnValue, '*'],
   cumulative: [_Value, '*_cumulative'],
   sum: [_OpReturnWindows, '*_sum'],
@@ -3665,14 +3059,16 @@ const _MiningValueFlow = _s({
 /**
  * @typedef {{
  *   coinbase: ValueFlow,
- *   subsidy: MiningValueFlow,
+ *   subsidy: TxValue,
+ *   puellMultiple: SeriesPattern1<?Multiple>,
  *   fees: ValueFlowStats,
  *   unclaimed: ValueFlow,
  * }} Rewards
  */
 const _Rewards = _s({
   coinbase: [_ValueFlow, '*'],
-  subsidy: [_MiningValueFlow, 'subsidy'],
+  subsidy: [_TxValue, 'subsidy'],
+  puellMultiple: [_i1, 'puell_multiple'],
   fees: [_ValueFlowStats, 'fees'],
   unclaimed: [_ValueFlow, 'unclaimed_rewards'],
 });
@@ -3690,21 +3086,6 @@ const _Mining = _s({
   hashrate: [_Rate, 'hashrate'],
   hashPrice: [_HashPriceValue, '*_price'],
   hashValue: [_HashPriceValue, '*_value'],
-});
-
-/**
- * @typedef {{
- *   block: OpReturnValue,
- *   cumulative: Value,
- *   sum: OpReturnWindows,
- *   chainShare: Share,
- * }} FeesSeries
- */
-const _FeesSeries = _s({
-  block: [_OpReturnValue, '*_fees'],
-  cumulative: [_Value, '*_fees_cumulative'],
-  sum: [_OpReturnWindows, '*_fees_sum'],
-  chainShare: [_Share, '*_fee_chain_share'],
 });
 
 /**
@@ -3757,12 +3138,12 @@ const _Windows = _s({
 
 /**
  * @typedef {{
- *   block: SeriesPattern18<Count>,
+ *   block: SeriesPattern19<Count>,
  *   sum: Windows<Count>,
  * }} NewAddressCount
  */
 const _NewAddressCount = _s({
-  block: [_i18, '*'],
+  block: [_i19, '*'],
   sum: [_Windows, '*_sum'],
 });
 
@@ -3799,19 +3180,19 @@ const _SharedCapital = _s({
 
 /**
  * @typedef {{
- *   total: Value,
- *   inProfit: PredicateSupply,
- *   inLoss: PredicateSupply,
+ *   total: SpotValue,
+ *   inProfit: SupplyInProfit,
+ *   inLoss: AllSupplyInLoss,
  *   delta: Delta<?Bitcoin>,
  *   share: SeriesPattern1<?Percent>,
  * }} SharedSupply
  */
 const _SharedSupply = _s({
-  total: [_Value, '*'],
-  inProfit: [_PredicateSupply, '*_in_profit'],
-  inLoss: [_PredicateSupply, '*_in_loss'],
-  delta: [_Delta, '*_delta'],
-  share: [_i1, '*_share'],
+  total: [_SpotValue, '*'],
+  inProfit: [_SupplyInProfit, '*'],
+  inLoss: [_AllSupplyInLoss, '*'],
+  delta: [_Delta, '*_supply_delta'],
+  share: [_i1, '*_supply_share'],
 });
 
 /**
@@ -3833,16 +3214,16 @@ const _Capital = _s({
 
 /**
  * @typedef {{
- *   total: SpotValue,
- *   inProfit: PredicateSupply,
- *   inLoss: PredicateSupply,
+ *   total: HoldersSpotValue,
+ *   inProfit: SupplyInProfit,
+ *   inLoss: AllSupplyInLoss,
  *   delta: Delta<?Bitcoin>,
  * }} HoldersSupply
  */
 const _HoldersSupply = _s({
-  total: [_SpotValue, 'circulating_*'],
-  inProfit: [_PredicateSupply, '*_in_profit'],
-  inLoss: [_PredicateSupply, '*_in_loss'],
+  total: [_HoldersSpotValue, 'circulating_*'],
+  inProfit: [_SupplyInProfit, ''],
+  inLoss: [_AllSupplyInLoss, ''],
   delta: [_Delta, '*_delta'],
 });
 
@@ -3863,32 +3244,32 @@ const _CapitalViews = _s({
 
 /**
  * @typedef {{
- *   total: Value,
+ *   total: SpotValue,
  *   delta: Delta<?Bitcoin>,
  *   share: SeriesPattern1<?Percent>,
  * }} CohortSupply
  */
 const _CohortSupply = _s({
-  total: [_Value, '*'],
-  delta: [_Delta, '*_delta'],
-  share: [_i1, '*_share'],
+  total: [_SpotValue, '*'],
+  delta: [_Delta, '*_supply_delta'],
+  share: [_i1, '*_supply_share'],
 });
 
 /**
  * @typedef {{
- *   total: Value,
+ *   total: SpotValue,
  *   delta: Delta<?Bitcoin>,
  *   share: SeriesPattern1<?Percent>,
- *   inProfit: Value,
- *   inLoss: Value,
+ *   inProfit: InProfit,
+ *   inLoss: InLoss,
  * }} CreationSupply
  */
 const _CreationSupply = _s({
-  total: [_Value, '*'],
-  delta: [_Delta, '*_delta'],
-  share: [_i1, '*_share'],
-  inProfit: [_Value, '*_in_profit'],
-  inLoss: [_Value, '*_in_loss'],
+  total: [_SpotValue, '*'],
+  delta: [_Delta, '*_supply_delta'],
+  share: [_i1, '*_supply_share'],
+  inProfit: [_InProfit, '*'],
+  inLoss: [_InLoss, '*'],
 });
 
 /**
@@ -3910,6 +3291,7 @@ const _WithDelta = _s({
  *   inflationRate: SeriesPattern1<?Percent>,
  *   velocity: Velocity,
  *   marketCap: WithDelta<?Dollars, ?Dollars>,
+ *   nvt: SeriesPattern1<?Multiple>,
  * }} Supply
  */
 const _Supply = _s({
@@ -3918,6 +3300,7 @@ const _Supply = _s({
   inflationRate: [_i1, 'inflation_rate'],
   velocity: [_Velocity, 'velocity'],
   marketCap: [_WithDelta, 'market_cap'],
+  nvt: [_i1, 'nvt'],
 });
 
 /**
@@ -3961,33 +3344,33 @@ const _CreationCapital = _s({
 
 /**
  * @typedef {{
- *   total: Value,
+ *   total: SpotValue,
  *   delta: Delta<?Bitcoin>,
  *   share: SeriesPattern1<?Percent>,
- *   inProfit: Value,
- *   inLoss: Value,
+ *   inProfit: InProfit,
+ *   inLoss: InLoss,
  *   agedOut: ValueFlow,
  * }} AgeCreationSupply
  */
 const _AgeCreationSupply = _s({
-  total: [_Value, '*_supply'],
+  total: [_SpotValue, '*'],
   delta: [_Delta, '*_supply_delta'],
   share: [_i1, '*_supply_share'],
-  inProfit: [_Value, '*_supply_in_profit'],
-  inLoss: [_Value, '*_supply_in_loss'],
+  inProfit: [_InProfit, '*'],
+  inLoss: [_InLoss, '*'],
   agedOut: [_ValueFlow, '*_aged_out_supply'],
 });
 
 /**
  * @typedef {{
- *   block: SeriesPattern18<Bytes>,
+ *   block: SeriesPattern19<Bytes>,
  *   cumulative: SeriesPattern1<Bytes>,
  *   sum: Windows<Bytes>,
  *   chainShare: Share,
  * }} DataBytesSeries
  */
 const _DataBytesSeries = _s({
-  block: [_i18, '*_bytes'],
+  block: [_i19, '*_bytes'],
   cumulative: [_i1, '*_bytes_cumulative'],
   sum: [_Windows, '*_bytes_sum'],
   chainShare: [_Share, '*_chain_share'],
@@ -3995,38 +3378,69 @@ const _DataBytesSeries = _s({
 
 /**
  * @typedef {{
- *   flag: SeriesPattern19<Boolean>,
- *   block: SeriesPattern18<Count>,
+ *   flag: SeriesPattern20<Boolean>,
+ *   block: SeriesPattern19<Count>,
  *   cumulative: SeriesPattern1<Count>,
  *   sum: Windows<Count>,
  *   share: Share,
+ *   value: TxValue,
  *   fees: FeesSeries,
  * }} Inscription
  */
 const _Inscription = _s({
-  flag: [_i19, 'has_*'],
-  block: [_i18, '*_tx_count'],
+  flag: [_i20, 'has_*'],
+  block: [_i19, '*_tx_count'],
   cumulative: [_i1, '*_tx_count_cumulative'],
   sum: [_Windows, '*_tx_count_sum'],
   share: [_Share, '*_tx_share'],
+  value: [_TxValue, '*_tx_value'],
   fees: [_FeesSeries, '*'],
 });
 
 /**
  * @typedef {{
- *   flag: SeriesPattern19<Boolean>,
- *   block: SeriesPattern18<Count>,
+ *   tx: SeriesPattern20<VSize>,
+ *   min: SeriesPattern1<VSize>,
+ *   max: SeriesPattern1<VSize>,
+ *   p10: SeriesPattern1<VSize>,
+ *   p25: SeriesPattern1<VSize>,
+ *   median: SeriesPattern1<VSize>,
+ *   p75: SeriesPattern1<VSize>,
+ *   p90: SeriesPattern1<VSize>,
+ *   cumulative: SeriesPattern1<VSize>,
+ *   sum: Windows<VSize>,
+ * }} Vsize
+ */
+const _Vsize = _s({
+  tx: [_i20, '*'],
+  min: [_i1, '*_min'],
+  max: [_i1, '*_max'],
+  p10: [_i1, '*_p10'],
+  p25: [_i1, '*_p25'],
+  median: [_i1, '*_median'],
+  p75: [_i1, '*_p75'],
+  p90: [_i1, '*_p90'],
+  cumulative: [_i1, '*_cumulative'],
+  sum: [_Windows, '*_sum'],
+});
+
+/**
+ * @typedef {{
+ *   flag: SeriesPattern20<Boolean>,
+ *   block: SeriesPattern19<Count>,
  *   cumulative: SeriesPattern1<Count>,
  *   sum: Windows<Count>,
  *   share: Share,
+ *   value: TxValue,
  * }} TransactionsFlagged
  */
 const _TransactionsFlagged = _s({
-  flag: [_i19, 'is_*'],
-  block: [_i18, '*_tx_count'],
+  flag: [_i20, 'is_*'],
+  block: [_i19, '*_tx_count'],
   cumulative: [_i1, '*_tx_count_cumulative'],
   sum: [_Windows, '*_tx_count_sum'],
   share: [_Share, '*_tx_share'],
+  value: [_TxValue, '*_tx_value'],
 });
 
 /**
@@ -4044,51 +3458,38 @@ const _Patterns = _s({
 
 /**
  * @typedef {{
- *   fee: PerTxDistribution<Sats>,
- *   feeRate: SeriesPattern19<?FeeRate>,
- *   effectiveFeeRate: PerTxDistribution<?FeeRate>,
- *   cpfpParent: TransactionsFlagged,
- *   cpfpChild: TransactionsFlagged,
- * }} Fees
- */
-const _Fees = _s({
-  fee: [_PerTxDistribution, '*_fee'],
-  feeRate: [_i19, '*_fee_rate'],
-  effectiveFeeRate: [_PerTxDistribution, '*_effective_fee_rate'],
-  cpfpParent: [_TransactionsFlagged, 'cpfp_parent'],
-  cpfpChild: [_TransactionsFlagged, 'cpfp_child'],
-});
-
-/**
- * @typedef {{
- *   block: SeriesPattern18<Count>,
+ *   block: SeriesPattern19<Count>,
  *   cumulative: SeriesPattern1<Count>,
  *   sum: Windows<Count>,
  *   share: Share,
+ *   value: TxValue,
  * }} TxCount
  */
 const _TxCount = _s({
-  block: [_i18, '*_count'],
+  block: [_i19, '*_count'],
   cumulative: [_i1, '*_count_cumulative'],
   sum: [_Windows, '*_count_sum'],
   share: [_Share, '*_share'],
+  value: [_TxValue, '*_value'],
 });
 
 /**
  * @typedef {{
- *   flag: SeriesPattern19<Boolean>,
- *   block: SeriesPattern18<Count>,
+ *   flag: SeriesPattern20<Boolean>,
+ *   block: SeriesPattern19<Count>,
  *   cumulative: SeriesPattern1<Count>,
  *   sum: Windows<Count>,
  *   share: Share,
+ *   value: TxValue,
  * }} Flagged
  */
 const _Flagged = _s({
-  flag: [_i19, 'has_*'],
-  block: [_i18, '*_tx_count'],
+  flag: [_i20, 'has_*'],
+  block: [_i19, '*_tx_count'],
   cumulative: [_i1, '*_tx_count_cumulative'],
   sum: [_Windows, '*_tx_count_sum'],
   share: [_Share, '*_tx_share'],
+  value: [_TxValue, '*_tx_value'],
 });
 
 /**
@@ -4143,30 +3544,7 @@ const _TransactionsScripts = _s({
 
 /**
  * @typedef {{
- *   scripts: TransactionsScripts,
- *   signatures: Signatures,
- *   segwit: TxCount,
- *   rbfSignaling: TransactionsFlagged,
- *   dustOutput: Flagged,
- *   epobc: TransactionsFlagged,
- *   oneInput: TxCount,
- *   oneOutput: TxCount,
- * }} Features
- */
-const _Features = _s({
-  scripts: [_TransactionsScripts, 'script'],
-  signatures: [_Signatures, 'sighash'],
-  segwit: [_TxCount, 'segwit_*'],
-  rbfSignaling: [_TransactionsFlagged, 'rbf_signaling'],
-  dustOutput: [_Flagged, 'dust_output'],
-  epobc: [_TransactionsFlagged, 'epobc'],
-  oneInput: [_TxCount, 'one_input_*'],
-  oneOutput: [_TxCount, 'one_output_*'],
-});
-
-/**
- * @typedef {{
- *   block: SeriesPattern18<?Percent>,
+ *   block: SeriesPattern19<?Percent>,
  *   avg: Windows<?Percent>,
  *   min: Windows<?Percent>,
  *   max: Windows<?Percent>,
@@ -4178,7 +3556,7 @@ const _Features = _s({
  * }} Fullness
  */
 const _Fullness = _s({
-  block: [_i18, '*'],
+  block: [_i19, '*'],
   avg: [_Windows, '*_avg'],
   min: [_Windows, '*_min'],
   max: [_Windows, '*_max'],
@@ -4192,13 +3570,13 @@ const _Fullness = _s({
 /**
  * @template A
  * @typedef {{
- *   block: SeriesPattern18<A>,
+ *   block: SeriesPattern19<A>,
  *   cumulative: SeriesPattern1<A>,
  *   sum: Windows<A>,
  * }} Flow
  */
 const _Flow = _s({
-  block: [_i18, '*'],
+  block: [_i19, '*'],
   cumulative: [_i1, '*_cumulative'],
   sum: [_Windows, '*_sum'],
 });
@@ -4244,8 +3622,8 @@ const _CointimeRange = _s({
   coindaysConsumed: [_Flow, '*_coindays_consumed'],
   wakefulness: [_i1, '*_wakefulness'],
   awakeToDormant: [_i1, '*_awake_to_dormant'],
-  awake: [_Side, '*_awake_supply'],
-  dormant: [_Side, '*_dormant_supply'],
+  awake: [_Side, '*_awake'],
+  dormant: [_Side, '*_dormant'],
 });
 
 /**
@@ -4376,7 +3754,7 @@ const _Realized = _s({
  */
 const _Balance = _s({
   funded: [_WithDelta, '*_address_count'],
-  supply: [_CohortSupply, '*_supply'],
+  supply: [_CohortSupply, '*'],
   capital: [_CapitalViews, '*'],
   utxos: [_BalanceUtxos, '*_utxo_count'],
   activity: [_Activity, '*_transfer_volume'],
@@ -4465,7 +3843,7 @@ const _Metrics = _s({
  * }} Cohort
  */
 const _Cohort = _s({
-  supply: [_CohortSupply, '*_supply'],
+  supply: [_CohortSupply, '*'],
   capital: [_CapitalViews, '*'],
   utxos: [_CohortUtxos, '*'],
   activity: [_Activity, '*_transfer_volume'],
@@ -4573,7 +3951,7 @@ const _Utxos = _s({
  */
 /** @type {_Make} */
 const _CreationCohort = (c, b, f0, f1, f2, f3, f4, f5) => _n(c, b, {
-  supply: [f0, '*_supply'],
+  supply: [f0, '*'],
   capital: [f1, '*'],
   utxos: [_CohortUtxos, '*'],
   activity: [f2, '*'],
@@ -4679,27 +4057,6 @@ const _ByHalvingEpoch = _s({
 });
 
 /**
- * @typedef {{
- *   supply: AgeCreationSupply,
- *   capital: CreationCapital,
- *   utxos: CohortUtxos,
- *   activity: AgeCreationActivity,
- *   realized: CreationRealized,
- *   unrealized: CreationUnrealized,
- *   costBasis: CohortCostBasis,
- * }} Range
- */
-const _Range = _s({
-  supply: [_AgeCreationSupply, '*'],
-  capital: [_CreationCapital, '*'],
-  utxos: [_CohortUtxos, '*'],
-  activity: [_AgeCreationActivity, '*'],
-  realized: [_CreationRealized, '*'],
-  unrealized: [_CreationUnrealized, '*'],
-  costBasis: [_CohortCostBasis, '*'],
-});
-
-/**
  * @template A
  * @typedef {{
  *   under1h: A,
@@ -4756,12 +4113,12 @@ const _AgeRange = (c, b, f0) => _n(c, b, {
 
 /**
  * @typedef {{
- *   ageRanges: AgeRange<CoinflowRange>,
+ *   ageRanges: AgeRange<Range>,
  *   cohorts: AgeAggregate<CoinflowCohort>,
  * }} Coinflow
  */
 const _Coinflow = _s({
-  ageRanges: [(c, b) => _AgeRange(c, b, _CoinflowRange), '*'],
+  ageRanges: [(c, b) => _AgeRange(c, b, _Range), '*'],
   cohorts: [(c, b) => _AgeAggregate(c, b, _CoinflowCohort), '*'],
 });
 
@@ -4782,7 +4139,7 @@ const _Cointime = _s({
   activity: [_CointimeActivity, 'coinblocks'],
   ageRanges: [(c, b) => _AgeRange(c, b, _CointimeRange), '*'],
   cohorts: [(c, b) => _AgeAggregate(c, b, _CointimeCohort), '*'],
-  supply: [_CointimeSupply, 'supply'],
+  supply: [_CointimeSupply, 'vaulted'],
   value: [_CointimeValue, 'cointime_value'],
   caps: [_Caps, 'cap'],
   prices: [_Prices, 'vaulted'],
@@ -4792,15 +4149,39 @@ const _Cointime = _s({
 
 /**
  * @typedef {{
- *   ranges: AgeRange<Range>,
+ *   ranges: AgeRange<CreationCohort<AgeCreationSupply, CreationCapital, AgeCreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>>,
+ *   rhodlRatio: SeriesPattern1<?Ratio>,
  *   halvingEpochs: ByHalvingEpoch,
  *   vintages: Vintage,
  * }} Age
  */
 const _Age = _s({
-  ranges: [(c, b) => _AgeRange(c, b, _Range), '*'],
+  ranges: [(c, b) => _AgeRange(c, b, (c, b) => _CreationCohort(c, b, _AgeCreationSupply, _CreationCapital, _AgeCreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis)), '*'],
+  rhodlRatio: [_i1, 'rhodl_ratio'],
   halvingEpochs: [_ByHalvingEpoch, 'halving_epoch'],
   vintages: [_Vintage, 'vintage'],
+});
+
+/**
+ * @typedef {{
+ *   outputCount: Flow<Count>,
+ * }} OutputCount
+ */
+const _OutputCount = _s({
+  outputCount: [_Flow, '*'],
+});
+
+/**
+ * @typedef {{
+ *   over42Bytes: OutputCount,
+ *   over520Bytes: OutputCount,
+ *   over10kBytes: OutputCount,
+ * }} Sizes
+ */
+const _Sizes = _s({
+  over42Bytes: [_OutputCount, '*_42_bytes_output_count'],
+  over520Bytes: [_OutputCount, '*_520_bytes_output_count'],
+  over10kBytes: [_OutputCount, '*_10k_bytes_output_count'],
 });
 
 /**
@@ -4824,15 +4205,15 @@ const _Bucket = _s({
 
 /**
  * @typedef {{
- *   preV30Standard: Bucket,
- *   preV30Nonstandard: Bucket,
+ *   withinPreV30RelayLimits: Bucket,
+ *   beyondPreV30RelayLimits: Bucket,
  *   oversized: Bucket,
  *   multiple: Bucket,
  * }} Policy
  */
 const _Policy = _s({
-  preV30Standard: [_Bucket, '*_pre_v30_standard'],
-  preV30Nonstandard: [_Bucket, '*_pre_v30_nonstandard'],
+  withinPreV30RelayLimits: [_Bucket, '*_within_pre_v30_relay_limits'],
+  beyondPreV30RelayLimits: [_Bucket, '*_beyond_pre_v30_relay_limits'],
   oversized: [_Bucket, '*_oversized'],
   multiple: [_Bucket, '*_multiple'],
 });
@@ -4857,6 +4238,7 @@ const _Policy = _s({
  *   bitproof: Bucket,
  *   ascribe: Bucket,
  *   stampery: Bucket,
+ *   bip47: Bucket,
  *   bareHash: Bucket,
  *   text: Bucket,
  *   empty: Bucket,
@@ -4882,6 +4264,7 @@ const _ByKind = _s({
   bitproof: [_Bucket, '*_bitproof'],
   ascribe: [_Bucket, '*_ascribe'],
   stampery: [_Bucket, '*_stampery'],
+  bip47: [_Bucket, '*_bip47'],
   bareHash: [_Bucket, '*_bare_hash'],
   text: [_Bucket, '*_text'],
   empty: [_Bucket, '*_empty'],
@@ -4890,7 +4273,7 @@ const _ByKind = _s({
 
 /**
  * @typedef {{
- *   flag: SeriesPattern19<Boolean>,
+ *   flag: SeriesPattern20<Boolean>,
  *   outputCount: Flow<Count>,
  *   dataBytes: DataBytesSeries,
  *   txCount: Flow<Count>,
@@ -4899,10 +4282,11 @@ const _ByKind = _s({
  *   fees: FeesSeries,
  *   protocols: ByKind,
  *   policies: Policy,
+ *   sizes: Sizes,
  * }} OpReturn
  */
 const _OpReturn = _s({
-  flag: [_i19, 'has_*'],
+  flag: [_i20, 'has_*'],
   outputCount: [_Flow, '*_output_count'],
   dataBytes: [_DataBytesSeries, '*_data'],
   txCount: [_Flow, '*_tx_count'],
@@ -4911,6 +4295,223 @@ const _OpReturn = _s({
   fees: [_FeesSeries, '*'],
   protocols: [_ByKind, '*'],
   policies: [_Policy, '*'],
+  sizes: [_Sizes, '*_data_over'],
+});
+
+/**
+ * @typedef {{
+ *   onlySegwit: Flow<Count>,
+ *   onlyLegacy: Flow<Count>,
+ *   segwitAndLegacy: Flow<Count>,
+ * }} Spending
+ */
+const _Spending = _s({
+  onlySegwit: [_Flow, 'only_segwit_*'],
+  onlyLegacy: [_Flow, 'only_legacy_*'],
+  segwitAndLegacy: [_Flow, 'segwit_and_legacy_*'],
+});
+
+/**
+ * @typedef {{
+ *   height: Flow<Count>,
+ *   time: Flow<Count>,
+ *   unenforced: Flow<Count>,
+ *   relativeHeight: Flow<Count>,
+ *   relativeTime: Flow<Count>,
+ * }} Timelocks
+ */
+const _Timelocks = _s({
+  height: [_Flow, 'height_*'],
+  time: [_Flow, 'time_*'],
+  unenforced: [_Flow, 'unenforced_*'],
+  relativeHeight: [_Flow, 'relative_height_*'],
+  relativeTime: [_Flow, 'relative_time_*'],
+});
+
+/**
+ * @typedef {{
+ *   count: Flow<Count>,
+ *   segwitSpending: Flow<Count>,
+ *   rbfSignaling: Flow<Count>,
+ * }} Payments
+ */
+const _Payments = _s({
+  count: [_Flow, '*'],
+  segwitSpending: [_Flow, 'segwit_spending_*'],
+  rbfSignaling: [_Flow, 'rbf_signaling_*'],
+});
+
+/**
+ * @typedef {{
+ *   under0p1SatVb: Flow<VSize>,
+ *   _0p1To0p25SatVb: Flow<VSize>,
+ *   _0p25To0p5SatVb: Flow<VSize>,
+ *   _0p5To1SatVb: Flow<VSize>,
+ *   _1To2SatVb: Flow<VSize>,
+ *   _2To5SatVb: Flow<VSize>,
+ *   _5To10SatVb: Flow<VSize>,
+ *   _10To25SatVb: Flow<VSize>,
+ *   _25To50SatVb: Flow<VSize>,
+ *   _50To100SatVb: Flow<VSize>,
+ *   _100To250SatVb: Flow<VSize>,
+ *   _250To500SatVb: Flow<VSize>,
+ *   _500To1kSatVb: Flow<VSize>,
+ *   over1kSatVb: Flow<VSize>,
+ * }} VsizeByEffectiveFeeRate
+ */
+const _VsizeByEffectiveFeeRate = _s({
+  under0p1SatVb: [_Flow, 'effective_fee_rate_under_0p1_*'],
+  _0p1To0p25SatVb: [_Flow, 'effective_fee_rate_0p1_to_0p25_*'],
+  _0p25To0p5SatVb: [_Flow, 'effective_fee_rate_0p25_to_0p5_*'],
+  _0p5To1SatVb: [_Flow, 'effective_fee_rate_0p5_to_1_*'],
+  _1To2SatVb: [_Flow, 'effective_fee_rate_1_to_2_*'],
+  _2To5SatVb: [_Flow, 'effective_fee_rate_2_to_5_*'],
+  _5To10SatVb: [_Flow, 'effective_fee_rate_5_to_10_*'],
+  _10To25SatVb: [_Flow, 'effective_fee_rate_10_to_25_*'],
+  _25To50SatVb: [_Flow, 'effective_fee_rate_25_to_50_*'],
+  _50To100SatVb: [_Flow, 'effective_fee_rate_50_to_100_*'],
+  _100To250SatVb: [_Flow, 'effective_fee_rate_100_to_250_*'],
+  _250To500SatVb: [_Flow, 'effective_fee_rate_250_to_500_*'],
+  _500To1kSatVb: [_Flow, 'effective_fee_rate_500_to_1k_*'],
+  over1kSatVb: [_Flow, 'effective_fee_rate_over_1k_*'],
+});
+
+/**
+ * @typedef {{
+ *   under0p1SatVb: Flow<Count>,
+ *   _0p1To0p25SatVb: Flow<Count>,
+ *   _0p25To0p5SatVb: Flow<Count>,
+ *   _0p5To1SatVb: Flow<Count>,
+ *   _1To2SatVb: Flow<Count>,
+ *   _2To5SatVb: Flow<Count>,
+ *   _5To10SatVb: Flow<Count>,
+ *   _10To25SatVb: Flow<Count>,
+ *   _25To50SatVb: Flow<Count>,
+ *   _50To100SatVb: Flow<Count>,
+ *   _100To250SatVb: Flow<Count>,
+ *   _250To500SatVb: Flow<Count>,
+ *   _500To1kSatVb: Flow<Count>,
+ *   over1kSatVb: Flow<Count>,
+ * }} TxCountByFeeRate
+ */
+const _TxCountByFeeRate = _s({
+  under0p1SatVb: [_Flow, 'fee_rate_under_0p1_*'],
+  _0p1To0p25SatVb: [_Flow, 'fee_rate_0p1_to_0p25_*'],
+  _0p25To0p5SatVb: [_Flow, 'fee_rate_0p25_to_0p5_*'],
+  _0p5To1SatVb: [_Flow, 'fee_rate_0p5_to_1_*'],
+  _1To2SatVb: [_Flow, 'fee_rate_1_to_2_*'],
+  _2To5SatVb: [_Flow, 'fee_rate_2_to_5_*'],
+  _5To10SatVb: [_Flow, 'fee_rate_5_to_10_*'],
+  _10To25SatVb: [_Flow, 'fee_rate_10_to_25_*'],
+  _25To50SatVb: [_Flow, 'fee_rate_25_to_50_*'],
+  _50To100SatVb: [_Flow, 'fee_rate_50_to_100_*'],
+  _100To250SatVb: [_Flow, 'fee_rate_100_to_250_*'],
+  _250To500SatVb: [_Flow, 'fee_rate_250_to_500_*'],
+  _500To1kSatVb: [_Flow, 'fee_rate_500_to_1k_*'],
+  over1kSatVb: [_Flow, 'fee_rate_over_1k_*'],
+});
+
+/**
+ * @typedef {{
+ *   txCount: Flow<Count>,
+ * }} ZeroFee
+ */
+const _ZeroFee = _s({
+  txCount: [_Flow, '*'],
+});
+
+/**
+ * @typedef {{
+ *   fee: Fee,
+ *   feeRate: SeriesPattern20<?FeeRate>,
+ *   effectiveFeeRate: EffectiveFeeRate,
+ *   cpfpParent: TransactionsFlagged,
+ *   cpfpChild: TransactionsFlagged,
+ *   zeroFee: ZeroFee,
+ *   txCountByFeeRate: TxCountByFeeRate,
+ *   vsizeByEffectiveFeeRate: VsizeByEffectiveFeeRate,
+ * }} Fees
+ */
+const _Fees = _s({
+  fee: [_Fee, '*_fee'],
+  feeRate: [_i20, '*_fee_rate'],
+  effectiveFeeRate: [_EffectiveFeeRate, '*_effective_fee_rate'],
+  cpfpParent: [_TransactionsFlagged, 'cpfp_parent'],
+  cpfpChild: [_TransactionsFlagged, 'cpfp_child'],
+  zeroFee: [_ZeroFee, 'zero_fee_*_count'],
+  txCountByFeeRate: [_TxCountByFeeRate, 'sat_vb_*_count'],
+  vsizeByEffectiveFeeRate: [_VsizeByEffectiveFeeRate, 'sat_vb_*_vsize'],
+});
+
+/**
+ * @typedef {{
+ *   oneInputOneOutput: Flow<Count>,
+ *   oneInputTwoOutput: Flow<Count>,
+ *   bip69: Flow<Count>,
+ *   bip69ExpectedByChance: Flow<?ExpectedCount>,
+ *   scripts: TransactionsScripts,
+ *   signatures: Signatures,
+ *   segwit: TxCount,
+ *   rbfSignaling: TransactionsFlagged,
+ *   dustOutput: Flagged,
+ *   epobc: TransactionsFlagged,
+ *   oneInput: TxCount,
+ *   oneOutput: TxCount,
+ * }} Features
+ */
+const _Features = _s({
+  oneInputOneOutput: [_Flow, 'one_input_one_output_*_count'],
+  oneInputTwoOutput: [_Flow, 'one_input_two_output_*_count'],
+  bip69: [_Flow, 'bip69_*_count'],
+  bip69ExpectedByChance: [_Flow, 'bip69_expected_by_chance_*_count'],
+  scripts: [_TransactionsScripts, 'script'],
+  signatures: [_Signatures, 'sighash'],
+  segwit: [_TxCount, 'segwit_*'],
+  rbfSignaling: [_TransactionsFlagged, 'rbf_signaling'],
+  dustOutput: [_Flagged, 'dust_output'],
+  epobc: [_TransactionsFlagged, 'epobc'],
+  oneInput: [_TxCount, 'one_input_*'],
+  oneOutput: [_TxCount, 'one_output_*'],
+});
+
+/**
+ * @typedef {{
+ *   p2pk: Flow<Count>,
+ *   p2pkh: Flow<Count>,
+ *   p2ms: Flow<Count>,
+ *   p2sh: Flow<Count>,
+ *   p2wpkh: Flow<Count>,
+ *   p2wsh: Flow<Count>,
+ *   p2tr: Flow<Count>,
+ *   p2a: Flow<Count>,
+ *   emptyScript: Flow<Count>,
+ *   unknownScript: Flow<Count>,
+ *   opReturn: Flow<Count>,
+ * }} ByType
+ */
+const _ByType = _s({
+  p2pk: [_Flow, 'coinbase_p2pk_*'],
+  p2pkh: [_Flow, 'coinbase_p2pkh_*'],
+  p2ms: [_Flow, 'coinbase_p2ms_*'],
+  p2sh: [_Flow, 'coinbase_p2sh_*'],
+  p2wpkh: [_Flow, 'coinbase_p2wpkh_*'],
+  p2wsh: [_Flow, 'coinbase_p2wsh_*'],
+  p2tr: [_Flow, 'coinbase_p2tr_*'],
+  p2a: [_Flow, 'coinbase_p2a_*'],
+  emptyScript: [_Flow, 'coinbase_empty_script_*'],
+  unknownScript: [_Flow, 'coinbase_unknown_script_*'],
+  opReturn: [_Flow, 'coinbase_op_return_*'],
+});
+
+/**
+ * @typedef {{
+ *   count: Flow<Count>,
+ *   types: ByType,
+ * }} Coinbase
+ */
+const _Coinbase = _s({
+  count: [_Flow, 'coinbase_*'],
+  types: [_ByType, '*'],
 });
 
 /**
@@ -4919,9 +4520,186 @@ const _OpReturn = _s({
  *   share: Share,
  *   txCount: Flow<Count>,
  *   txShare: Share,
+ *   value: ValueFlow,
  * }} OutputTypeSeries
  */
 const _OutputTypeSeries = _s({
+  count: [_Flow, '*_count'],
+  share: [_Share, '*_share'],
+  txCount: [_Flow, '*_tx_count'],
+  txShare: [_Share, '*_tx_share'],
+  value: [_ValueFlow, '*_value'],
+});
+
+/**
+ * @typedef {{
+ *   _1Block: Flow<Count>,
+ *   _6Blocks: Flow<Count>,
+ *   _144Blocks: Flow<Count>,
+ *   _2016Blocks: Flow<Count>,
+ * }} SpentWithin
+ */
+const _SpentWithin = _s({
+  _1Block: [_Flow, 'within_1_block_*'],
+  _6Blocks: [_Flow, 'within_6_blocks_*'],
+  _144Blocks: [_Flow, 'within_144_blocks_*'],
+  _2016Blocks: [_Flow, 'within_2016_blocks_*'],
+});
+
+/**
+ * @typedef {{
+ *   checksig: Flow<Count>,
+ *   checksigverify: Flow<Count>,
+ *   checkmultisig: Flow<Count>,
+ *   checksigadd: Flow<Count>,
+ *   checklocktimeverify: Flow<Count>,
+ *   checksequenceverify: Flow<Count>,
+ *   hash160: Flow<Count>,
+ *   sha256: Flow<Count>,
+ *   if: Flow<Count>,
+ *   notif: Flow<Count>,
+ * }} Opcodes
+ */
+const _Opcodes = _s({
+  checksig: [_Flow, 'op_checksig_*'],
+  checksigverify: [_Flow, 'op_checksigverify_*'],
+  checkmultisig: [_Flow, 'op_checkmultisig_*'],
+  checksigadd: [_Flow, 'op_checksigadd_*'],
+  checklocktimeverify: [_Flow, 'op_checklocktimeverify_*'],
+  checksequenceverify: [_Flow, 'op_checksequenceverify_*'],
+  hash160: [_Flow, 'op_hash160_*'],
+  sha256: [_Flow, 'op_sha256_*'],
+  if: [_Flow, 'op_if_*'],
+  notif: [_Flow, 'op_notif_*'],
+});
+
+/**
+ * @typedef {{
+ *   p2sh: Flow<Count>,
+ *   p2shP2wsh: Flow<Count>,
+ *   p2wsh: Flow<Count>,
+ * }} Multisig
+ */
+const _Multisig = _s({
+  p2sh: [_Flow, 'p2sh_*'],
+  p2shP2wsh: [_Flow, 'p2sh_p2wsh_*'],
+  p2wsh: [_Flow, 'p2wsh_*'],
+});
+
+/**
+ * @typedef {{
+ *   p2wpkh: Flow<Count>,
+ *   p2wsh: Flow<Count>,
+ * }} NestedSegwit
+ */
+const _NestedSegwit = _s({
+  p2wpkh: [_Flow, 'p2sh_p2wpkh_*'],
+  p2wsh: [_Flow, 'p2sh_p2wsh_*'],
+});
+
+/**
+ * @typedef {{
+ *   compressed: Flow<Count>,
+ *   uncompressed: Flow<Count>,
+ * }} Pubkeys
+ */
+const _Pubkeys = _s({
+  compressed: [_Flow, 'compressed_*'],
+  uncompressed: [_Flow, 'uncompressed_*'],
+});
+
+/**
+ * @typedef {{
+ *   all: Flow<Count>,
+ *   none: Flow<Count>,
+ *   single: Flow<Count>,
+ *   allAnyoneCanPay: Flow<Count>,
+ *   noneAnyoneCanPay: Flow<Count>,
+ *   singleAnyoneCanPay: Flow<Count>,
+ * }} EcdsaSighashes
+ */
+const _EcdsaSighashes = _s({
+  all: [_Flow, 'sighash_all_*'],
+  none: [_Flow, 'sighash_none_*'],
+  single: [_Flow, 'sighash_single_*'],
+  allAnyoneCanPay: [_Flow, 'sighash_all_anyone_can_pay_*'],
+  noneAnyoneCanPay: [_Flow, 'sighash_none_anyone_can_pay_*'],
+  singleAnyoneCanPay: [_Flow, 'sighash_single_anyone_can_pay_*'],
+});
+
+/**
+ * @typedef {{
+ *   _70Bytes: Flow<Count>,
+ *   _71Bytes: Flow<Count>,
+ *   _72Bytes: Flow<Count>,
+ *   _73Bytes: Flow<Count>,
+ *   _74Bytes: Flow<Count>,
+ *   over74Bytes: Flow<Count>,
+ * }} EcdsaLengths
+ */
+const _EcdsaLengths = _s({
+  _70Bytes: [_Flow, 'ecdsa_70_*'],
+  _71Bytes: [_Flow, 'ecdsa_71_*'],
+  _72Bytes: [_Flow, 'ecdsa_72_*'],
+  _73Bytes: [_Flow, 'ecdsa_73_*'],
+  _74Bytes: [_Flow, 'ecdsa_74_*'],
+  over74Bytes: [_Flow, 'ecdsa_over_74_*'],
+});
+
+/**
+ * @typedef {{
+ *   count: Flow<Count>,
+ *   bytes: Flow<Bytes>,
+ *   strictDer: Flow<Count>,
+ *   lowR: Flow<Count>,
+ *   lowS: Flow<Count>,
+ *   lowRLowS: Flow<Count>,
+ *   length: EcdsaLengths,
+ *   sighash: EcdsaSighashes,
+ * }} EcdsaSignatures
+ */
+const _EcdsaSignatures = _s({
+  count: [_Flow, 'ecdsa_*_count'],
+  bytes: [_Flow, 'ecdsa_*_bytes'],
+  strictDer: [_Flow, 'strict_der_ecdsa_*_count'],
+  lowR: [_Flow, 'low_r_ecdsa_*_count'],
+  lowS: [_Flow, 'low_s_ecdsa_*_count'],
+  lowRLowS: [_Flow, 'low_r_low_s_ecdsa_*_count'],
+  length: [_EcdsaLengths, 'bytes_*_count'],
+  sighash: [_EcdsaSighashes, 'ecdsa_*_count'],
+});
+
+/**
+ * @typedef {{
+ *   count: Flow<Count>,
+ *   bytes: Flow<Bytes>,
+ * }} SchnorrSignatures
+ */
+const _SchnorrSignatures = _s({
+  count: [_Flow, '*_count'],
+  bytes: [_Flow, '*_bytes'],
+});
+
+/**
+ * @typedef {{
+ *   schnorr: SchnorrSignatures,
+ *   ecdsa: EcdsaSignatures,
+ * }} InputSignatures
+ */
+const _InputSignatures = _s({
+  schnorr: [_SchnorrSignatures, 'schnorr_*'],
+  ecdsa: [_EcdsaSignatures, '*'],
+});
+
+/**
+ * @typedef {{
+ *   count: Flow<Count>,
+ *   share: Share,
+ *   txCount: Flow<Count>,
+ *   txShare: Share,
+ * }} TypeSeries
+ */
+const _TypeSeries = _s({
   count: [_Flow, '*_count'],
   share: [_Share, '*_share'],
   txCount: [_Flow, '*_tx_count'],
@@ -4940,10 +4718,10 @@ const _OutputTypeSeries = _s({
  *   p2a: OutputTypeSeries,
  *   emptyScript: OutputTypeSeries,
  *   unknownScript: OutputTypeSeries,
- *   opReturn: OutputTypeSeries,
- * }} ByType
+ *   opReturn: TypeSeries,
+ * }} Types
  */
-const _ByType = _s({
+const _Types = _s({
   p2pk: [_OutputTypeSeries, 'p2pk_*'],
   p2pkh: [_OutputTypeSeries, 'p2pkh_*'],
   p2ms: [_OutputTypeSeries, 'p2ms_*'],
@@ -4954,40 +4732,40 @@ const _ByType = _s({
   p2a: [_OutputTypeSeries, 'p2a_*'],
   emptyScript: [_OutputTypeSeries, 'empty_script_*'],
   unknownScript: [_OutputTypeSeries, 'unknown_script_*'],
-  opReturn: [_OutputTypeSeries, 'op_return_*'],
+  opReturn: [_TypeSeries, 'op_return_*'],
 });
 
 /**
  * @typedef {{
- *   p2pk: OutputTypeSeries,
- *   p2pkh: OutputTypeSeries,
- *   p2ms: OutputTypeSeries,
- *   p2sh: OutputTypeSeries,
- *   p2wpkh: OutputTypeSeries,
- *   p2wsh: OutputTypeSeries,
- *   p2tr: OutputTypeSeries,
- *   p2a: OutputTypeSeries,
- *   emptyScript: OutputTypeSeries,
- *   unknownScript: OutputTypeSeries,
+ *   p2pk: TypeSeries,
+ *   p2pkh: TypeSeries,
+ *   p2ms: TypeSeries,
+ *   p2sh: TypeSeries,
+ *   p2wpkh: TypeSeries,
+ *   p2wsh: TypeSeries,
+ *   p2tr: TypeSeries,
+ *   p2a: TypeSeries,
+ *   emptyScript: TypeSeries,
+ *   unknownScript: TypeSeries,
  * }} SpendableType
  */
 const _SpendableType = _s({
-  p2pk: [_OutputTypeSeries, 'p2pk_*'],
-  p2pkh: [_OutputTypeSeries, 'p2pkh_*'],
-  p2ms: [_OutputTypeSeries, 'p2ms_*'],
-  p2sh: [_OutputTypeSeries, 'p2sh_*'],
-  p2wpkh: [_OutputTypeSeries, 'p2wpkh_*'],
-  p2wsh: [_OutputTypeSeries, 'p2wsh_*'],
-  p2tr: [_OutputTypeSeries, 'p2tr_*'],
-  p2a: [_OutputTypeSeries, 'p2a_*'],
-  emptyScript: [_OutputTypeSeries, 'empty_script_*'],
-  unknownScript: [_OutputTypeSeries, 'unknown_script_*'],
+  p2pk: [_TypeSeries, 'p2pk_*'],
+  p2pkh: [_TypeSeries, 'p2pkh_*'],
+  p2ms: [_TypeSeries, 'p2ms_*'],
+  p2sh: [_TypeSeries, 'p2sh_*'],
+  p2wpkh: [_TypeSeries, 'p2wpkh_*'],
+  p2wsh: [_TypeSeries, 'p2wsh_*'],
+  p2tr: [_TypeSeries, 'p2tr_*'],
+  p2a: [_TypeSeries, 'p2a_*'],
+  emptyScript: [_TypeSeries, 'empty_script_*'],
+  unknownScript: [_TypeSeries, 'unknown_script_*'],
 });
 
 /**
  * @template A, B
  * @typedef {{
- *   block: SeriesPattern18<A>,
+ *   block: SeriesPattern19<A>,
  *   cumulative: SeriesPattern1<A>,
  *   sum: Windows<A>,
  *   avg: Windows<B>,
@@ -5001,7 +4779,7 @@ const _SpendableType = _s({
  * }} FlowStats
  */
 const _FlowStats = _s({
-  block: [_i18, '*'],
+  block: [_i19, '*'],
   cumulative: [_i1, '*_cumulative'],
   sum: [_Windows, '*_sum'],
   avg: [_Windows, '*_avg'],
@@ -5016,45 +4794,40 @@ const _FlowStats = _s({
 
 /**
  * @typedef {{
- *   spendingTxinIndex: SeriesPattern23<TxInIndex>,
+ *   spendingTxinIndex: SeriesPattern24<TxInIndex>,
  *   count: FlowStats<Count, ?CountFract>,
  *   perSecond: Windows<?PerSecond>,
- *   spendableCount: Flow<Count>,
- *   types: ByType,
+ *   nonOpReturnCount: Flow<Count>,
+ *   types: Types,
  *   opReturnValue: ValueFlow,
+ *   coinbase: Coinbase,
+ *   pubkeys: Pubkeys,
  * }} Outputs
  */
 const _Outputs = _s({
-  spendingTxinIndex: [_i23, 'spending_txin_index'],
+  spendingTxinIndex: [_i24, 'spending_txin_index'],
   count: [_FlowStats, '*_count'],
   perSecond: [_Windows, 'outputs_per_second'],
-  spendableCount: [_Flow, 'spendable_*_count'],
-  types: [_ByType, '*'],
+  nonOpReturnCount: [_Flow, 'non_op_return_*_count'],
+  types: [_Types, '*'],
   opReturnValue: [_ValueFlow, 'op_return_value'],
-});
-
-/**
- * @typedef {{
- *   count: FlowStats<Count, ?CountFract>,
- *   perSecond: Windows<?PerSecond>,
- *   types: SpendableType,
- * }} Inputs
- */
-const _Inputs = _s({
-  count: [_FlowStats, '*_count'],
-  perSecond: [_Windows, 'inputs_per_second'],
-  types: [_SpendableType, '*'],
+  coinbase: [_Coinbase, '*_count'],
+  pubkeys: [_Pubkeys, 'pubkey_in_*_count'],
 });
 
 /**
  * @template A, B
  * @typedef {{
- *   block: SeriesPattern18<A>,
+ *   block: SeriesPattern19<A>,
+ *   cumulative: SeriesPattern1<A>,
+ *   sum: Windows<A>,
  *   avg: Windows<B>,
  * }} Averaged
  */
 const _Averaged = _s({
-  block: [_i18, '*'],
+  block: [_i19, '*'],
+  cumulative: [_i1, '*_cumulative'],
+  sum: [_Windows, '*_sum'],
   avg: [_Windows, '*_avg'],
 });
 
@@ -5093,7 +4866,7 @@ const _ReuseEvents = _s({
  */
 const _Respent = _s({
   count: [_RespentCount, '*'],
-  supply: [_PredicateSupply, '*_respent_address_supply'],
+  supply: [_PredicateSupply, '*_respent_address'],
   events: [_ReuseEvents, '*'],
 });
 
@@ -5119,8 +4892,23 @@ const _AddressesReuseEvents = _s({
  */
 const _Reused = _s({
   count: [_ReusedCount, '*'],
-  supply: [_PredicateSupply, '*_reused_address_supply'],
+  supply: [_PredicateSupply, '*_reused_address'],
   events: [_AddressesReuseEvents, '*'],
+});
+
+/**
+ * @typedef {{
+ *   count: ReusedCount,
+ *   supply: PredicateSupply,
+ *   events: AddressesReuseEvents,
+ *   direct: OutputCount,
+ * }} AddressesReused
+ */
+const _AddressesReused = _s({
+  count: [_ReusedCount, ''],
+  supply: [_PredicateSupply, 'reused_*'],
+  events: [_AddressesReuseEvents, ''],
+  direct: [_OutputCount, 'output_back_to_input_*_count'],
 });
 
 /**
@@ -5192,7 +4980,7 @@ const _AddressType = _s({
  *   new: NewAddressCount,
  *   activity: AddressesActivity,
  *   avgBalance: Value,
- *   reused: Reused,
+ *   reused: AddressesReused,
  *   respent: Respent,
  *   exposed: Exposed,
  *   supply: CohortSupply,
@@ -5208,10 +4996,10 @@ const _Addresses = _s({
   new: [_NewAddressCount, 'new_*_count'],
   activity: [_AddressesActivity, ''],
   avgBalance: [_Value, '*_balance_avg'],
-  reused: [_Reused, ''],
+  reused: [_AddressesReused, '*'],
   respent: [_Respent, ''],
   exposed: [_Exposed, ''],
-  supply: [_CohortSupply, '*_supply'],
+  supply: [_CohortSupply, '*'],
   capital: [_CapitalViews, '*'],
   types: [_AddressType, 'p2pk'],
   balances: [(c, b) => _AmountRange(c, b, _ZeroBalance, _Balance), 'balance'],
@@ -5231,31 +5019,116 @@ const _CumulativeFlow = _s({
 /**
  * @typedef {{
  *   blockCount: CumulativeFlow,
+ * }} Antpool
+ */
+const _Antpool = _s({
+  blockCount: [_CumulativeFlow, '*'],
+});
+
+/**
+ * @typedef {{
+ *   antpool: Antpool,
+ * }} Groups
+ */
+const _Groups = _s({
+  antpool: [_Antpool, '*'],
+});
+
+/**
+ * @typedef {{
+ *   blockCount: CumulativeFlow,
  *   blockShare: Share,
- *   coinbase: Coinbase,
+ *   coinbase: Amount,
  *   fees: PoolFees,
+ *   emptyBlockCount: CumulativeFlow,
+ *   bip54CoinbaseLocktimeBlockCount: CumulativeFlow,
+ *   nonzeroCoinbaseLocktimeBlockCount: CumulativeFlow,
+ *   feeRateUnder0p1SatVbTxCount: CumulativeFlow,
  *   hashrate: Windows<?Hashrate>,
  * }} Pool
  */
 const _Pool = _s({
   blockCount: [_CumulativeFlow, '*_block_count'],
   blockShare: [_Share, '*_block_share'],
-  coinbase: [_Coinbase, '*_coinbase'],
-  fees: [_PoolFees, '*_fees_avg'],
+  coinbase: [_Amount, '*_coinbase'],
+  fees: [_PoolFees, '*_fees'],
+  emptyBlockCount: [_CumulativeFlow, '*_empty_block_count'],
+  bip54CoinbaseLocktimeBlockCount: [_CumulativeFlow, '*_bip54_coinbase_locktime_block_count'],
+  nonzeroCoinbaseLocktimeBlockCount: [_CumulativeFlow, '*_nonzero_coinbase_locktime_block_count'],
+  feeRateUnder0p1SatVbTxCount: [_CumulativeFlow, '*_fee_rate_under_0p1_sat_vb_tx_count'],
   hashrate: [_Windows, '*_hashrate'],
 });
 
 /**
  * @typedef {{
- *   blockPool: SeriesPattern18<PoolSlug>,
+ *   blockPool: SeriesPattern19<PoolSlug>,
  *   unknown: Pool,
  *   debitmydata: Pool,
+ *   concentration: Concentration,
+ *   concentrationGrouped: Concentration,
+ *   groups: Groups,
  * }} Pools
  */
 const _Pools = _s({
-  blockPool: [_i18, 'block_*'],
+  blockPool: [_i19, 'block_*'],
   unknown: [_Pool, '*_unknown'],
   debitmydata: [_Pool, '*_debitmydata'],
+  concentration: [_Concentration, 'pools_block_count'],
+  concentrationGrouped: [_Concentration, 'pools_antpool_group_as_one_block_count'],
+  groups: [_Groups, '*_antpool_group_block_count'],
+});
+
+/**
+ * @typedef {{
+ *   count: FlowStats<Count, ?CountFract>,
+ *   perSecond: Windows<?PerSecond>,
+ *   types: SpendableType,
+ *   signatures: InputSignatures,
+ *   pubkeys: Pubkeys,
+ *   nestedSegwit: NestedSegwit,
+ *   multisig: Multisig,
+ *   opcodes: Opcodes,
+ *   p2trScriptPath: Flow<Count>,
+ *   inscriptions: Flow<Count>,
+ *   spentWithin: SpentWithin,
+ *   sameBlock: Flow<Count>,
+ *   coinbaseWitness: CumulativeFlow,
+ * }} Inputs
+ */
+const _Inputs = _s({
+  count: [_FlowStats, 'input_*'],
+  perSecond: [_Windows, 'inputs_per_second'],
+  types: [_SpendableType, 'input'],
+  signatures: [_InputSignatures, 'signature'],
+  pubkeys: [_Pubkeys, 'pubkey_in_input_*'],
+  nestedSegwit: [_NestedSegwit, 'input_*'],
+  multisig: [_Multisig, 'multisig_input_*'],
+  opcodes: [_Opcodes, 'in_input_*'],
+  p2trScriptPath: [_Flow, 'p2tr_script_path_input_*'],
+  inscriptions: [_Flow, 'inscription_input_*'],
+  spentWithin: [_SpentWithin, 'spent_utxo_*'],
+  sameBlock: [_Flow, 'same_block_spent_utxo_*'],
+  coinbaseWitness: [_CumulativeFlow, 'coinbase_witness_block_*'],
+});
+
+/**
+ * @typedef {{
+ *   nonzero: CumulativeFlow,
+ *   bip54: CumulativeFlow,
+ * }} CoinbaseLocktime
+ */
+const _CoinbaseLocktime = _s({
+  nonzero: [_CumulativeFlow, 'nonzero_*'],
+  bip54: [_CumulativeFlow, 'bip54_*'],
+});
+
+/**
+ * @typedef {{
+ *   bit4: CumulativeFlow,
+ * }} VersionBits
+ */
+const _VersionBits = _s({
+  bit4: [_CumulativeFlow, '*'],
 });
 
 /**
@@ -5268,6 +5141,10 @@ const _Pools = _s({
  *   fullness: Fullness,
  *   difficulty: BlocksDifficulty,
  *   halving: Halving,
+ *   emptyCount: CumulativeFlow,
+ *   work: Flow<?Work>,
+ *   versionBits: VersionBits,
+ *   coinbaseLocktime: CoinbaseLocktime,
  * }} Blocks
  */
 const _Blocks = _s({
@@ -5279,78 +5156,93 @@ const _Blocks = _s({
   fullness: [_Fullness, '*_fullness'],
   difficulty: [_BlocksDifficulty, 'difficulty'],
   halving: [_Halving, 'halving'],
+  emptyCount: [_CumulativeFlow, 'empty_*_count'],
+  work: [_Flow, '*_work'],
+  versionBits: [_VersionBits, 'version_bit_4_*_count'],
+  coinbaseLocktime: [_CoinbaseLocktime, 'coinbase_locktime_*_count'],
 });
 
 /**
  * @typedef {{
- *   open: SeriesPattern2<?Dollars>,
- *   high: SeriesPattern2<?Dollars>,
- *   low: SeriesPattern2<?Dollars>,
- *   close: SeriesPattern2<?Dollars>,
- *   ohlc: SeriesPattern2<OHLCDollars>,
+ *   open: SeriesPattern3<?Dollars>,
+ *   high: SeriesPattern3<?Dollars>,
+ *   low: SeriesPattern3<?Dollars>,
+ *   close: SeriesPattern3<?Dollars>,
+ *   ohlc: SeriesPattern3<OHLCDollars>,
  *   spot: SeriesPattern1<?Dollars>,
- *   satsPerDollar: SeriesPattern1<Sats>,
+ *   satsPerDollar: SeriesPattern2<Sats>,
  * }} Price
  */
 const _Price = _s({
-  open: [_i2, '*_open'],
-  high: [_i2, '*_high'],
-  low: [_i2, '*_low'],
-  close: [_i2, '*_close'],
-  ohlc: [_i2, '*_ohlc'],
+  open: [_i3, '*_open'],
+  high: [_i3, '*_high'],
+  low: [_i3, '*_low'],
+  close: [_i3, '*_close'],
+  ohlc: [_i3, '*_ohlc'],
   spot: [_i1, '*'],
-  satsPerDollar: [_i1, 'sats_per_dollar'],
+  satsPerDollar: [_i2, 'sats_per_dollar'],
 });
 
 /**
  * @typedef {{
- *   monotonic: SeriesPattern18<Timestamp>,
- *   periodStart: SeriesPattern2<Timestamp>,
+ *   monotonic: SeriesPattern19<Timestamp>,
+ *   periodStart: SeriesPattern3<Timestamp>,
  * }} Timestamps
  */
 const _Timestamps = _s({
-  monotonic: [_i18, '*_monotonic'],
-  periodStart: [_i2, '*'],
+  monotonic: [_i19, '*_monotonic'],
+  periodStart: [_i3, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern22<TxOutIndex>,
+ *   identity: SeriesPattern23<TxOutIndex>,
  * }} TxoutIndex
  */
 const _TxoutIndex = _s({
-  identity: [_i22, '*'],
+  identity: [_i23, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern20<TxInIndex>,
+ *   identity: SeriesPattern21<TxInIndex>,
  * }} TxinIndex
  */
 const _TxinIndex = _s({
-  identity: [_i20, '*'],
+  identity: [_i21, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern19<TxIndex>,
- *   inputCount: SeriesPattern19<Count>,
- *   outputCount: SeriesPattern19<Count>,
+ *   identity: SeriesPattern20<TxIndex>,
+ *   inputCount: SeriesPattern20<Count>,
+ *   outputCount: SeriesPattern20<Count>,
  * }} MappingsTxIndex
  */
 const _MappingsTxIndex = _s({
-  identity: [_i19, '*_index'],
-  inputCount: [_i19, '*_input_count'],
-  outputCount: [_i19, '*_output_count'],
+  identity: [_i20, '*_index'],
+  inputCount: [_i20, '*_input_count'],
+  outputCount: [_i20, '*_output_count'],
+});
+
+/**
+ * @typedef {{
+ *   date: SeriesPattern16<Date>,
+ *   firstHeight: SeriesPattern16<Height>,
+ * }} MappingsYear10
+ */
+const _MappingsYear10 = _s({
+  date: [_i16, '*'],
+  firstHeight: [_i16, 'first_height'],
 });
 
 /**
  * @typedef {{
  *   date: SeriesPattern15<Date>,
  *   firstHeight: SeriesPattern15<Height>,
- * }} MappingsYear10
+ * }} MappingsYear1
  */
-const _MappingsYear10 = _s({
+const _MappingsYear1 = _s({
   date: [_i15, '*'],
   firstHeight: [_i15, 'first_height'],
 });
@@ -5359,9 +5251,9 @@ const _MappingsYear10 = _s({
  * @typedef {{
  *   date: SeriesPattern14<Date>,
  *   firstHeight: SeriesPattern14<Height>,
- * }} MappingsYear1
+ * }} MappingsMonth6
  */
-const _MappingsYear1 = _s({
+const _MappingsMonth6 = _s({
   date: [_i14, '*'],
   firstHeight: [_i14, 'first_height'],
 });
@@ -5370,9 +5262,9 @@ const _MappingsYear1 = _s({
  * @typedef {{
  *   date: SeriesPattern13<Date>,
  *   firstHeight: SeriesPattern13<Height>,
- * }} MappingsMonth6
+ * }} MappingsMonth3
  */
-const _MappingsMonth6 = _s({
+const _MappingsMonth3 = _s({
   date: [_i13, '*'],
   firstHeight: [_i13, 'first_height'],
 });
@@ -5381,9 +5273,9 @@ const _MappingsMonth6 = _s({
  * @typedef {{
  *   date: SeriesPattern12<Date>,
  *   firstHeight: SeriesPattern12<Height>,
- * }} MappingsMonth3
+ * }} MappingsMonth1
  */
-const _MappingsMonth3 = _s({
+const _MappingsMonth1 = _s({
   date: [_i12, '*'],
   firstHeight: [_i12, 'first_height'],
 });
@@ -5392,9 +5284,9 @@ const _MappingsMonth3 = _s({
  * @typedef {{
  *   date: SeriesPattern11<Date>,
  *   firstHeight: SeriesPattern11<Height>,
- * }} MappingsMonth1
+ * }} MappingsWeek1
  */
-const _MappingsMonth1 = _s({
+const _MappingsWeek1 = _s({
   date: [_i11, '*'],
   firstHeight: [_i11, 'first_height'],
 });
@@ -5403,9 +5295,9 @@ const _MappingsMonth1 = _s({
  * @typedef {{
  *   date: SeriesPattern10<Date>,
  *   firstHeight: SeriesPattern10<Height>,
- * }} MappingsWeek1
+ * }} MappingsDay3
  */
-const _MappingsWeek1 = _s({
+const _MappingsDay3 = _s({
   date: [_i10, '*'],
   firstHeight: [_i10, 'first_height'],
 });
@@ -5414,158 +5306,147 @@ const _MappingsWeek1 = _s({
  * @typedef {{
  *   date: SeriesPattern9<Date>,
  *   firstHeight: SeriesPattern9<Height>,
- * }} MappingsDay3
+ * }} MappingsDay1
  */
-const _MappingsDay3 = _s({
+const _MappingsDay1 = _s({
   date: [_i9, '*'],
   firstHeight: [_i9, 'first_height'],
 });
 
 /**
  * @typedef {{
- *   date: SeriesPattern8<Date>,
  *   firstHeight: SeriesPattern8<Height>,
- * }} MappingsDay1
+ * }} MappingsHour12
  */
-const _MappingsDay1 = _s({
-  date: [_i8, '*'],
-  firstHeight: [_i8, 'first_height'],
+const _MappingsHour12 = _s({
+  firstHeight: [_i8, '*'],
 });
 
 /**
  * @typedef {{
  *   firstHeight: SeriesPattern7<Height>,
- * }} MappingsHour12
+ * }} MappingsHour4
  */
-const _MappingsHour12 = _s({
+const _MappingsHour4 = _s({
   firstHeight: [_i7, '*'],
 });
 
 /**
  * @typedef {{
  *   firstHeight: SeriesPattern6<Height>,
- * }} MappingsHour4
+ * }} MappingsHour1
  */
-const _MappingsHour4 = _s({
+const _MappingsHour1 = _s({
   firstHeight: [_i6, '*'],
 });
 
 /**
  * @typedef {{
  *   firstHeight: SeriesPattern5<Height>,
- * }} MappingsHour1
+ * }} MappingsMinute30
  */
-const _MappingsHour1 = _s({
+const _MappingsMinute30 = _s({
   firstHeight: [_i5, '*'],
 });
 
 /**
  * @typedef {{
  *   firstHeight: SeriesPattern4<Height>,
- * }} MappingsMinute30
+ * }} MappingsMinute10
  */
-const _MappingsMinute30 = _s({
+const _MappingsMinute10 = _s({
   firstHeight: [_i4, '*'],
 });
 
 /**
  * @typedef {{
- *   firstHeight: SeriesPattern3<Height>,
- * }} MappingsMinute10
- */
-const _MappingsMinute10 = _s({
-  firstHeight: [_i3, '*'],
-});
-
-/**
- * @typedef {{
- *   firstHeight: SeriesPattern16<Height>,
+ *   firstHeight: SeriesPattern17<Height>,
  * }} MappingsHalvingEpoch
  */
 const _MappingsHalvingEpoch = _s({
-  firstHeight: [_i16, '*'],
-});
-
-/**
- * @typedef {{
- *   firstHeight: SeriesPattern17<Height>,
- * }} MappingsDifficultyEpoch
- */
-const _MappingsDifficultyEpoch = _s({
   firstHeight: [_i17, '*'],
 });
 
 /**
  * @typedef {{
- *   minute10: SeriesPattern18<Minute10>,
- *   minute30: SeriesPattern18<Minute30>,
- *   hour1: SeriesPattern18<Hour1>,
- *   hour4: SeriesPattern18<Hour4>,
- *   hour12: SeriesPattern18<Hour12>,
- *   day1: SeriesPattern18<Day1>,
- *   day3: SeriesPattern18<Day3>,
- *   difficultyEpoch: SeriesPattern18<DifficultyEpoch>,
- *   halvingEpoch: SeriesPattern18<HalvingEpoch>,
- *   week1: SeriesPattern18<Week1>,
- *   month1: SeriesPattern18<Month1>,
- *   month3: SeriesPattern18<Month3>,
- *   month6: SeriesPattern18<Month6>,
- *   year1: SeriesPattern18<Year1>,
- *   year10: SeriesPattern18<Year10>,
- * }} MappingsHeight
+ *   firstHeight: SeriesPattern18<Height>,
+ * }} MappingsDifficultyEpoch
  */
-const _MappingsHeight = _s({
-  minute10: [_i18, '*_minute10'],
-  minute30: [_i18, '*_minute30'],
-  hour1: [_i18, '*_hour1'],
-  hour4: [_i18, '*_hour4'],
-  hour12: [_i18, '*_hour12'],
-  day1: [_i18, '*_day1'],
-  day3: [_i18, '*_day3'],
-  difficultyEpoch: [_i18, 'difficulty_epoch'],
-  halvingEpoch: [_i18, 'halving_epoch'],
-  week1: [_i18, '*_week1'],
-  month1: [_i18, '*_month1'],
-  month3: [_i18, '*_month3'],
-  month6: [_i18, '*_month6'],
-  year1: [_i18, '*_year1'],
-  year10: [_i18, '*_year10'],
+const _MappingsDifficultyEpoch = _s({
+  firstHeight: [_i18, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern25<OpReturnOutputIndex>,
+ *   minute10: SeriesPattern19<Minute10>,
+ *   minute30: SeriesPattern19<Minute30>,
+ *   hour1: SeriesPattern19<Hour1>,
+ *   hour4: SeriesPattern19<Hour4>,
+ *   hour12: SeriesPattern19<Hour12>,
+ *   day1: SeriesPattern19<Day1>,
+ *   day3: SeriesPattern19<Day3>,
+ *   difficultyEpoch: SeriesPattern19<DifficultyEpoch>,
+ *   halvingEpoch: SeriesPattern19<HalvingEpoch>,
+ *   week1: SeriesPattern19<Week1>,
+ *   month1: SeriesPattern19<Month1>,
+ *   month3: SeriesPattern19<Month3>,
+ *   month6: SeriesPattern19<Month6>,
+ *   year1: SeriesPattern19<Year1>,
+ *   year10: SeriesPattern19<Year10>,
+ * }} MappingsHeight
+ */
+const _MappingsHeight = _s({
+  minute10: [_i19, '*_minute10'],
+  minute30: [_i19, '*_minute30'],
+  hour1: [_i19, '*_hour1'],
+  hour4: [_i19, '*_hour4'],
+  hour12: [_i19, '*_hour12'],
+  day1: [_i19, '*_day1'],
+  day3: [_i19, '*_day3'],
+  difficultyEpoch: [_i19, 'difficulty_epoch'],
+  halvingEpoch: [_i19, 'halving_epoch'],
+  week1: [_i19, '*_week1'],
+  month1: [_i19, '*_month1'],
+  month3: [_i19, '*_month3'],
+  month6: [_i19, '*_month6'],
+  year1: [_i19, '*_year1'],
+  year10: [_i19, '*_year10'],
+});
+
+/**
+ * @typedef {{
+ *   identity: SeriesPattern26<OpReturnOutputIndex>,
  * }} MappingsOpReturn
  */
 const _MappingsOpReturn = _s({
+  identity: [_i26, '*'],
+});
+
+/**
+ * @typedef {{
+ *   identity: SeriesPattern36<UnknownScriptOutputIndex>,
+ * }} MappingsUnknownScript
+ */
+const _MappingsUnknownScript = _s({
+  identity: [_i36, '*'],
+});
+
+/**
+ * @typedef {{
+ *   identity: SeriesPattern25<EmptyScriptOutputIndex>,
+ * }} EmptyScript
+ */
+const _EmptyScript = _s({
   identity: [_i25, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern35<UnknownScriptOutputIndex>,
- * }} MappingsUnknownScript
- */
-const _MappingsUnknownScript = _s({
-  identity: [_i35, '*'],
-});
-
-/**
- * @typedef {{
- *   identity: SeriesPattern24<EmptyScriptOutputIndex>,
- * }} EmptyScript
- */
-const _EmptyScript = _s({
-  identity: [_i24, '*'],
-});
-
-/**
- * @typedef {{
- *   identity: SeriesPattern27<P2MSOutputIndex>,
+ *   identity: SeriesPattern28<P2MSOutputIndex>,
  * }} MappingsP2ms
  */
 const _MappingsP2ms = _s({
-  identity: [_i27, '*'],
+  identity: [_i28, '*'],
 });
 
 /**
@@ -5585,142 +5466,142 @@ const _Script = _s({
 
 /**
  * @typedef {{
- *   identity: SeriesPattern26<P2AAddressIndex>,
- *   address: SeriesPattern26<Address>,
+ *   identity: SeriesPattern27<P2AAddressIndex>,
+ *   address: SeriesPattern27<Address>,
  * }} MappingsP2a
  */
 const _MappingsP2a = _s({
-  identity: [_i26, '*_index'],
-  address: [_i26, '*'],
+  identity: [_i27, '*_index'],
+  address: [_i27, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern32<P2TRAddressIndex>,
- *   address: SeriesPattern32<Address>,
+ *   identity: SeriesPattern33<P2TRAddressIndex>,
+ *   address: SeriesPattern33<Address>,
  * }} MappingsP2tr
  */
 const _MappingsP2tr = _s({
-  identity: [_i32, '*_index'],
-  address: [_i32, '*'],
-});
-
-/**
- * @typedef {{
- *   identity: SeriesPattern34<P2WSHAddressIndex>,
- *   address: SeriesPattern34<Address>,
- * }} MappingsP2wsh
- */
-const _MappingsP2wsh = _s({
-  identity: [_i34, '*_index'],
-  address: [_i34, '*'],
-});
-
-/**
- * @typedef {{
- *   identity: SeriesPattern33<P2WPKHAddressIndex>,
- *   address: SeriesPattern33<Address>,
- * }} MappingsP2wpkh
- */
-const _MappingsP2wpkh = _s({
   identity: [_i33, '*_index'],
   address: [_i33, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern31<P2SHAddressIndex>,
- *   address: SeriesPattern31<Address>,
+ *   identity: SeriesPattern35<P2WSHAddressIndex>,
+ *   address: SeriesPattern35<Address>,
+ * }} MappingsP2wsh
+ */
+const _MappingsP2wsh = _s({
+  identity: [_i35, '*_index'],
+  address: [_i35, '*'],
+});
+
+/**
+ * @typedef {{
+ *   identity: SeriesPattern34<P2WPKHAddressIndex>,
+ *   address: SeriesPattern34<Address>,
+ * }} MappingsP2wpkh
+ */
+const _MappingsP2wpkh = _s({
+  identity: [_i34, '*_index'],
+  address: [_i34, '*'],
+});
+
+/**
+ * @typedef {{
+ *   identity: SeriesPattern32<P2SHAddressIndex>,
+ *   address: SeriesPattern32<Address>,
  * }} MappingsP2sh
  */
 const _MappingsP2sh = _s({
+  identity: [_i32, '*_index'],
+  address: [_i32, '*'],
+});
+
+/**
+ * @typedef {{
+ *   identity: SeriesPattern31<P2PKHAddressIndex>,
+ *   address: SeriesPattern31<Address>,
+ * }} MappingsP2pkh
+ */
+const _MappingsP2pkh = _s({
   identity: [_i31, '*_index'],
   address: [_i31, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern30<P2PKHAddressIndex>,
- *   address: SeriesPattern30<Address>,
- * }} MappingsP2pkh
- */
-const _MappingsP2pkh = _s({
-  identity: [_i30, '*_index'],
-  address: [_i30, '*'],
-});
-
-/**
- * @typedef {{
- *   identity: SeriesPattern28<P2PK33AddressIndex>,
- *   address: SeriesPattern28<Address>,
+ *   identity: SeriesPattern29<P2PK33AddressIndex>,
+ *   address: SeriesPattern29<Address>,
  * }} MappingsP2pk33
  */
 const _MappingsP2pk33 = _s({
-  identity: [_i28, '*_index'],
-  address: [_i28, '*'],
-});
-
-/**
- * @typedef {{
- *   identity: SeriesPattern29<P2PK65AddressIndex>,
- *   address: SeriesPattern29<Address>,
- * }} MappingsP2pk65
- */
-const _MappingsP2pk65 = _s({
   identity: [_i29, '*_index'],
   address: [_i29, '*'],
 });
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern18<OpReturnOutputIndex>,
- *   txIndex: SeriesPattern25<TxIndex>,
- *   protocol: SeriesPattern25<OpReturnKind>,
- *   postOpReturnBytes: SeriesPattern25<Bytes>,
+ *   identity: SeriesPattern30<P2PK65AddressIndex>,
+ *   address: SeriesPattern30<Address>,
+ * }} MappingsP2pk65
+ */
+const _MappingsP2pk65 = _s({
+  identity: [_i30, '*_index'],
+  address: [_i30, '*'],
+});
+
+/**
+ * @typedef {{
+ *   firstIndex: SeriesPattern19<OpReturnOutputIndex>,
+ *   txIndex: SeriesPattern26<TxIndex>,
+ *   protocol: SeriesPattern26<OpReturnKind>,
+ *   postOpReturnBytes: SeriesPattern26<Bytes>,
  * }} IndexerOpReturn
  */
 const _IndexerOpReturn = _s({
-  firstIndex: [_i18, 'first_*_output_index'],
-  txIndex: [_i25, '*_output_tx_index'],
-  protocol: [_i25, '*_protocol'],
-  postOpReturnBytes: [_i25, 'post_*_bytes'],
+  firstIndex: [_i19, 'first_*_output_index'],
+  txIndex: [_i26, '*_output_tx_index'],
+  protocol: [_i26, '*_protocol'],
+  postOpReturnBytes: [_i26, 'post_*_bytes'],
 });
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern18<UnknownScriptOutputIndex>,
- *   txIndex: SeriesPattern35<TxIndex>,
- *   legacySigopCost: SeriesPattern35<SigOps>,
+ *   firstIndex: SeriesPattern19<UnknownScriptOutputIndex>,
+ *   txIndex: SeriesPattern36<TxIndex>,
+ *   legacySigopCost: SeriesPattern36<SigOps>,
  * }} IndexerUnknownScript
  */
 const _IndexerUnknownScript = _s({
-  firstIndex: [_i18, 'first_*_output_index'],
-  txIndex: [_i35, '*_output_tx_index'],
-  legacySigopCost: [_i35, '*_legacy_sigop_cost'],
+  firstIndex: [_i19, 'first_*_output_index'],
+  txIndex: [_i36, '*_output_tx_index'],
+  legacySigopCost: [_i36, '*_legacy_sigop_cost'],
 });
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern18<EmptyScriptOutputIndex>,
- *   txIndex: SeriesPattern24<TxIndex>,
+ *   firstIndex: SeriesPattern19<EmptyScriptOutputIndex>,
+ *   txIndex: SeriesPattern25<TxIndex>,
  * }} ScriptType
  */
 const _ScriptType = _s({
-  firstIndex: [_i18, 'first_*_index'],
-  txIndex: [_i24, '*_tx_index'],
+  firstIndex: [_i19, 'first_*_index'],
+  txIndex: [_i25, '*_tx_index'],
 });
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern18<P2MSOutputIndex>,
- *   txIndex: SeriesPattern27<TxIndex>,
- *   legacySigopCost: SeriesPattern27<SigOps>,
+ *   firstIndex: SeriesPattern19<P2MSOutputIndex>,
+ *   txIndex: SeriesPattern28<TxIndex>,
+ *   legacySigopCost: SeriesPattern28<SigOps>,
  * }} IndexerP2ms
  */
 const _IndexerP2ms = _s({
-  firstIndex: [_i18, 'first_*_output_index'],
-  txIndex: [_i27, '*_output_tx_index'],
-  legacySigopCost: [_i27, '*_legacy_sigop_cost'],
+  firstIndex: [_i19, 'first_*_output_index'],
+  txIndex: [_i28, '*_output_tx_index'],
+  legacySigopCost: [_i28, '*_legacy_sigop_cost'],
 });
 
 /**
@@ -5738,90 +5619,90 @@ const _Scripts = _s({
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern18<P2AAddressIndex>,
- *   bytes: SeriesPattern26<P2ABytes>,
+ *   firstIndex: SeriesPattern19<P2AAddressIndex>,
+ *   bytes: SeriesPattern27<P2ABytes>,
  * }} IndexerP2a
  */
 const _IndexerP2a = _s({
-  firstIndex: [_i18, 'first_*_address_index'],
-  bytes: [_i26, '*_bytes'],
+  firstIndex: [_i19, 'first_*_address_index'],
+  bytes: [_i27, '*_bytes'],
 });
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern18<P2TRAddressIndex>,
- *   bytes: SeriesPattern32<P2TRBytes>,
+ *   firstIndex: SeriesPattern19<P2TRAddressIndex>,
+ *   bytes: SeriesPattern33<P2TRBytes>,
  * }} IndexerP2tr
  */
 const _IndexerP2tr = _s({
-  firstIndex: [_i18, 'first_*_address_index'],
-  bytes: [_i32, '*_bytes'],
-});
-
-/**
- * @typedef {{
- *   firstIndex: SeriesPattern18<P2WSHAddressIndex>,
- *   bytes: SeriesPattern34<P2WSHBytes>,
- * }} IndexerP2wsh
- */
-const _IndexerP2wsh = _s({
-  firstIndex: [_i18, 'first_*_address_index'],
-  bytes: [_i34, '*_bytes'],
-});
-
-/**
- * @typedef {{
- *   firstIndex: SeriesPattern18<P2WPKHAddressIndex>,
- *   bytes: SeriesPattern33<P2WPKHBytes>,
- * }} IndexerP2wpkh
- */
-const _IndexerP2wpkh = _s({
-  firstIndex: [_i18, 'first_*_address_index'],
+  firstIndex: [_i19, 'first_*_address_index'],
   bytes: [_i33, '*_bytes'],
 });
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern18<P2SHAddressIndex>,
- *   bytes: SeriesPattern31<P2SHBytes>,
+ *   firstIndex: SeriesPattern19<P2WSHAddressIndex>,
+ *   bytes: SeriesPattern35<P2WSHBytes>,
+ * }} IndexerP2wsh
+ */
+const _IndexerP2wsh = _s({
+  firstIndex: [_i19, 'first_*_address_index'],
+  bytes: [_i35, '*_bytes'],
+});
+
+/**
+ * @typedef {{
+ *   firstIndex: SeriesPattern19<P2WPKHAddressIndex>,
+ *   bytes: SeriesPattern34<P2WPKHBytes>,
+ * }} IndexerP2wpkh
+ */
+const _IndexerP2wpkh = _s({
+  firstIndex: [_i19, 'first_*_address_index'],
+  bytes: [_i34, '*_bytes'],
+});
+
+/**
+ * @typedef {{
+ *   firstIndex: SeriesPattern19<P2SHAddressIndex>,
+ *   bytes: SeriesPattern32<P2SHBytes>,
  * }} IndexerP2sh
  */
 const _IndexerP2sh = _s({
-  firstIndex: [_i18, 'first_*_address_index'],
+  firstIndex: [_i19, 'first_*_address_index'],
+  bytes: [_i32, '*_bytes'],
+});
+
+/**
+ * @typedef {{
+ *   firstIndex: SeriesPattern19<P2PKHAddressIndex>,
+ *   bytes: SeriesPattern31<P2PKHBytes>,
+ * }} IndexerP2pkh
+ */
+const _IndexerP2pkh = _s({
+  firstIndex: [_i19, 'first_*_address_index'],
   bytes: [_i31, '*_bytes'],
 });
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern18<P2PKHAddressIndex>,
- *   bytes: SeriesPattern30<P2PKHBytes>,
- * }} IndexerP2pkh
- */
-const _IndexerP2pkh = _s({
-  firstIndex: [_i18, 'first_*_address_index'],
-  bytes: [_i30, '*_bytes'],
-});
-
-/**
- * @typedef {{
- *   firstIndex: SeriesPattern18<P2PK33AddressIndex>,
- *   bytes: SeriesPattern28<P2PK33Bytes>,
+ *   firstIndex: SeriesPattern19<P2PK33AddressIndex>,
+ *   bytes: SeriesPattern29<P2PK33Bytes>,
  * }} IndexerP2pk33
  */
 const _IndexerP2pk33 = _s({
-  firstIndex: [_i18, 'first_*_address_index'],
-  bytes: [_i28, '*_bytes'],
+  firstIndex: [_i19, 'first_*_address_index'],
+  bytes: [_i29, '*_bytes'],
 });
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern18<P2PK65AddressIndex>,
- *   bytes: SeriesPattern29<P2PK65Bytes>,
+ *   firstIndex: SeriesPattern19<P2PK65AddressIndex>,
+ *   bytes: SeriesPattern30<P2PK65Bytes>,
  * }} IndexerP2pk65
  */
 const _IndexerP2pk65 = _s({
-  firstIndex: [_i18, 'first_*_address_index'],
-  bytes: [_i29, '*_bytes'],
+  firstIndex: [_i19, 'first_*_address_index'],
+  bytes: [_i30, '*_bytes'],
 });
 
 /**
@@ -5902,47 +5783,47 @@ const _Mappings = _s({
 
 /**
  * @typedef {{
- *   firstTxoutIndex: SeriesPattern18<TxOutIndex>,
- *   value: SeriesPattern22<Sats>,
- *   outputType: SeriesPattern22<OutputType>,
- *   typeIndex: SeriesPattern22<TypeIndex>,
+ *   firstTxoutIndex: SeriesPattern19<TxOutIndex>,
+ *   value: SeriesPattern23<Sats>,
+ *   outputType: SeriesPattern23<OutputType>,
+ *   typeIndex: SeriesPattern23<TypeIndex>,
  * }} IndexerOutputs
  */
 const _IndexerOutputs = _s({
-  firstTxoutIndex: [_i18, 'first_txout_index'],
-  value: [_i22, '*_value'],
-  outputType: [_i22, '*_type'],
-  typeIndex: [_i22, 'type_index'],
+  firstTxoutIndex: [_i19, 'first_txout_index'],
+  value: [_i23, '*_value'],
+  outputType: [_i23, '*_type'],
+  typeIndex: [_i23, 'type_index'],
 });
 
 /**
  * @typedef {{
- *   firstTxinIndex: SeriesPattern18<TxInIndex>,
- *   outpoint: SeriesPattern21<OutPoint>,
- *   txoutIndex: SeriesPattern21<TxOutIndex>,
- *   txIndex: SeriesPattern20<TxIndex>,
- *   outputType: SeriesPattern20<OutputType>,
- *   typeIndex: SeriesPattern21<TypeIndex>,
- *   value: SeriesPattern20<Sats>,
+ *   firstTxinIndex: SeriesPattern19<TxInIndex>,
+ *   outpoint: SeriesPattern22<OutPoint>,
+ *   txoutIndex: SeriesPattern22<TxOutIndex>,
+ *   txIndex: SeriesPattern21<TxIndex>,
+ *   outputType: SeriesPattern21<OutputType>,
+ *   typeIndex: SeriesPattern22<TypeIndex>,
+ *   value: SeriesPattern21<Sats>,
  * }} IndexerInputs
  */
 const _IndexerInputs = _s({
-  firstTxinIndex: [_i18, 'first_txin_*'],
-  outpoint: [_i21, 'outpoint'],
-  txoutIndex: [_i21, 'spent_txout_*'],
-  txIndex: [_i20, 'input_tx_*'],
-  outputType: [_i20, 'output_type'],
-  typeIndex: [_i21, 'type_*'],
-  value: [_i20, 'input_value'],
+  firstTxinIndex: [_i19, 'first_txin_*'],
+  outpoint: [_i22, 'outpoint'],
+  txoutIndex: [_i22, 'spent_txout_*'],
+  txIndex: [_i21, 'input_tx_*'],
+  outputType: [_i21, 'output_type'],
+  typeIndex: [_i22, 'type_*'],
+  value: [_i21, 'input_value'],
 });
 
 /**
  * @typedef {{
- *   block: SeriesPattern18<Count>,
+ *   block: SeriesPattern19<Count>,
  * }} CountSeries
  */
 const _CountSeries = _s({
-  block: [_i18, '*'],
+  block: [_i19, '*'],
 });
 
 /**
@@ -5966,49 +5847,59 @@ const _VersionCount = (c, b, f0) => _n(c, b, {
  * @typedef {{
  *   count: FlowStats<Count, ?CountFract>,
  *   features: Features,
- *   vsize: PerTxDistribution<VSize>,
+ *   vsize: Vsize,
  *   fees: Fees,
  *   inscription: Inscription,
  *   patterns: Patterns,
  *   nonstandard: TransactionsFlagged,
  *   versions: VersionCount<TxCount>,
  *   transferVolume: ValueFlow,
+ *   payments: Payments,
+ *   timelocks: Timelocks,
+ *   spending: Spending,
+ *   ephemeralDust: Flow<Count>,
+ *   sameBlockSpending: Flow<Count>,
  *   perSecond: Windows<?PerSecond>,
  * }} Transactions
  */
 const _Transactions = _s({
   count: [_FlowStats, '*_count'],
   features: [_Features, '*'],
-  vsize: [_PerTxDistribution, '*_vsize'],
+  vsize: [_Vsize, '*_vsize'],
   fees: [_Fees, '*'],
   inscription: [_Inscription, 'inscription'],
   patterns: [_Patterns, 'coinjoin'],
   nonstandard: [_TransactionsFlagged, 'nonstandard'],
   versions: [(c, b) => _VersionCount(c, b, _TxCount), '*'],
   transferVolume: [_ValueFlow, 'transfer_volume'],
+  payments: [_Payments, 'payment_count'],
+  timelocks: [_Timelocks, 'locktime_*_count'],
+  spending: [_Spending, 'spending_*_count'],
+  ephemeralDust: [_Flow, 'ephemeral_dust_spending_*_count'],
+  sameBlockSpending: [_Flow, 'same_block_spending_*_count'],
   perSecond: [_Windows, '*_per_second'],
 });
 
 /**
  * @typedef {{
- *   flag: SeriesPattern19<Boolean>,
- *   block: SeriesPattern18<Count>,
+ *   flag: SeriesPattern20<Boolean>,
+ *   block: SeriesPattern19<Count>,
  * }} IndexerFeature
  */
 const _IndexerFeature = _s({
-  flag: [_i19, 'is_*'],
-  block: [_i18, '*_tx_count'],
+  flag: [_i20, 'is_*'],
+  block: [_i19, '*_tx_count'],
 });
 
 /**
  * @typedef {{
- *   flag: SeriesPattern19<Boolean>,
- *   block: SeriesPattern18<Count>,
+ *   flag: SeriesPattern20<Boolean>,
+ *   block: SeriesPattern19<Count>,
  * }} Feature
  */
 const _Feature = _s({
-  flag: [_i19, 'has_*'],
-  block: [_i18, '*_tx_count'],
+  flag: [_i20, 'has_*'],
+  block: [_i19, '*_tx_count'],
 });
 
 /**
@@ -6070,56 +5961,56 @@ const _TransactionFeatures = _s({
 
 /**
  * @typedef {{
- *   firstTxIndex: SeriesPattern18<TxIndex>,
- *   txid: SeriesPattern19<Txid>,
- *   version: SeriesPattern19<TxVersion>,
- *   locktime: SeriesPattern19<RawLockTime>,
- *   weight: SeriesPattern19<Weight>,
- *   size: SeriesPattern19<Bytes>,
- *   sigopCost: SeriesPattern19<SigOps>,
- *   firstTxinIndex: SeriesPattern19<TxInIndex>,
- *   firstTxoutIndex: SeriesPattern19<TxOutIndex>,
+ *   firstTxIndex: SeriesPattern19<TxIndex>,
+ *   txid: SeriesPattern20<Txid>,
+ *   version: SeriesPattern20<TxVersion>,
+ *   locktime: SeriesPattern20<RawLockTime>,
+ *   weight: SeriesPattern20<Weight>,
+ *   size: SeriesPattern20<Bytes>,
+ *   sigopCost: SeriesPattern20<SigOps>,
+ *   firstTxinIndex: SeriesPattern20<TxInIndex>,
+ *   firstTxoutIndex: SeriesPattern20<TxOutIndex>,
  *   features: TransactionFeatures,
  *   versions: VersionCount<CountSeries>,
  * }} IndexerTransactions
  */
 const _IndexerTransactions = _s({
-  firstTxIndex: [_i18, 'first_*_index'],
-  txid: [_i19, 'txid'],
-  version: [_i19, '*_version'],
-  locktime: [_i19, '*_locktime'],
-  weight: [_i19, '*_weight'],
-  size: [_i19, '*_size'],
-  sigopCost: [_i19, '*_sigop_cost'],
-  firstTxinIndex: [_i19, 'first_txin_index'],
-  firstTxoutIndex: [_i19, 'first_txout_index'],
+  firstTxIndex: [_i19, 'first_*_index'],
+  txid: [_i20, 'txid'],
+  version: [_i20, '*_version'],
+  locktime: [_i20, '*_locktime'],
+  weight: [_i20, '*_weight'],
+  size: [_i20, '*_size'],
+  sigopCost: [_i20, '*_sigop_cost'],
+  firstTxinIndex: [_i20, 'first_txin_index'],
+  firstTxoutIndex: [_i20, 'first_txout_index'],
   features: [_TransactionFeatures, 'sighash'],
   versions: [(c, b) => _VersionCount(c, b, _CountSeries), '*_count'],
 });
 
 /**
  * @typedef {{
- *   blockhash: SeriesPattern18<BlockHash>,
- *   coinbaseTag: SeriesPattern18<CoinbaseTag>,
- *   timestamp: SeriesPattern18<Timestamp>,
- *   medianTime: SeriesPattern18<Timestamp>,
- *   size: SeriesPattern18<Bytes>,
- *   weight: SeriesPattern18<Weight>,
- *   segwitTxCount: SeriesPattern18<Count>,
- *   segwitTxSize: SeriesPattern18<Bytes>,
- *   segwitTxWeight: SeriesPattern18<Weight>,
+ *   blockhash: SeriesPattern19<BlockHash>,
+ *   coinbaseTag: SeriesPattern19<CoinbaseTag>,
+ *   timestamp: SeriesPattern19<Timestamp>,
+ *   medianTime: SeriesPattern19<Timestamp>,
+ *   size: SeriesPattern19<Bytes>,
+ *   weight: SeriesPattern19<Weight>,
+ *   segwitTxCount: SeriesPattern19<Count>,
+ *   segwitTxSize: SeriesPattern19<Bytes>,
+ *   segwitTxWeight: SeriesPattern19<Weight>,
  * }} IndexerBlocks
  */
 const _IndexerBlocks = _s({
-  blockhash: [_i18, 'blockhash'],
-  coinbaseTag: [_i18, 'coinbase_tag'],
-  timestamp: [_i18, 'timestamp'],
-  medianTime: [_i18, 'median_time'],
-  size: [_i18, 'block_size'],
-  weight: [_i18, 'block_weight'],
-  segwitTxCount: [_i18, '*_count'],
-  segwitTxSize: [_i18, '*_size'],
-  segwitTxWeight: [_i18, '*_weight'],
+  blockhash: [_i19, 'blockhash'],
+  coinbaseTag: [_i19, 'coinbase_tag'],
+  timestamp: [_i19, 'timestamp'],
+  medianTime: [_i19, 'median_time'],
+  size: [_i19, 'block_size'],
+  weight: [_i19, 'block_weight'],
+  segwitTxCount: [_i19, '*_count'],
+  segwitTxSize: [_i19, '*_size'],
+  segwitTxWeight: [_i19, '*_weight'],
 });
 
 /**
@@ -6173,7 +6064,7 @@ const _SeriesTree = _s({
   mappings: [_Mappings, 'date'],
   price: [_Price, 'price'],
   blocks: [_Blocks, 'block'],
-  inputs: [_Inputs, 'input'],
+  inputs: [_Inputs, 'count'],
   outputs: [_Outputs, 'output'],
   transactions: [_Transactions, 'tx'],
   mining: [_Mining, 'hash'],
@@ -6198,6 +6089,9 @@ const _SeriesTree = _s({
  */
 class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
+
+  /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
+  static HASH = "c4c6e54b7f75b5160bc0a7deb90273330adf13eb96717f1b16c3937eb750a8bb";
 
   INDEXES = /** @type {const} */ ([
     "minute10",
@@ -6791,6 +6685,7 @@ class BitviewClient extends BitviewClientBase {
     "bitproof": "Bitproof",
     "ascribe": "Ascribe",
     "stampery": "Stampery",
+    "bip47": "BIP-47",
     "bareHash": "Bare hash",
     "text": "Text",
     "empty": "Empty",
@@ -6838,8 +6733,8 @@ class BitviewClient extends BitviewClientBase {
    * @param {AddressOutputType} addressType
    * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload - Raw payload bytes matching addressType length
    * @param {number} nibbles
-   * @param {{ signal?: AbortSignal, onValue?: (value: AddressHashPrefixMatches) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<AddressHashPrefixMatches>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<AddressHashPrefixMatches>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<AddressHashPrefixMatches>>}
    */
   getAddressPayloadHashPrefixMatches(addressType, payload, nibbles, options = {}) {
     _validateAddressPayloadForType(addressType, payload);
@@ -6864,24 +6759,32 @@ class BitviewClient extends BitviewClientBase {
    * Local health and query-readiness check. Returns server identity, uptime, and a coherent local sync snapshot without a bitcoind round-trip. Reads the published prefix during processing; an empty index returns 503 `state_updating` at once. Responses are not cached. For chain-tip catch-up, request `GET /api/server/sync`.
    *
    * Endpoint: `GET /health`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Health) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Health>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Health>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<Health>>}
    */
   async getHealth({ signal, onValue, cache, memCache } = {}) {
     const path = `/health`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
    * API version
    *
    * Endpoint: `GET /version`
-   * @param {{ signal?: AbortSignal, onValue?: (value: ServerVersion) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<ServerVersion>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<ServerVersion>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<ServerVersion>>}
    */
   async getVersion({ signal, onValue, cache, memCache } = {}) {
     const path = `/version`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -6890,31 +6793,39 @@ class BitviewClient extends BitviewClientBase {
    * Returns a coherent local index snapshot and a separately observed node tip height. The two heights can differ during indexing or a reorg. Conditional requests refresh these observations before validation.
    *
    * Endpoint: `GET /api/server/sync`
-   * @param {{ signal?: AbortSignal, onValue?: (value: SyncStatus) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<SyncStatus>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<SyncStatus>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<SyncStatus>>}
    */
   async getSyncStatus({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/server/sync`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
    * Logs
    *
-   * The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) and everything else it logs. To read on, send the answer's `next` back as `after`: the lines since, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted (and its answer has every kept line). Answers are cached for a second.
+   * The server's last log lines, at most 1,000, oldest first: requests (status, method, path and duration; never who made them) and everything else it logs. To read on, send the answer's `next` back as `after`: the lines since, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted (and its answer has every kept line). Answers are cached for a second.
    *
    * Endpoint: `GET /api/server/logs`
    *
-   * @param {string=} [after] - The last answer's `next`: only the lines since. From a process that's since restarted, or none, every kept line.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Logs) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Logs>}
+   * @param {object} [options]
+   * @param {string} [options.after] - The last answer's `next`: only the lines since. From a process that's since restarted, or none, every kept line.
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Logs>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<Logs>>}
    */
-  async getLogs(after, { signal, onValue, cache, memCache } = {}) {
+  async getLogs({ after, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (after !== undefined) params.set('after', String(after));
+    if (after != null) params.set('after', String(after));
     const query = params.toString();
     const path = `/api/server/logs${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -6923,12 +6834,16 @@ class BitviewClient extends BitviewClientBase {
    * Returns allocated file bytes (file lengths on non-Unix platforms) for Bitview's and the node's data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.
    *
    * Endpoint: `GET /api/server/disk`
-   * @param {{ signal?: AbortSignal, onValue?: (value: DiskUsage) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<DiskUsage>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<DiskUsage>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<DiskUsage>>}
    */
   async getDiskUsage({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/server/disk`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -6937,12 +6852,16 @@ class BitviewClient extends BitviewClientBase {
    * The available series as a tree of categories and subcategories.
    *
    * Endpoint: `GET /api/series`
-   * @param {{ signal?: AbortSignal, onValue?: (value: TreeNode) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<TreeNode>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<TreeNode>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<TreeNode>>}
    */
   async getSeriesTree({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/series`;
-    return this.getJson(path, { signal, onValue, cache, memCache }, true);
+    return this._getCached(path, 'json', _readJson(true), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -6951,12 +6870,16 @@ class BitviewClient extends BitviewClientBase {
    * Returns the number of series available per index type.
    *
    * Endpoint: `GET /api/series/count`
-   * @param {{ signal?: AbortSignal, onValue?: (value: DetailedSeriesCount) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<DetailedSeriesCount>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<DetailedSeriesCount>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<DetailedSeriesCount>>}
    */
   async getSeriesCount({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/series/count`;
-    return this.getJson(path, { signal, onValue, cache, memCache }, { "by_db": true });
+    return this._getCached(path, 'json', _readJson({ "by_db": true }), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -6965,12 +6888,16 @@ class BitviewClient extends BitviewClientBase {
    * Returns every index a series can be read at, by the name series routes take.
    *
    * Endpoint: `GET /api/series/indexes`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Index[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Index[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Index[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<Index[]>>}
    */
   async listIndexes({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/series/indexes`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -6980,83 +6907,101 @@ class BitviewClient extends BitviewClientBase {
    *
    * Endpoint: `GET /api/series/list`
    *
-   * @param {number=} [page] - Zero-based page number (default: 0)
-   * @param {number=} [per_page] - Results per page, 1 to 1,000 (default: 1000)
-   * @param {{ signal?: AbortSignal, onValue?: (value: PaginatedSeries) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<PaginatedSeries>}
+   * @param {object} [options]
+   * @param {number} [options.page] - Zero-based page number (default: 0)
+   * @param {number} [options.per_page] - Results per page, 1 to 1,000 (default: 1000)
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<PaginatedSeries>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<PaginatedSeries>>}
    */
-  async listSeries(page, per_page, { signal, onValue, cache, memCache } = {}) {
+  async listSeries({ page, per_page, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (page !== undefined) params.set('page', String(page));
-    if (per_page !== undefined) params.set('per_page', String(per_page));
+    if (page != null) params.set('page', String(page));
+    if (per_page != null) params.set('per_page', String(per_page));
     const query = params.toString();
     const path = `/api/series/list${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
    * Search series
    *
-   * Search series by name or descriptive terms. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.
+   * Find on-chain metrics by plain words: MVRV, realized price, SOPR, NUPL, supply held by long-term or short-term holders, coin age, addresses by balance, hashrate, fees, volume, and thousands more. Start here for any metric question: it returns the series ids to pass to `get_series_latest` or `get_series`. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.
    *
    * Endpoint: `GET /api/series/search`
    *
-   * @param {string} q - Words to find in series names and descriptions (`realized price`, `mvrv`), in any order
-   * @param {number=} [limit] - Maximum number of results, 1 to 1,000 (default: 100)
-   * @param {{ signal?: AbortSignal, onValue?: (value: SeriesName[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<SeriesName[]>}
+   * @param {object} options
+   * @param {string} options.q - Words to find in series names and descriptions (`realized price`, `mvrv`), in any order
+   * @param {number} [options.limit] - Maximum number of results, 1 to 1,000 (default: 100)
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<SeriesName[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<SeriesName[]>>}
    */
-  async searchSeries(q, limit, { signal, onValue, cache, memCache } = {}) {
+  // @ts-expect-error Missing options are checked at runtime.
+  async searchSeries({ q, limit, signal, onValue, cache, memCache } = {}) {
+    if (q == null) throw new TypeError('searchSeries: options.q is required');
     const params = new URLSearchParams();
     params.set('q', String(q));
-    if (limit !== undefined) params.set('limit', String(limit));
+    if (limit != null) params.set('limit', String(limit));
     const query = params.toString();
     const path = `/api/series/search${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
    * Get series info
    *
-   * Returns the optional description, supported indexes, the indexes whose values can be null, the value type, and the optional unit (what the value type measures) for the specified series. The decoded series name is limited to 1024 UTF-8 bytes.
+   * Returns the optional description, supported indexes, the indexes whose values can be null, the value type, the optional unit (what the value type measures), and the accumulation (how its values combine over time) of the specified series. The decoded series name is limited to 1024 UTF-8 bytes.
    *
    * Endpoint: `GET /api/series/{series}`
    *
    * @param {SeriesName} series
-   * @param {{ signal?: AbortSignal, onValue?: (value: SeriesInfo) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<SeriesInfo>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<SeriesInfo>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<SeriesInfo>>}
    */
   async getSeriesInfo(series, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/series/${encodeURIComponent(series)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
    * Get series data
    *
-   * Rows selected by a range of positions, dates or timestamps, as JSON or CSV.
+   * History of an on-chain metric, by the series id from `search_series`: rows selected by a range of positions, dates or timestamps, as JSON or CSV.
    *
    * Endpoint: `GET /api/series/{series}/{index}`
    *
    * @param {SeriesName} series
    * @param {Index} index
-   * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-   * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-   * @param {Limit=} [limit] - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
-   * @param {Format=} [format]
-   * @param {{ signal?: AbortSignal, onValue?: (value: AnySeriesData | string) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {RangeIndex} [options.start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+   * @param {RangeIndex} [options.end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+   * @param {Limit} [options.limit] - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
+   * @param {Format} [options.format]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: AnySeriesData | string) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<AnySeriesData | string>}
    */
-  async getSeries(series, index, start, end, limit, format, { signal, onValue, cache, memCache } = {}) {
+  async getSeries(series, index, { start, end, limit, format, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (start !== undefined) params.set('start', String(start));
-    if (end !== undefined) params.set('end', String(end));
-    if (limit !== undefined) params.set('limit', String(limit));
-    if (format !== undefined) params.set('format', String(format));
+    if (start != null) params.set('start', String(start));
+    if (end != null) params.set('end', String(end));
+    if (limit != null) params.set('limit', String(limit));
+    if (format != null) params.set('format', String(format));
     const query = params.toString();
     const path = `/api/series/${encodeURIComponent(series)}/${encodeURIComponent(index)}${query ? '?' + query : ''}`;
     if (format === 'csv') return this.getText(path, { signal, onValue, cache, memCache });
-    return _wrapSeriesData(await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(_wrapSeriesData(v))) }));
+    return _wrapSeriesData(await this._getCached(path, 'json', _readJson(_SERIES_KEEP), { signal, onValue: onValue && ((v) => onValue(_wrapSeriesData(v))), cache, memCache }));
   }
 
   /**
@@ -7068,40 +7013,48 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {SeriesName} series
    * @param {Index} index
-   * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-   * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-   * @param {Limit=} [limit] - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
-   * @param {Format=} [format]
-   * @param {{ signal?: AbortSignal, onValue?: (value: *[] | string) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<*[] | string>}
+   * @param {object} [options]
+   * @param {RangeIndex} [options.start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+   * @param {RangeIndex} [options.end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+   * @param {Limit} [options.limit] - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
+   * @param {Format} [options.format]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<*[]> | string) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<*[]> | string>}
    */
-  async getSeriesData(series, index, start, end, limit, format, { signal, onValue, cache, memCache } = {}) {
+  async getSeriesData(series, index, { start, end, limit, format, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (start !== undefined) params.set('start', String(start));
-    if (end !== undefined) params.set('end', String(end));
-    if (limit !== undefined) params.set('limit', String(limit));
-    if (format !== undefined) params.set('format', String(format));
+    if (start != null) params.set('start', String(start));
+    if (end != null) params.set('end', String(end));
+    if (limit != null) params.set('limit', String(limit));
+    if (format != null) params.set('format', String(format));
     const query = params.toString();
     const path = `/api/series/${encodeURIComponent(series)}/${encodeURIComponent(index)}/data${query ? '?' + query : ''}`;
     if (format === 'csv') return this.getText(path, { signal, onValue, cache, memCache });
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(true), { signal, onValue, cache, memCache });
   }
 
   /**
    * Get latest series value
    *
-   * Returns the single most recent value for a series, unwrapped (not inside a SeriesData object).
+   * Current value of an on-chain metric, by the series id from `search_series`. Returns the value alone, not inside a SeriesData object.
    *
    * Endpoint: `GET /api/series/{series}/{index}/latest`
    *
    * @param {SeriesName} series
    * @param {Index} index
-   * @param {{ signal?: AbortSignal, onValue?: (value: *) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: *) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<*>}
    */
   async getSeriesLatest(series, index, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/series/${encodeURIComponent(series)}/${encodeURIComponent(index)}/latest`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(true), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7111,12 +7064,16 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {SeriesName} series
    * @param {Index} index
-   * @param {{ signal?: AbortSignal, onValue?: (value: number) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<number>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<number>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<number>>}
    */
   async getSeriesLen(series, index, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/series/${encodeURIComponent(series)}/${encodeURIComponent(index)}/len`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7128,12 +7085,16 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {SeriesName} series
    * @param {Index} index
-   * @param {{ signal?: AbortSignal, onValue?: (value: Version) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Version>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Version>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<Version>>}
    */
   async getSeriesVersion(series, index, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/series/${encodeURIComponent(series)}/${encodeURIComponent(index)}/version`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7143,27 +7104,34 @@ class BitviewClient extends BitviewClientBase {
    *
    * Endpoint: `GET /api/series/bulk`
    *
-   * @param {SeriesList} series
-   * @param {Index} index
-   * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-   * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-   * @param {Limit=} [limit] - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
-   * @param {Format=} [format]
-   * @param {{ signal?: AbortSignal, onValue?: (value: AnySeriesData[] | string) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} options
+   * @param {SeriesList} options.series
+   * @param {Index} options.index
+   * @param {RangeIndex} [options.start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+   * @param {RangeIndex} [options.end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+   * @param {Limit} [options.limit] - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
+   * @param {Format} [options.format]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: AnySeriesData[] | string) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<AnySeriesData[] | string>}
    */
-  async getSeriesBulk(series, index, start, end, limit, format, { signal, onValue, cache, memCache } = {}) {
+  // @ts-expect-error Missing options are checked at runtime.
+  async getSeriesBulk({ series, index, start, end, limit, format, signal, onValue, cache, memCache } = {}) {
+    if (series == null) throw new TypeError('getSeriesBulk: options.series is required');
+    if (index == null) throw new TypeError('getSeriesBulk: options.index is required');
     const params = new URLSearchParams();
     params.set('series', String(series));
     params.set('index', String(index));
-    if (start !== undefined) params.set('start', String(start));
-    if (end !== undefined) params.set('end', String(end));
-    if (limit !== undefined) params.set('limit', String(limit));
-    if (format !== undefined) params.set('format', String(format));
+    if (start != null) params.set('start', String(start));
+    if (end != null) params.set('end', String(end));
+    if (limit != null) params.set('limit', String(limit));
+    if (format != null) params.set('format', String(format));
     const query = params.toString();
     const path = `/api/series/bulk${query ? '?' + query : ''}`;
     if (format === 'csv') return this.getText(path, { signal, onValue, cache, memCache });
-    return (await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(v.map(_wrapSeriesData))) })).map(_wrapSeriesData);
+    return (await this._getCached(path, 'json', _readJson(_SERIES_KEEP), { signal, onValue: onValue && ((v) => onValue(v.map(_wrapSeriesData))), cache, memCache })).map(_wrapSeriesData);
   }
 
   /**
@@ -7172,57 +7140,69 @@ class BitviewClient extends BitviewClientBase {
    * Every URPD cohort once a UTXO set is published (none before): the age aggregates (`all`, `sth`, `lth`, `age_under_4m`, ...), then the age bands from the youngest (`age_under_1h`, `age_1h_to_1d`, ...).
    *
    * Endpoint: `GET /api/urpd`
-   * @param {{ signal?: AbortSignal, onValue?: (value: UrpdCohort[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<UrpdCohort[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<UrpdCohort[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<UrpdCohort[]>>}
    */
   async listUrpdCohorts({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/urpd`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
    * Latest URPD
    *
-   * URPD for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.
+   * URPD (UTXO realized price distribution: how much supply last moved at each price) for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.
    *
    * Endpoint: `GET /api/urpd/{cohort}`
    *
    * @param {UrpdCohort} cohort
-   * @param {UrpdAggregation=} [agg] - Aggregation strategy. Default: raw (no aggregation).
-   * @param {UrpdWeight=} [weight] - Supply weighting. Default: none (unweighted).
-   * @param {{ signal?: AbortSignal, onValue?: (value: Urpd) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Urpd>}
+   * @param {object} [options]
+   * @param {UrpdAggregation} [options.agg] - Aggregation strategy. Default: raw (no aggregation).
+   * @param {UrpdWeight} [options.weight] - Supply weighting. Default: none (unweighted).
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Urpd>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<Urpd>>}
    */
-  async getUrpdLatest(cohort, agg, weight, { signal, onValue, cache, memCache } = {}) {
+  async getUrpdLatest(cohort, { agg, weight, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (agg !== undefined) params.set('agg', String(agg));
-    if (weight !== undefined) params.set('weight', String(weight));
+    if (agg != null) params.set('agg', String(agg));
+    if (weight != null) params.set('weight', String(weight));
     const query = params.toString();
     const path = `/api/urpd/${encodeURIComponent(cohort)}${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
    * URPD at block height or date
    *
-   * URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is DMD. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
+   * URPD (UTXO realized price distribution: how much supply last moved at each price) for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is DMD. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
    *
    * Endpoint: `GET /api/urpd/{cohort}/{point}`
    *
    * @param {UrpdCohort} cohort
    * @param {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
-   * @param {UrpdAggregation=} [agg] - Aggregation strategy. Default: raw (no aggregation).
-   * @param {UrpdWeight=} [weight] - Supply weighting. Default: none (unweighted).
-   * @param {{ signal?: AbortSignal, onValue?: (value: Urpd) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Urpd>}
+   * @param {object} [options]
+   * @param {UrpdAggregation} [options.agg] - Aggregation strategy. Default: raw (no aggregation).
+   * @param {UrpdWeight} [options.weight] - Supply weighting. Default: none (unweighted).
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Urpd>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<Urpd>>}
    */
-  async getUrpd(cohort, point, agg, weight, { signal, onValue, cache, memCache } = {}) {
+  async getUrpd(cohort, point, { agg, weight, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (agg !== undefined) params.set('agg', String(agg));
-    if (weight !== undefined) params.set('weight', String(weight));
+    if (agg != null) params.set('agg', String(agg));
+    if (weight != null) params.set('weight', String(weight));
     const query = params.toString();
     const path = `/api/urpd/${encodeURIComponent(cohort)}/${encodeURIComponent(point)}${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7233,12 +7213,16 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustment)*
    *
    * Endpoint: `GET /api/v1/difficulty-adjustment`
-   * @param {{ signal?: AbortSignal, onValue?: (value: DifficultyAdjustment) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<DifficultyAdjustment>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<DifficultyAdjustment>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<DifficultyAdjustment>>}
    */
   async getDifficultyAdjustment({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/difficulty-adjustment`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7249,12 +7233,16 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-price)*
    *
    * Endpoint: `GET /api/v1/prices`
-   * @param {{ signal?: AbortSignal, onValue?: (value: PricePoint) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<PricePoint>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<PricePoint>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<PricePoint>>}
    */
   async getPrices({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/prices`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7266,18 +7254,22 @@ class BitviewClient extends BitviewClientBase {
    *
    * Endpoint: `GET /api/v1/historical-price`
    *
-   * @param {Timestamp=} [timestamp] - UNIX timestamp: the latest close at or before it
-   * @param {Currency=} [currency] - Quote currency: USD, the only one served
-   * @param {{ signal?: AbortSignal, onValue?: (value: HistoricalPrice) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<HistoricalPrice>}
+   * @param {object} [options]
+   * @param {Timestamp} [options.timestamp] - UNIX timestamp: the latest close at or before it
+   * @param {Currency} [options.currency] - Quote currency: USD, the only one served
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<HistoricalPrice>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<HistoricalPrice>>}
    */
-  async getHistoricalPrice(timestamp, currency, { signal, onValue, cache, memCache } = {}) {
+  async getHistoricalPrice({ timestamp, currency, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (timestamp !== undefined) params.set('timestamp', String(timestamp));
-    if (currency !== undefined) params.set('currency', String(currency));
+    if (timestamp != null) params.set('timestamp', String(timestamp));
+    if (currency != null) params.set('currency', String(currency));
     const query = params.toString();
     const path = `/api/v1/historical-price${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson({ "exchangeRates": true }), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7289,13 +7281,17 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {AddressOutputType} address_type
    * @param {string} prefix - First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw
-address payload bytes.
-   * @param {{ signal?: AbortSignal, onValue?: (value: AddressHashPrefixMatches) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<AddressHashPrefixMatches>}
+   *   address payload bytes.
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<AddressHashPrefixMatches>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<AddressHashPrefixMatches>>}
    */
   async getAddressHashPrefixMatches(address_type, prefix, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/address/hash-prefix/${encodeURIComponent(address_type)}/${encodeURIComponent(prefix)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7308,12 +7304,16 @@ address payload bytes.
    * Endpoint: `GET /api/address/{address}`
    *
    * @param {Address} address
-   * @param {{ signal?: AbortSignal, onValue?: (value: AddressStats) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<AddressStats>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<AddressStats>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<AddressStats>>}
    */
   async getAddress(address, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/address/${encodeURIComponent(address)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7326,19 +7326,23 @@ address payload bytes.
    * Endpoint: `GET /api/address/{address}/txs`
    *
    * @param {Address} address
-   * @param {Txid=} [after_txid] - Continue after this transaction, a mempool or a confirmed one: the older ones (a confirmed
-cursor skips the mempool). One that is neither answers 422.
-   * @param {number=} [max_txs] - Transactions to return, at most 50 (the default); larger values return 50.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Transaction[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Transaction[]>}
+   * @param {object} [options]
+   * @param {Txid} [options.after_txid] - Continue after this transaction, a mempool or a confirmed one: the older ones (a confirmed
+   *   cursor skips the mempool). One that is neither answers 422.
+   * @param {number} [options.max_txs] - Transactions to return, at most 50 (the default); larger values return 50.
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Transaction[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<Transaction[]>>}
    */
-  async getAddressTxs(address, after_txid, max_txs, { signal, onValue, cache, memCache } = {}) {
+  async getAddressTxs(address, { after_txid, max_txs, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (after_txid !== undefined) params.set('after_txid', String(after_txid));
-    if (max_txs !== undefined) params.set('max_txs', String(max_txs));
+    if (after_txid != null) params.set('after_txid', String(after_txid));
+    if (max_txs != null) params.set('max_txs', String(max_txs));
     const query = params.toString();
     const path = `/api/address/${encodeURIComponent(address)}/txs${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7351,16 +7355,20 @@ cursor skips the mempool). One that is neither answers 422.
    * Endpoint: `GET /api/address/{address}/txs/chain`
    *
    * @param {Address} address
-   * @param {number=} [max_txs] - Transactions to return, at most 25 (the default); larger values return 25.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Transaction[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Transaction[]>}
+   * @param {object} [options]
+   * @param {number} [options.max_txs] - Transactions to return, at most 25 (the default); larger values return 25.
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Transaction[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<Transaction[]>>}
    */
-  async getAddressConfirmedTxs(address, max_txs, { signal, onValue, cache, memCache } = {}) {
+  async getAddressConfirmedTxs(address, { max_txs, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (max_txs !== undefined) params.set('max_txs', String(max_txs));
+    if (max_txs != null) params.set('max_txs', String(max_txs));
     const query = params.toString();
     const path = `/api/address/${encodeURIComponent(address)}/txs/chain${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7374,16 +7382,20 @@ cursor skips the mempool). One that is neither answers 422.
    *
    * @param {Address} address
    * @param {Txid} after_txid - Last txid from the previous page (return transactions strictly older than this)
-   * @param {number=} [max_txs] - Transactions to return, at most 25 (the default); larger values return 25.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Transaction[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Transaction[]>}
+   * @param {object} [options]
+   * @param {number} [options.max_txs] - Transactions to return, at most 25 (the default); larger values return 25.
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Transaction[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<Transaction[]>>}
    */
-  async getAddressConfirmedTxsAfter(address, after_txid, max_txs, { signal, onValue, cache, memCache } = {}) {
+  async getAddressConfirmedTxsAfter(address, after_txid, { max_txs, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (max_txs !== undefined) params.set('max_txs', String(max_txs));
+    if (max_txs != null) params.set('max_txs', String(max_txs));
     const query = params.toString();
     const path = `/api/address/${encodeURIComponent(address)}/txs/chain/${encodeURIComponent(after_txid)}${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7396,16 +7408,20 @@ cursor skips the mempool). One that is neither answers 422.
    * Endpoint: `GET /api/address/{address}/txs/mempool`
    *
    * @param {Address} address
-   * @param {number=} [max_txs] - Transactions to return, at most 50 (the default); larger values return 50.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Transaction[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Transaction[]>}
+   * @param {object} [options]
+   * @param {number} [options.max_txs] - Transactions to return, at most 50 (the default); larger values return 50.
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Transaction[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<Transaction[]>>}
    */
-  async getAddressMempoolTxs(address, max_txs, { signal, onValue, cache, memCache } = {}) {
+  async getAddressMempoolTxs(address, { max_txs, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (max_txs !== undefined) params.set('max_txs', String(max_txs));
+    if (max_txs != null) params.set('max_txs', String(max_txs));
     const query = params.toString();
     const path = `/api/address/${encodeURIComponent(address)}/txs/mempool${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7418,12 +7434,16 @@ cursor skips the mempool). One that is neither answers 422.
    * Endpoint: `GET /api/address/{address}/utxo`
    *
    * @param {Address} address
-   * @param {{ signal?: AbortSignal, onValue?: (value: Utxo[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Utxo[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Utxo[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<Utxo[]>>}
    */
   async getAddressUtxos(address, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/address/${encodeURIComponent(address)}/utxo`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7436,29 +7456,39 @@ cursor skips the mempool). One that is neither answers 422.
    * Endpoint: `GET /api/v1/validate-address/{address}`
    *
    * @param {string} address - DebitMyData address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130);
-anything else answers 400, as mempool.space does
-   * @param {{ signal?: AbortSignal, onValue?: (value: AddressValidation) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<AddressValidation>}
+   *   anything else answers 400, as mempool.space does
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<AddressValidation>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<AddressValidation>>}
    */
   async validateAddress(address, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/validate-address/${encodeURIComponent(address)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
    * Block information
+   *
+   * Details of a block by hash: height, time, transaction count, size, weight, and difficulty.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*
    *
    * Endpoint: `GET /api/block/{hash}`
    *
    * @param {BlockHash} hash
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockInfo) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockInfo>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockInfo>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<BlockInfo>>}
    */
   async getBlock(hash, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/block/${encodeURIComponent(hash)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7471,12 +7501,16 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/v1/block/{hash}`
    *
    * @param {BlockHash} hash
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockInfoV1) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockInfoV1>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockInfoV1>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<BlockInfoV1>>}
    */
   async getBlockV1(hash, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/block/${encodeURIComponent(hash)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7489,7 +7523,11 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/block/{hash}/header`
    *
    * @param {BlockHash} hash
-   * @param {{ signal?: AbortSignal, onValue?: (value: Hex) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Hex) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Hex>}
    */
   async getBlockHeader(hash, { signal, onValue, cache, memCache } = {}) {
@@ -7507,7 +7545,11 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/block-height/{height}`
    *
    * @param {Height} height
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockHash) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: BlockHash) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<BlockHash>}
    */
   async getBlockHashByHeight(height, { signal, onValue, cache, memCache } = {}) {
@@ -7525,12 +7567,16 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/v1/mining/blocks/timestamp/{timestamp}`
    *
    * @param {Timestamp} timestamp
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockTimestamp) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockTimestamp>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockTimestamp>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<BlockTimestamp>>}
    */
   async getBlockByTimestamp(timestamp, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/blocks/timestamp/${encodeURIComponent(timestamp)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7543,7 +7589,11 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/block/{hash}/raw`
    *
    * @param {BlockHash} hash
-   * @param {{ signal?: AbortSignal, onValue?: (value: Uint8Array) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Uint8Array) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Uint8Array>}
    */
   async getBlockRaw(hash, { signal, onValue, cache, memCache } = {}) {
@@ -7561,35 +7611,51 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/block/{hash}/status`
    *
    * @param {BlockHash} hash
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockStatus) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockStatus>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockStatus>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<BlockStatus>>}
    */
   async getBlockStatus(hash, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/block/${encodeURIComponent(hash)}/status`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
    * Block tip height
    *
+   * Height of the latest block.
+   *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*
    *
    * Endpoint: `GET /api/blocks/tip/height`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Height) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Height) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Height>}
    */
   async getBlockTipHeight({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/blocks/tip/height`;
-    return Number(await this.getText(path, { signal, cache, memCache, onValue: onValue ? (v) => onValue(Number(v)) : undefined }));
+    return Number(await this.getText(path, { signal, onValue: onValue ? (v) => onValue(Number(v)) : undefined, cache, memCache }));
   }
 
   /**
    * Block tip hash
    *
+   * Hash of the latest block.
+   *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*
    *
    * Endpoint: `GET /api/blocks/tip/hash`
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockHash) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: BlockHash) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<BlockHash>}
    */
   async getBlockTipHash({ signal, onValue, cache, memCache } = {}) {
@@ -7608,7 +7674,11 @@ anything else answers 400, as mempool.space does
    *
    * @param {BlockHash} hash
    * @param {BlockTxIndex} index - Transaction index within the block (0-based)
-   * @param {{ signal?: AbortSignal, onValue?: (value: Txid) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Txid) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Txid>}
    */
   async getBlockTxid(hash, index, { signal, onValue, cache, memCache } = {}) {
@@ -7626,12 +7696,16 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/block/{hash}/txids`
    *
    * @param {BlockHash} hash
-   * @param {{ signal?: AbortSignal, onValue?: (value: Txid[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Txid[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Txid[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<Txid[]>>}
    */
   async getBlockTxids(hash, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/block/${encodeURIComponent(hash)}/txids`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7644,12 +7718,16 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/block/{hash}/txs`
    *
    * @param {BlockHash} hash
-   * @param {{ signal?: AbortSignal, onValue?: (value: Transaction[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Transaction[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Transaction[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<Transaction[]>>}
    */
   async getBlockTxs(hash, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/block/${encodeURIComponent(hash)}/txs`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7663,12 +7741,16 @@ anything else answers 400, as mempool.space does
    *
    * @param {BlockHash} hash
    * @param {BlockTxIndex} start_index - Starting transaction index within the block (0-based)
-   * @param {{ signal?: AbortSignal, onValue?: (value: Transaction[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Transaction[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Transaction[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<Transaction[]>>}
    */
   async getBlockTxsFromIndex(hash, start_index, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/block/${encodeURIComponent(hash)}/txs/${encodeURIComponent(start_index)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7679,12 +7761,16 @@ anything else answers 400, as mempool.space does
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*
    *
    * Endpoint: `GET /api/blocks`
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockInfo[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockInfo[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockInfo[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<BlockInfo[]>>}
    */
   async getBlocks({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/blocks`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7697,12 +7783,16 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/blocks/{height}`
    *
    * @param {Height} height
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockInfo[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockInfo[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockInfo[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<BlockInfo[]>>}
    */
   async getBlocksFromHeight(height, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/blocks/${encodeURIComponent(height)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7713,12 +7803,16 @@ anything else answers 400, as mempool.space does
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*
    *
    * Endpoint: `GET /api/v1/blocks`
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockInfoV1[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockInfoV1[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockInfoV1[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<BlockInfoV1[]>>}
    */
   async getBlocksV1({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/blocks`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7731,26 +7825,36 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/v1/blocks/{height}`
    *
    * @param {Height} height
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockInfoV1[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockInfoV1[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockInfoV1[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<BlockInfoV1[]>>}
    */
   async getBlocksV1FromHeight(height, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/blocks/${encodeURIComponent(height)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
    * List all mining pools
    *
+   * Every known mining pool.
+   *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
    *
    * Endpoint: `GET /api/v1/mining/pools`
-   * @param {{ signal?: AbortSignal, onValue?: (value: PoolInfo[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<PoolInfo[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<PoolInfo[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<PoolInfo[]>>}
    */
   async getPools({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/pools`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7763,12 +7867,16 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/v1/mining/pools/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: PoolsSummary) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<PoolsSummary>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<PoolsSummary>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<PoolsSummary>>}
    */
   async getPoolRanking(time_period, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/pools/${encodeURIComponent(time_period)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7781,12 +7889,16 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/v1/mining/pool/{slug}`
    *
    * @param {PoolSlug} slug
-   * @param {{ signal?: AbortSignal, onValue?: (value: PoolDetail) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<PoolDetail>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<PoolDetail>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<PoolDetail>>}
    */
   async getPool(slug, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/pool/${encodeURIComponent(slug)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7797,12 +7909,16 @@ anything else answers 400, as mempool.space does
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
    *
    * Endpoint: `GET /api/v1/mining/hashrate/pools`
-   * @param {{ signal?: AbortSignal, onValue?: (value: PoolHashrateEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<PoolHashrateEntry[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<PoolHashrateEntry[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<PoolHashrateEntry[]>>}
    */
   async getPoolsHashrate({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/hashrate/pools`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7815,12 +7931,16 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/v1/mining/hashrate/pools/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: PoolHashrateEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<PoolHashrateEntry[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<PoolHashrateEntry[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<PoolHashrateEntry[]>>}
    */
   async getPoolsHashrateByPeriod(time_period, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/hashrate/pools/${encodeURIComponent(time_period)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7833,12 +7953,16 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/v1/mining/pool/{slug}/hashrate`
    *
    * @param {PoolSlug} slug
-   * @param {{ signal?: AbortSignal, onValue?: (value: PoolHashrateEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<PoolHashrateEntry[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<PoolHashrateEntry[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<PoolHashrateEntry[]>>}
    */
   async getPoolHashrate(slug, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/pool/${encodeURIComponent(slug)}/hashrate`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7851,12 +7975,16 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/v1/mining/pool/{slug}/blocks`
    *
    * @param {PoolSlug} slug
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockInfoV1[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockInfoV1[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockInfoV1[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<BlockInfoV1[]>>}
    */
   async getPoolBlocks(slug, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/pool/${encodeURIComponent(slug)}/blocks`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7870,12 +7998,16 @@ anything else answers 400, as mempool.space does
    *
    * @param {PoolSlug} slug
    * @param {Height} height
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockInfoV1[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockInfoV1[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockInfoV1[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<BlockInfoV1[]>>}
    */
   async getPoolBlocksFromHeight(slug, height, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/pool/${encodeURIComponent(slug)}/blocks/${encodeURIComponent(height)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7886,12 +8018,16 @@ anything else answers 400, as mempool.space does
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-hashrate)*
    *
    * Endpoint: `GET /api/v1/mining/hashrate`
-   * @param {{ signal?: AbortSignal, onValue?: (value: HashrateSummary) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<HashrateSummary>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<HashrateSummary>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<HashrateSummary>>}
    */
   async getHashrate({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/hashrate`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7904,26 +8040,36 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/v1/mining/hashrate/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: HashrateSummary) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<HashrateSummary>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<HashrateSummary>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<HashrateSummary>>}
    */
   async getHashrateByPeriod(time_period, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/hashrate/${encodeURIComponent(time_period)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
    * Difficulty adjustments (all time)
    *
+   * Every difficulty adjustment in the chain's history.
+   *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*
    *
    * Endpoint: `GET /api/v1/mining/difficulty-adjustments`
-   * @param {{ signal?: AbortSignal, onValue?: (value: DifficultyAdjustmentEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<DifficultyAdjustmentEntry[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<DifficultyAdjustmentEntry[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<DifficultyAdjustmentEntry[]>>}
    */
   async getDifficultyAdjustments({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/difficulty-adjustments`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7936,12 +8082,16 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/v1/mining/difficulty-adjustments/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: DifficultyAdjustmentEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<DifficultyAdjustmentEntry[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<DifficultyAdjustmentEntry[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<DifficultyAdjustmentEntry[]>>}
    */
   async getDifficultyAdjustmentsByPeriod(time_period, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/difficulty-adjustments/${encodeURIComponent(time_period)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7954,12 +8104,16 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/v1/mining/reward-stats/{block_count}`
    *
    * @param {number} block_count - Number of recent blocks to include
-   * @param {{ signal?: AbortSignal, onValue?: (value: RewardStats) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<RewardStats>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<RewardStats>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<RewardStats>>}
    */
   async getRewardStats(block_count, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/reward-stats/${encodeURIComponent(block_count)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7972,12 +8126,16 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/v1/mining/blocks/fees/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockFeesEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockFeesEntry[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockFeesEntry[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<BlockFeesEntry[]>>}
    */
   async getBlockFees(time_period, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/blocks/fees/${encodeURIComponent(time_period)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -7990,12 +8148,16 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/v1/mining/blocks/rewards/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockRewardsEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockRewardsEntry[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockRewardsEntry[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<BlockRewardsEntry[]>>}
    */
   async getBlockRewards(time_period, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/blocks/rewards/${encodeURIComponent(time_period)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8008,12 +8170,16 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/v1/mining/blocks/fee-rates/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockFeeRatesEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockFeeRatesEntry[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockFeeRatesEntry[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<BlockFeeRatesEntry[]>>}
    */
   async getBlockFeeRates(time_period, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/blocks/fee-rates/${encodeURIComponent(time_period)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8026,12 +8192,16 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/v1/mining/blocks/fee-rates/{time_period}/precise`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockFeeRatesPreciseEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockFeeRatesPreciseEntry[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockFeeRatesPreciseEntry[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<BlockFeeRatesPreciseEntry[]>>}
    */
   async getBlockFeeRatesPrecise(time_period, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/blocks/fee-rates/${encodeURIComponent(time_period)}/precise`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8044,28 +8214,36 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/v1/mining/blocks/sizes-weights/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockSizesWeights) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockSizesWeights>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockSizesWeights>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<BlockSizesWeights>>}
    */
   async getBlockSizesWeights(time_period, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/blocks/sizes-weights/${encodeURIComponent(time_period)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
    * Projected mempool blocks
    *
-   * Projected blocks for fee estimation. Block 0 reflects the node's actual next-block selection; blocks 1+ are a fee-tier approximation.
+   * Projected blocks for fee estimation, up to eight as mempool.space's. Every block, block 0 the next, is packed as Core's block assembler packs (whole CPFP chunks by feerate, in dependency order, within Core's default weight and sigop budgets), ranked by the node's signed modified fees (including `prioritisetransaction`), with paid fees in the statistics. The last holds whatever is left: more than a block when the mempool is busy. `GET /api/mempool-blocks/{index}` serves each with its transactions, except such a last one.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*
    *
    * Endpoint: `GET /api/v1/fees/mempool-blocks`
-   * @param {{ signal?: AbortSignal, onValue?: (value: MempoolBlock[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<MempoolBlock[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<MempoolBlock[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<MempoolBlock[]>>}
    */
   async getMempoolBlocks({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/fees/mempool-blocks`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8076,12 +8254,16 @@ anything else answers 400, as mempool.space does
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*
    *
    * Endpoint: `GET /api/v1/fees/recommended`
-   * @param {{ signal?: AbortSignal, onValue?: (value: RecommendedFees) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<RecommendedFees>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<RecommendedFees>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<RecommendedFees>>}
    */
   async getRecommendedFees({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/fees/recommended`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8092,26 +8274,36 @@ anything else answers 400, as mempool.space does
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*
    *
    * Endpoint: `GET /api/v1/fees/precise`
-   * @param {{ signal?: AbortSignal, onValue?: (value: PreciseRecommendedFees) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<PreciseRecommendedFees>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<PreciseRecommendedFees>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<PreciseRecommendedFees>>}
    */
   async getPreciseFees({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/fees/precise`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
    * Mempool statistics
    *
+   * Current mempool backlog: transaction count, total virtual size, total fees, and fee histogram.
+   *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*
    *
    * Endpoint: `GET /api/mempool`
-   * @param {{ signal?: AbortSignal, onValue?: (value: MempoolInfo) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<MempoolInfo>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<MempoolInfo>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<MempoolInfo>>}
    */
   async getMempool({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/mempool`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8122,12 +8314,16 @@ anything else answers 400, as mempool.space does
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-transaction-ids)*
    *
    * Endpoint: `GET /api/mempool/txids`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Txid[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Txid[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Txid[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<Txid[]>>}
    */
   async getMempoolTxids({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/mempool/txids`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8138,12 +8334,16 @@ anything else answers 400, as mempool.space does
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-recent)*
    *
    * Endpoint: `GET /api/mempool/recent`
-   * @param {{ signal?: AbortSignal, onValue?: (value: MempoolRecentTx[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<MempoolRecentTx[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<MempoolTxSummary[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<MempoolTxSummary[]>>}
    */
   async getMempoolRecent({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/mempool/recent`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8154,12 +8354,16 @@ anything else answers 400, as mempool.space does
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-replacements)*
    *
    * Endpoint: `GET /api/v1/replacements`
-   * @param {{ signal?: AbortSignal, onValue?: (value: ReplacementNode[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<ReplacementNode[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<ReplacementNode[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<ReplacementNode[]>>}
    */
   async getReplacements({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/replacements`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8170,45 +8374,77 @@ anything else answers 400, as mempool.space does
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-fullrbf-replacements)*
    *
    * Endpoint: `GET /api/v1/fullrbf/replacements`
-   * @param {{ signal?: AbortSignal, onValue?: (value: ReplacementNode[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<ReplacementNode[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<ReplacementNode[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<ReplacementNode[]>>}
    */
   async getFullrbfReplacements({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/fullrbf/replacements`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
    * Projected mempool block
    *
-   * A projected mempool block with its transactions in order and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection, and the only one served for now (others answer 404). The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
+   * A projected mempool block with its transactions in block order, each in esplora's light shape as `GET /api/mempool/recent` lists them (`txid`, `fee`, `vsize`, `value`: the whole body is at `GET /api/tx/{txid}`), and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, packed by Bitview as the rest are. The last one answers 404 while it holds more than a block (what's left of a busy mempool: only its stats are served), as does a block past the projection. The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
    *
    * Endpoint: `GET /api/mempool-blocks/{index}`
    *
    * @param {MempoolBlockIndex} index
-   * @param {{ signal?: AbortSignal, onValue?: (value: MempoolBlockContent) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<MempoolBlockContent>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<MempoolBlockContent>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<MempoolBlockContent>>}
    */
   async getMempoolBlock(index, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/mempool-blocks/${encodeURIComponent(index)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
    * Projected mempool block changes
    *
-   * The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction object, a body to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict cached bodies. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. Returns `404` when `since` has aged out of server history: fetch `GET /api/mempool-blocks/{index}` again.
+   * The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction in the same light shape as the block's, to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict what they cached for them. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. A `since` this server doesn't hold (aged out, another server's, or from before a restart) gets the whole block as new transactions and an empty `removed`: rebuild from `order` alone, and prune what was cached per transaction to the txids in the new `order`.
    *
    * Endpoint: `GET /api/mempool-blocks/{index}/diff/{since}`
    *
    * @param {MempoolBlockIndex} index
    * @param {MempoolBlockHash} since - The `hash` of the client's copy, from the block or a previous diff
-   * @param {{ signal?: AbortSignal, onValue?: (value: MempoolBlockDiff) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<MempoolBlockDiff>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<MempoolBlockDiff>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<MempoolBlockDiff>>}
    */
   async getMempoolBlockDiff(index, since, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/mempool-blocks/${encodeURIComponent(index)}/diff/${encodeURIComponent(since)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Next block template
+   *
+   * The next block's template (BIP 22), built by this server: projected block 0's transactions in its order, as `GET /api/mempool-blocks/0` serves them, every parent before its children. It holds `version`, `previousblockhash`, `transactions` (each with `data`, `txid`, `hash`, `depends`, `fee`, `sigops`, `weight`), `coinbasevalue` (the subsidy plus the transactions' fees), `target`, `bits`, `curtime`, `mintime` (the tip's median time past plus one), `height`, `default_witness_commitment` and the rest, the format pools and mining software read. A complete block once a miner adds a coinbase paying `coinbasevalue` and carrying `default_witness_commitment`: each is served only after the node accepts the block it describes (`getblocktemplate` proposal mode, every check but proof of work), checked apart from the pool's publication, so it trails block 0 by that check (about 0.15 s). `503` until one is accepted at the current tip.
+   *
+   * *[BIP 22](https://github.com/bitcoin/bips/blob/master/bip-0022.mediawiki)*
+   *
+   * Endpoint: `GET /api/block-template`
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockTemplate>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<BlockTemplate>>}
+   */
+  async getBlockTemplate({ signal, onValue, cache, memCache } = {}) {
+    const path = `/api/block-template`;
+    return this._getCached(path, 'json', _readJson({ "coinbaseaux": true, "vbavailable": true }), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8219,7 +8455,11 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/tx-index/{index}`
    *
    * @param {TxIndex} index - Global transaction index across the chain
-   * @param {{ signal?: AbortSignal, onValue?: (value: Txid) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Txid) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Txid>}
    */
   async getTxidByIndex(index, { signal, onValue, cache, memCache } = {}) {
@@ -8237,46 +8477,60 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/v1/cpfp/{txid}`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: Cpfp) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Cpfp>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Cpfp>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<Cpfp>>}
    */
   async getCpfp(txid, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/cpfp/${encodeURIComponent(txid)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
    * RBF replacement history
    *
-   * Returns the RBF replacement tree for a transaction, if any. Both `replacements` and `replaces` are null when the tx has no known RBF history within the mempool monitor's retention window.
+   * Returns the RBF replacement tree for a transaction, if any. Both `replacements` and `replaces` are null when the tx has no known RBF history within the mempool monitor's retention window. A history past 63 versions or 4,096 transactions comes cut to its newest part, its root marked `"truncated": true`.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-rbf-history)*
    *
    * Endpoint: `GET /api/v1/tx/{txid}/rbf`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: RbfResponse) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<RbfResponse>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<RbfResponse>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<RbfResponse>>}
    */
   async getTxRbf(txid, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/tx/${encodeURIComponent(txid)}/rbf`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
    * Transaction information
+   *
+   * Full details of a transaction by txid: inputs, outputs, fee, size, and confirmation status.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction)*
    *
    * Endpoint: `GET /api/tx/{txid}`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: Transaction) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Transaction>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Transaction>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<Transaction>>}
    */
   async getTx(txid, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/tx/${encodeURIComponent(txid)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8289,7 +8543,11 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/tx/{txid}/hex`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: Hex) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Hex) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Hex>}
    */
   async getTxHex(txid, { signal, onValue, cache, memCache } = {}) {
@@ -8307,7 +8565,11 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/tx/{txid}/merkleblock-proof`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: Hex) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Hex) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Hex>}
    */
   async getTxMerkleblockProof(txid, { signal, onValue, cache, memCache } = {}) {
@@ -8318,17 +8580,23 @@ anything else answers 400, as mempool.space does
   /**
    * Transaction merkle proof
    *
+   * Merkle inclusion proof of a confirmed transaction in its block.
+   *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkle-proof)*
    *
    * Endpoint: `GET /api/tx/{txid}/merkle-proof`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: MerkleProof) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<MerkleProof>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<MerkleProof>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<MerkleProof>>}
    */
   async getTxMerkleProof(txid, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/tx/${encodeURIComponent(txid)}/merkle-proof`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8342,12 +8610,16 @@ anything else answers 400, as mempool.space does
    *
    * @param {Txid} txid
    * @param {Vout} vout - Output index
-   * @param {{ signal?: AbortSignal, onValue?: (value: TxOutspend) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<TxOutspend>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<TxOutspend>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<TxOutspend>>}
    */
   async getTxOutspend(txid, vout, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/tx/${encodeURIComponent(txid)}/outspend/${encodeURIComponent(vout)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8360,12 +8632,16 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/tx/{txid}/outspends`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: TxOutspend[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<TxOutspend[]>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<TxOutspend[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<TxOutspend[]>>}
    */
   async getTxOutspends(txid, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/tx/${encodeURIComponent(txid)}/outspends`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8378,7 +8654,11 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/tx/{txid}/raw`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: Uint8Array) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Uint8Array) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Uint8Array>}
    */
   async getTxRaw(txid, { signal, onValue, cache, memCache } = {}) {
@@ -8396,12 +8676,16 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/tx/{txid}/status`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: TxStatus) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<TxStatus>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<TxStatus>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<TxStatus>>}
    */
   async getTxStatus(txid, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/tx/${encodeURIComponent(txid)}/status`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8413,16 +8697,22 @@ anything else answers 400, as mempool.space does
    *
    * Endpoint: `GET /api/v1/transaction-times`
    *
-   * @param {Txid[]} txids - Transaction IDs to look up (max 100 per request).
-   * @param {{ signal?: AbortSignal, onValue?: (value: Timestamp[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Timestamp[]>}
+   * @param {object} options
+   * @param {Txid[]} options.txids - Transaction IDs to look up (max 100 per request).
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Timestamp[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<Timestamp[]>>}
    */
-  async getTransactionTimes(txids, { signal, onValue, cache, memCache } = {}) {
+  // @ts-expect-error Missing options are checked at runtime.
+  async getTransactionTimes({ txids, signal, onValue, cache, memCache } = {}) {
+    if (txids == null) throw new TypeError('getTransactionTimes: options.txids is required');
     const params = new URLSearchParams();
     for (const _v of txids) params.append('txId[]', String(_v));
     const query = params.toString();
     const path = `/api/v1/transaction-times${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8435,12 +8725,13 @@ anything else answers 400, as mempool.space does
    * Endpoint: `POST /api/tx`
    *
    * @param {string} body
-   * @param {{ signal?: AbortSignal }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
    * @returns {Promise<Txid>}
    */
   async postTx(body, { signal } = {}) {
     const path = `/api/tx`;
-    return this.postText(path, body, { signal });
+    return this.postText(path, body, { signal, contentType: 'text/plain; charset=utf-8' });
   }
 
   /**
@@ -8449,12 +8740,16 @@ anything else answers 400, as mempool.space does
    * The UTXO set after the latest published block, in the layout of `GET /api/utxo-set/{point}`.
    *
    * Endpoint: `GET /api/utxo-set`
-   * @param {{ signal?: AbortSignal, onValue?: (value: UtxoSet) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<UtxoSet>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<UtxoSet>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<UtxoSet>>}
    */
   async getUtxoSetLatest({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/utxo-set`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8465,12 +8760,16 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/utxo-set/{point}`
    *
    * @param {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
-   * @param {{ signal?: AbortSignal, onValue?: (value: UtxoSet) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<UtxoSet>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<UtxoSet>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<UtxoSet>>}
    */
   async getUtxoSet(point, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/utxo-set/${encodeURIComponent(point)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8481,12 +8780,202 @@ anything else answers 400, as mempool.space does
    * Endpoint: `GET /api/utxo-set/{point}/diff`
    *
    * @param {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
-   * @param {{ signal?: AbortSignal, onValue?: (value: UtxoSetDiff) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<UtxoSetDiff>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<UtxoSetDiff>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<UtxoSetDiff>>}
    */
   async getUtxoSetDiff(point, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/utxo-set/${encodeURIComponent(point)}/diff`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Server info
+   *
+   * The network, the last indexed block, and which tweak modes the server serves: the full index and cut-through, both taking a dust limit.
+   *
+   * Endpoint: `GET /blindbit/mainnet/info`
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlindbitInfo>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<BlindbitInfo>>}
+   */
+  async getBlindbitInfo({ signal, onValue, cache, memCache } = {}) {
+    const path = `/blindbit/mainnet/info`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Last indexed block
+   *
+   * The height of the last indexed block.
+   *
+   * Endpoint: `GET /blindbit/mainnet/block-height`
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlindbitBlockHeight>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<BlindbitBlockHeight>>}
+   */
+  async getBlindbitBlockHeight({ signal, onValue, cache, memCache } = {}) {
+    const path = `/blindbit/mainnet/block-height`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Block hash
+   *
+   * The hash of the block at a height.
+   *
+   * Endpoint: `GET /blindbit/mainnet/block-hash/{height}`
+   *
+   * @param {Height} height
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlindbitBlockHash>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<BlindbitBlockHash>>}
+   */
+  async getBlindbitBlockHash(height, { signal, onValue, cache, memCache } = {}) {
+    const path = `/blindbit/mainnet/block-hash/${encodeURIComponent(height)}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Tweak index
+   *
+   * The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional and takes any value, as BlindBit takes it (0 when left out), but transactions whose Taproot outputs all hold less than 600 sats aren't held, so any limit below 600 answers as 600.
+   *
+   * Endpoint: `GET /blindbit/mainnet/tweak-index/{height}`
+   *
+   * @param {Height} height
+   * @param {object} [options]
+   * @param {number} [options.dustLimit] - Least value in sats of a Taproot output for its transaction to be listed. Optional, any
+   *   value, as BlindBit takes it (0 when left out); below 600, the least value held, it answers
+   *   as 600.
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Tweak[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<Tweak[]>>}
+   */
+  async getBlindbitTweakIndex(height, { dustLimit, signal, onValue, cache, memCache } = {}) {
+    const params = new URLSearchParams();
+    if (dustLimit != null) params.set('dustLimit', String(dustLimit));
+    const query = params.toString();
+    const path = `/blindbit/mainnet/tweak-index/${encodeURIComponent(height)}${query ? '?' + query : ''}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Cut-through tweaks
+   *
+   * `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.
+   *
+   * Endpoint: `GET /blindbit/mainnet/tweaks/{height}`
+   *
+   * @param {Height} height
+   * @param {object} [options]
+   * @param {number} [options.dustLimit] - Least value in sats of a Taproot output for its transaction to be listed. Optional, any
+   *   value, as BlindBit takes it (0 when left out); below 600, the least value held, it answers
+   *   as 600.
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Tweak[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<Tweak[]>>}
+   */
+  async getBlindbitTweaks(height, { dustLimit, signal, onValue, cache, memCache } = {}) {
+    const params = new URLSearchParams();
+    if (dustLimit != null) params.set('dustLimit', String(dustLimit));
+    const query = params.toString();
+    const path = `/blindbit/mainnet/tweaks/${encodeURIComponent(height)}${query ? '?' + query : ''}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Block filter
+   *
+   * A BIP158 Golomb-coded set (P = 19, M = 784,931, keyed by the block hash) of the block's new Taproot output keys (`new-utxos`, the x-only keys) or of its spends of Taproot outputs (`spent`, hashed as in `spent-index`). Repeated elements count once, as in BIP158 (BlindBit repeats them), which leaves every membership test's answer the same.
+   *
+   * Endpoint: `GET /blindbit/mainnet/filter/{kind}/{height}`
+   *
+   * @param {BlindbitFilterKind} kind
+   * @param {Height} height
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlindbitFilter>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<BlindbitFilter>>}
+   */
+  async getBlindbitFilter(kind, height, { signal, onValue, cache, memCache } = {}) {
+    const path = `/blindbit/mainnet/filter/${encodeURIComponent(kind)}/${encodeURIComponent(height)}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Spent index
+   *
+   * The block's spends of Taproot outputs, each the first 8 bytes of `sha256(txid ‖ vout ‖ block hash)` in hex (the txid and this block's hash in internal byte order, the vout little-endian): a wallet hashes its own outpoints to find which this block spends. Always an object, even when empty (BlindBit then answers `[]`, which spdk can't read).
+   *
+   * Endpoint: `GET /blindbit/mainnet/spent-index/{height}`
+   *
+   * @param {Height} height
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlindbitSpentIndex>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<BlindbitSpentIndex>>}
+   */
+  async getBlindbitSpentIndex(height, { signal, onValue, cache, memCache } = {}) {
+    const path = `/blindbit/mainnet/spent-index/${encodeURIComponent(height)}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Taproot outputs
+   *
+   * Every Taproot output of the block's eligible transactions (those `tweak-index` lists), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs). An output whose key isn't a point on the curve is left out: it can't be a payment, and spdk refuses a whole block over one.
+   *
+   * Endpoint: `GET /blindbit/mainnet/utxos/{height}`
+   *
+   * @param {Height} height
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlindbitUtxo[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<BlindbitUtxo[]>>}
+   */
+  async getBlindbitUtxos(height, { signal, onValue, cache, memCache } = {}) {
+    const path = `/blindbit/mainnet/utxos/${encodeURIComponent(height)}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Broadcast transaction
+   *
+   * Submits a raw transaction, `{"data": "<hex>"}`, to the node, as `POST /api/tx` does. Returns its txid as a JSON string. No responses are cached.
+   *
+   * Endpoint: `POST /blindbit/mainnet/forward-tx`
+   *
+   * @param {ForwardTx} body
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @returns {Promise<Txid>}
+   */
+  async postBlindbitForwardTx(body, { signal } = {}) {
+    const path = `/blindbit/mainnet/forward-tx`;
+    return this.postJson(path, JSON.stringify(body), { signal, contentType: 'application/json' });
   }
 
   /**
@@ -8495,12 +8984,16 @@ anything else answers 400, as mempool.space does
    * DMD's reference price in US dollars at the latest block: the cost of the electricity it takes to mine one DMD, never below $0.001 (DebitMyData's minimum rate). Not a market price. Every block's is at `GET /api/series/price/height`.
    *
    * Endpoint: `GET /api/price`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Dollars) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Dollars>}
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Dollars>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<Dollars>>}
    */
   async getLivePrice({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/price`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8509,12 +9002,16 @@ anything else answers 400, as mempool.space does
    * Full OpenAPI 3.1 specification for this API. Build tools from this document.
    *
    * Endpoint: `GET /openapi.json`
-   * @param {{ signal?: AbortSignal, onValue?: (value: *) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: *) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<*>}
    */
   async getOpenapi({ signal, onValue, cache, memCache } = {}) {
     const path = `/openapi.json`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(true), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8523,12 +9020,16 @@ anything else answers 400, as mempool.space does
    * Compact custom summary of the OpenAPI specification for LLM reading: types instead of schemas, `returns` instead of responses, no examples; parameters keep their enum, default and bounds. Not valid OpenAPI: build tools from `GET /openapi.json`.
    *
    * Endpoint: `GET /api.json`
-   * @param {{ signal?: AbortSignal, onValue?: (value: *) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: *) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<*>}
    */
   async getApi({ signal, onValue, cache, memCache } = {}) {
     const path = `/api.json`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(true), { signal, onValue, cache, memCache });
   }
 
 }

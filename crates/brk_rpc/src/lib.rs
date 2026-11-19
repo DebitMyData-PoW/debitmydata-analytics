@@ -3,7 +3,6 @@ mod async_client;
 mod auth;
 #[cfg(feature = "async")]
 pub use async_client::AsyncClient;
-mod block_template_tx;
 mod connect_args;
 mod endpoint;
 mod rpc_client;
@@ -11,6 +10,7 @@ mod rpc_client;
 mod rpc_response;
 
 pub use auth::Auth;
-pub use block_template_tx::BlockTemplateTx;
 pub use connect_args::ConnectArgs;
-pub use rpc_client::{Client, GetBlockHeaderVerbose, MempoolState};
+pub use rpc_client::{
+    BlockSpends, Client, GetBlockHeaderVerbose, GetChainTip, MempoolObservation, MempoolState,
+};

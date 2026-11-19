@@ -2,13 +2,13 @@ use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_vecs::{
     LazyPerSecondWindows, LazyWindowStartVec, PerBlockFullFromCumulative,
-    ValuePerBlockCumulativeRolling, shapes::Windows,
+    ValuePerBlockCumulativeRolling, import_cached, shapes::Windows,
 };
 use brk_error::Result;
 use brk_types::Version;
 use statedb::Creations;
 
-use super::{STORAGE, Vecs, by_type, spent};
+use super::{Coinbase, Pubkeys, STORAGE, Vecs, by_type, spent};
 
 impl Vecs {
     pub fn import(
@@ -31,7 +31,8 @@ impl Vecs {
         let per_second =
             LazyPerSecondWindows::new("outputs_per_second", version, &count.rolling.sum);
         let types = by_type::Vecs::import(&db, version, mappings, window_starts)?;
-        let spendable_count = by_type::spendable_output_count(
+        let unspendable_value = import_cached(&db, "unspendable_output_value", version)?;
+        let non_op_return_count = by_type::non_op_return_output_count(
             version + Version::TWO,
             &types.types.unspendable.op_return.count.cumulative.height,
             mappings,
@@ -45,6 +46,8 @@ impl Vecs {
             window_starts,
         )?;
 
+        let coinbase = Coinbase::import(&db, version, mappings, window_starts)?;
+        let pubkeys = Pubkeys::import(&db, version, mappings, window_starts)?;
         let creations = Creations::open(db.path())?;
         let this = Self {
             creations,
@@ -52,9 +55,12 @@ impl Vecs {
             spent,
             count,
             per_second,
-            spendable_count,
+            non_op_return_count,
+            unspendable_value,
             types,
             op_return_value,
+            coinbase,
+            pubkeys,
         };
         STORAGE.finalize_database(&this.db)?;
         Ok(this)

@@ -53,6 +53,8 @@ impl TraceMonitor {
     }
 
     pub fn record(&self, event: &Event<'_>) {
+        // The event's end, before waiting on the lock.
+        let now = Instant::now();
         let mut state = self.0.lock();
         let Some(started_at) = state.started_at else {
             return;
@@ -60,7 +62,7 @@ impl TraceMonitor {
 
         let mut fields = Fields::default();
         event.record(&mut fields);
-        let end_ms = started_at.elapsed().as_secs_f64() * 1_000.0;
+        let end_ms = now.saturating_duration_since(started_at).as_secs_f64() * 1_000.0;
 
         let result = if let (Some(phase), Some(plugin), Some(duration_ns)) =
             (fields.phase, fields.plugin, fields.duration_ns)
@@ -129,7 +131,7 @@ impl Visit for Fields {
 /// The emitting crate, without the plugin prefix: `indexer`, `addresses`, `bitview_vecs`, ...
 fn source(target: &str) -> &str {
     let krate = target.split_once("::").map_or(target, |(krate, _)| krate);
-    krate.strip_prefix("bitview_plugin_").unwrap_or(krate)
+    krate.trim_prefix("bitview_plugin_")
 }
 
 fn progress(message: &str) -> Option<u64> {

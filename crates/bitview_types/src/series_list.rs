@@ -1,4 +1,4 @@
-use std::{borrow::Cow, fmt, mem};
+use std::{borrow::Cow, fmt};
 
 use derive_more::Deref;
 use schemars::JsonSchema;
@@ -9,8 +9,8 @@ use bitview_primitives::SeriesName;
 
 /// Comma-separated list of series names
 ///
-/// Deserialization permits at most 32 normalized names and 2,048 decoded input
-/// string bytes. For arrays, the byte budget is shared by their string values.
+/// Deserialization permits at most 32 names, each exact, and 2,048 decoded input
+/// string bytes. Array members must all be strings and share the byte budget.
 #[derive(Clone, Debug, Deref, JsonSchema)]
 #[schemars(
     with = "String",
@@ -67,12 +67,11 @@ impl<'de> Deserialize<'de> for SeriesList {
                         })
                         .is_some() =>
             {
-                sanitize(values.into_iter().filter_map(|value| match value {
-                    Value::String(text) => Some(text),
-                    _ => None,
-                }))
-                .map(Self)
-                .map_err(D::Error::custom)
+                let names = values.into_iter().map(|value| match value {
+                    Value::String(text) => Ok(text),
+                    _ => Err(D::Error::custom("Expected a series name string in array")),
+                }).collect::<Result<Vec<_>, D::Error>>()?;
+                sanitize(names.into_iter()).map(Self).map_err(D::Error::custom)
             }
             Value::String(_) | Value::Array(_) => Err(D::Error::custom(
                 "Series list too long: at most 32 names and 2,048 bytes",
@@ -94,38 +93,21 @@ impl fmt::Display for SeriesList {
     }
 }
 
+/// The names as given, each exact (as the single-series routes take one): split on commas only,
+/// an empty one refused, as `a,` would be another spelling of `a`.
 fn sanitize<'a, S: Into<Cow<'a, str>>>(
     dirty: impl Iterator<Item = S>,
 ) -> Result<Vec<SeriesName>, &'static str> {
     let mut clean = Vec::new();
-    for s in dirty {
-        let s = s.into();
-        if s.bytes()
-            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
-        {
-            if !s.is_empty() {
-                if clean.len() == MAX_SERIES {
-                    return Err("At most 32 series may be requested");
-                }
-                clean.push(SeriesName::from(s.into_owned()));
-            }
-            continue;
+    for name in dirty {
+        let name = name.into();
+        if name.is_empty() {
+            return Err("A series name is empty");
         }
-        let mut current = String::new();
-        // A final separator flushes the last name through the same bound check.
-        for c in s.to_lowercase().chars().chain([' ']) {
-            match c {
-                ' ' | ',' | '+' if !current.is_empty() => {
-                    if clean.len() == MAX_SERIES {
-                        return Err("At most 32 series may be requested");
-                    }
-                    clean.push(SeriesName::from(mem::take(&mut current)));
-                }
-                '-' => current.push('_'),
-                c if c.is_alphanumeric() || c == '_' => current.push(c),
-                _ => {}
-            }
+        if clean.len() == MAX_SERIES {
+            return Err("At most 32 series may be requested");
         }
+        clean.push(SeriesName::from(name.into_owned()));
     }
     Ok(clean)
 }

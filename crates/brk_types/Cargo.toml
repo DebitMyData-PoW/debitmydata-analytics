@@ -18,12 +18,13 @@ brk_error = { workspace = true, features = ["bitcoin", "jiff"] }
 derive_more = { workspace = true, features = ["add", "add_assign", "from", "into", "not", "sum"] }
 itoa = { workspace = true }
 jiff = { workspace = true }
+rapidhash = { workspace = true }
 ryu = { workspace = true }
 schemars = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true, optional = true }
 sha2 = { workspace = true }
-vecdb = { workspace = true, optional = true }
+vecdb = { workspace = true, optional = true, features = ["derive", "pco", "serde"] }
 
 [dev-dependencies]
 serde_json = { workspace = true }

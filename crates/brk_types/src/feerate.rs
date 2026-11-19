@@ -53,9 +53,25 @@ impl FeeRate {
         Self(milli_sats_per_vbyte)
     }
 
+    /// Milli-sats per vbyte, what [`Self::from_milli`] takes.
+    #[inline]
+    pub const fn milli(self) -> u64 {
+        self.0
+    }
+
     #[inline]
     const fn is_nan(self) -> bool {
         self.0 == u64::MAX
+    }
+
+    /// A rate of whole sat/vB as that integer, exactly (no float on the way): one that isn't whole
+    /// is a bug (checked in dev builds), rounded down in release.
+    pub fn whole_sats(self) -> u64 {
+        debug_assert!(
+            !self.is_nan() && self.0.is_multiple_of(1_000),
+            "a whole sat/vB rate"
+        );
+        self.0 / 1_000
     }
 
     /// Round up to the nearest multiple of `nearest`.
@@ -137,10 +153,24 @@ impl From<(Sats, VSize)> for FeeRate {
     }
 }
 
+/// Over the weight's exact quarter (`4 * sats / weight`), as Core's chunk feerates and
+/// mempool.space's effective feerates are measured: [`From<(Sats, VSize)>`] rounds each size up.
 impl From<(Sats, Weight)> for FeeRate {
     #[inline]
     fn from((sats, weight): (Sats, Weight)) -> Self {
-        Self::from((sats, VSize::from(weight)))
+        if sats.is_zero() {
+            return Self::ZERO;
+        }
+        let weight = u128::from(u64::from(weight));
+        if weight == 0 {
+            return Self::NAN;
+        }
+        let milli = (sats.as_u128() * u128::from(4 * MILLIS_PER_SAT_VBYTE)).div_ceil(weight);
+        if milli >= u128::from(u64::MAX) {
+            Self::NAN
+        } else {
+            Self(milli as u64)
+        }
     }
 }
 
@@ -282,19 +312,15 @@ impl Formattable for FeeRate {
     const UNDEFINED: bool = true;
 
     #[inline(always)]
+    fn is_undefined(&self) -> bool {
+        self.is_nan()
+    }
+
+    #[inline(always)]
     fn write_to(&self, buf: &mut Vec<u8>) {
         if !self.is_nan() {
             let mut value = Buffer::new();
             buf.extend_from_slice(value.format(f64::from(*self)).as_bytes());
-        }
-    }
-
-    #[inline(always)]
-    fn fmt_json(&self, buf: &mut Vec<u8>) {
-        if self.is_nan() {
-            buf.extend_from_slice(b"null");
-        } else {
-            self.write_to(buf);
         }
     }
 }

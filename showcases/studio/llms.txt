@@ -16,12 +16,14 @@ A link carries a whole chart: https://analytics.debitmydata.io/studio/#chart= fo
 {"title": "Price and realized price", "range": "4y", "layers": [{"series": "price"}, {"series": "realized_price", "color": "orange"}, {"formula": "A / B", "pane": 2}]}
 ```
 
+A preset has an address of its own, https://analytics.debitmydata.io/studio/presets/ and its place (see the sitemap), which opens that preset itself. After it, # and what to look at, all of it optional: "range" (3M, 1Y, 4Y, 8Y or Max) or "from" and "to" (dates, as 2021-01-01 or 2021-01-01T14:30: "from" alone runs up to now), "interval" (10m, 30m, 1h, 4h, 12h, 1D, 3D, 1W, 1M, 3M, 6M, 1Y or 10Y), and, for a preset over a trailing window, "window" (24h, 1w, 30d or 1y), written as Studio's buttons show them and read in any case, as in https://analytics.debitmydata.io/studio/presets/valuation/mvrv#from=2021-01-01&to=2022-06-30 or https://analytics.debitmydata.io/studio/presets/valuation/mvrv#range=1Y&interval=1W. A chart's link takes the same after its chart.
+
 ## A chart
 - "layers" (the one thing needed): its layers, in order (see below).
 - "title".
 - "index": its interval: minute10, minute30, hour1, hour4, hour12, day1, day3, week1, month1, month3, month6, year1 or year10 (day1 if none).
 - "range": what it shows: 3m, 1y, 4y, 8y or max (8y if none; max: all of history at day1 or coarser; at a finer interval, as far back as fits on the screen). Or "view": {"from": "2021-01-01", "to": "2022-06-30"}, a window by dates: from the bar holding its "from" to the one holding its "to" (now if none). Dates and times are UTC: "2026-10-08", or with a time where it needs one, "2026-10-08T14:00:00Z".
-- "panes": [{"mode": 1}, {"mode": 0, "stack": "stack"}], top to bottom: "mode" is its scale (0 linear, 1 logarithmic, 2 percent change, 3 indexed to 100), "stack" stacks its layers ("stack", or "percent" for shares), "size" is its height relative to the others' (3 for the first, 1.4 for the others if none: 1 and 1 halves the chart), "reverse": true puts its last layer in front. Without them, the first pane is logarithmic and the others linear.
+- "panes": [{"mode": 1}, {"mode": 0, "stack": "stack"}], top to bottom: "mode" is its scale (0 linear, 1 logarithmic, 2 percent change, 3 indexed to 100), "stack" stacks its layers ("stack", or "percent" for shares), "size" is its height relative to the others' (3 for the first, 1.4 for the others if none: 1 and 1 halves the chart), "reverse": true puts its last layer in front, "average": "7d" averages every layer before stacking ("7d", "30d", "90d" or "1y"; absent: raw). Formulas always read raw measurements. A pane containing a heatmap or profile stays raw. Without them, the first pane is logarithmic and the others linear.
 - "halvings": true: a line at each halving, and at the next three, estimated (a block each 2.5 minutes).
 - "legend": "off": no legend over the panes.
 - "drawings" (see below).
@@ -30,11 +32,11 @@ A link carries a whole chart: https://analytics.debitmydata.io/studio/#chart= fo
 
 One of:
 - {"series": "realized_price"}: a series, by its exact name.
-- {"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). when(A, condition) keeps A where the condition holds, none elsewhere; rebase(A) starts each of its stretches at 1×, and rebase(A, halving_epoch) each halving cycle (a stretch also starts where its second changes); halving(A, n) is A over halving cycle n alone from 1× (0 the first, from the genesis block), and halving(A, 0, 2) that cycle moved to start where cycle 2 starts, day for day; year is each point's year (rebase(A, year) starts each year at 1×, when(A, year == 2021) keeps 2021), and year(A, 2021) and year(A, 2021, 2024) are halving()'s for years. shift(A, 30d) is A 30 days later (-30d, earlier), shift(A, 1y) on the same date a year on, shift(A, 1halving) as far into the next halving cycle as into its own: A, shift(A, 1halving) and shift(A, 2halving) show each cycle over the two before it. date is each point's date, compared with one written 2020-05-11: when(A, date >= 2020-05-11 & date < 2024-04-20); == and != compare too. Spans are a number and a unit: h, d, w, mo, y or halving (300,000 blocks); some have a usual one if left out, in points as the interval counts them (rsi's 14: 14 days at day1, 14 weeks at week1).
+- {"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). when(A, condition) keeps A where the condition holds, none elsewhere; rebase(A) starts each of its stretches at 1×, and rebase(A, halving_epoch) each halving cycle (a stretch also starts where its second changes); halving(A, n) is A over halving cycle n alone from 1× (0 the first, from the genesis block), and halving(A, 0, 2) that cycle moved to start where cycle 2 starts, day for day; year is each point's year (rebase(A, year) starts each year at 1×, when(A, year == 2021) keeps 2021), and year(A, 2021) and year(A, 2021, 2024) are halving()'s for years. over(age_1y_to_18m_supply) is that band's series summed with the same series of every band above it (the coins over 1 year old), and under(age_1y_to_18m_supply) every band's below it (the coins under 1 year old), by an amount or count of an age_, amount_, balance_, profit_ or loss_ band, each by its name (not a price or a percent: sum what it's made of, then divide); profit and loss bands run from the deepest loss up, so over(profit_10_to_20_percent_supply) is the coins over 10% in profit and under(loss_0_to_10_percent_supply) those over 10% in loss. shift(A, 30d) is A 30 days later (-30d, earlier), shift(A, 1y) on the same date a year on, shift(A, 1halving) as far into the next halving cycle as into its own: A, shift(A, 1halving) and shift(A, 2halving) show each cycle over the two before it. date is each point's date, compared with one written 2020-05-11: when(A, date >= 2020-05-11 & date < 2024-04-20); == and != compare too. Spans are a number and a unit: h, d, w, mo, y or halving (210,000 blocks); some have a usual one if left out, in points as the interval counts them (rsi's 14: 14 days at day1, 14 weeks at week1).
 - {"formula": "B > 3.5", "type": "signal", "ref": "A"}: a signal: marks on layer A (the first layer if none) where the formula turns up or down: above 0 is up, below 0 down, 0 off (> < >= <= are 1 or 0, joined with & and |: a condition is up where true; (B > 3.5) - (B < 1) is up, down or off). "place", "below" or "on" (above if none): where an up mark goes, a down one mirrored (above and below swapped), in "colorBelow" (red if none); or "shade": its stretches shaded, its layer's pane's height, down ones in "colorBelow". "results": true: on each mark that ends a stretch, what it made by layer A (A's change over it, up; the opposite, down), a dot where one ends off; their total, compounded, in its line.
 - {"cloud": ["B", "C"]}: filled between those layers, two or more, at each date, in the color of the one over: B's own where B is over C, C's where C is (following them). Between more, {"cloud": ["B", "C", "D"]}, a cloud between each two next to each other in that order (B and C, C and D), each in the color of whichever of its two is over: several clouds, made by one (where they cross out of order, two overlap). "color" alone, that one all along, from the lowest to the highest; between two alone, "color" and "colorBelow", those two (where B is over, where C is). "top" and "bottom" are its pane's edges: from its first layer up to the pane's top, from its last down to its bottom: {"cloud": ["A", "top"]}.
 - {"heatmap": "sth"}: a holder group's URPD day by day behind the price, a column a day, each price's cell as strong as its amount against the open day's largest, on a log scale (zoomed out, a day in so many, the days between not asked for): "all" (all coins), "sth", "lth", "age_under_4m", "age_under_6m", "age_over_4m", "age_over_6m", or an age band ("age_under_1h", "age_1h_to_1d" ... "age_over_15y", as GET /api/urpd lists them). "measure": "supply" (if none), "capital", or "pnl" (unrealized, in "color" where in profit, "colorBelow" where in loss); "weight": "wakefulness" or "mobility" (none: every coin as it is); its rows: "rows", 100, 200 (if none) or 500 a ×10 in price, on a log scale or a linear one.
-- {"profile": ["lth", "sth"]}: holder groups' URPD on the view's last day (the latest at its end) as a profile at the chart's right edge, bars from the edge, stacked, the first group's at the edge, each as long as its amount: in each group's color (all coins green, short-term holders orange, long-term blue; "cohortColors": {"sth": "red"}, a group's own), strong under that day's close (in profit), faint over it (in loss), with the share of their coins each side; the chart leaves room for it after its latest. Its groups as a heatmap's ("all", "sth", "lth", the age cutoffs, the age bands; one alone: "profile": "sth"), and "measure", "weight" and "rows" as a heatmap's.
+- {"profile": ["lth", "sth"]}: holder groups' URPD on the view's last day (the latest at its end) as a profile at the chart's right edge, bars from the edge, stacked, the first group's at the edge, each as long as its amount: in each group's color (all coins green, short-term holders orange, long-term blue; "cohortColors": {"sth": "red"}, a group's own), strong under that day's close (in profit), faint over it (in loss), with the share of their coins each side; the chart leaves room for it after its latest. Its groups as a heatmap's ("all", "sth", "lth", the age cutoffs, the age bands; one alone: "profile": "sth"), and "measure", "weight" and "rows" as a heatmap's. "cumulative": true, its amounts summed from the close outward in place of its bars (over it upward, under it downward), each group's stacked, its legend reading the sum from the close to the pointer's price and how far that price is from it ("+5% ₿1,690,123").
 - {"trend": ["B", "C"], "ref": "A"}: a line on the lowest of those layers until layer A (a price, say) touches it, then on the highest until A touches that, and so on (A an OHLC series, its highs and lows count, drawn as candles or not; else its value); width and dash as a line's.
 
 Then, each if wanted:
@@ -42,7 +44,7 @@ Then, each if wanted:
 - "color": one of the site's (gray, red, orange, amber, yellow, avocado, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose, or ink, the page's text color) a six-digit hex such as #ff8800, or oklch as Studio writes it, "oklch(0.7 0.15 45)", each as the dark theme (the default) shows it: the light one turns every color's lightness over, white showing as black; "colorBelow": a baseline's or bars' second color, under their base, a trend's on support, or a cloud's where its second layer is over (its own color if none).
 - "colorFrom": "B" on a line, dots, an area, bars, a cloud or a trend: its colors taken from layer B date by date, as B is drawn (a baseline's above or below its base, bars' too, a trend's on resistance or support, by its levels if it's colored by them, else B's one color).
 - "gradient": [[0, "blue"], [60, "yellow"], [100, "red"]] on a line, dots, an area, bars, a cloud, a trend or a heatmap: its colors by its value instead, date by date, from its lowest value (0) to its highest (100), 2 to 4 colors, each at its place, mixed between them (past the outer ones, theirs); its lowest and highest of all its history (at an interval under a day, of what's loaded), or with "upToDate": true of its history up to each date (no hindsight); kept but off, "byGradient": false. A heatmap's by its cells' strength (its unrealized P&L's: loss at 0, none at 50, profit at 100).
-- "byLevels": true on a line, dots, an area or bars with levels: colored by them, date by date: above each level, that level's color (give each one its "color"); under them all, its own.
+- "byLevels": true on a line, dots, an area or bars with levels: colored by them, above each level, that level's color (give each one its "color"); under them all, its own. A line or an area changes color exactly where it crosses a level, its fill parted there; dots and bars each take their own value's color.
 - "colors": 1 or 4 on bars: their one color; or four: above and below their base, each side's own where a bar grows from it ("color", "colorBelow"), fainter where it fades back toward it ("colorFading" above, "colorBelowFading" below; each side's own, fainter, if none). Unset, their two: "color" above, "colorBelow" under. 1 on a trend or a cloud with a "colorBelow": its one color, that second kept.
 - "type": line, dots, area, histogram (bars), baseline, or candles (for an OHLC series such as price_ohlc); left out, the series' own look.
 - "width": 0.5 to 5, by halves (1.5 if none); "dash": its line (0 solid, 1 dotted, 2 dashed, 3 long dashes, 4 sparse dots); "shape": straight, steps or curved; "opacity": 0.05 to 1, by 0.05 (1 if none; a cloud's 0.2, solid at 1).
@@ -50,6 +52,8 @@ Then, each if wanted:
 - "fill": "above", an area filled from its line up; "fillOpacity": its fill's strength at its top, 0.05 to 1, by 0.05 (0.2 if none, 0.1 filled above); "solid": true, its fill even all the way down rather than fading; "base": a baseline's or bars' base value (0 if none); "baseLine": {"color": "gray", "dash": 4}, that base's line ("tag": true shows its value on the axis; "line": false draws none).
 - "levels": [{"value": 1, "color": "gray", "dash": 3}]: lines across, at values (color and dash optional; "tag": true shows its value on the axis; "line": false draws none, the level only naming or coloring its band). A level's "name" names the values from it up to the next level, read in its color in place of the number (the legend, the panel); "underName" on the layer names those under them all: {"levels": [{"value": -1, "name": "Limbo", "color": "orange", "line": false}, {"value": 1, "name": "Bull", "color": "green", "line": false}], "underName": "Bear", "color": "red", "byLevels": true} (without "byLevels", the names alone, the line in its color).
 - "priceLine": true: a line across at its latest value.
+- "maxInterval": "week1": the chart's interval at most weekly while this layer's in it (its source unchanged).
+- A single running total on a linear axis includes zero; comparisons fit their values. "fit": "zero": keep zero included explicitly; "fit": false: the axis framed without it (not a heatmap's, a signal's or bubbles'): it's drawn where its values are, past the edge if they're far (a spike, a far tail).
 - {"series": "net_realized_pnl", "type": "bubbles", "ref": "A"}: bubbles: its values as bubbles on layer A (the first layer if none; "ref": "", none, along its pane's middle), each date's at A's value there, its area its value's size, above zero in "color", below in "colorBelow" (red if none; "colors": 1, its one color). "size": the largest's diameter, 8 to 48 pixels by 4 (24 if none); "hide": the share of the largest under which none is drawn, 0 to 0.25 by 0.01 (0.05 if none); "scaleTo": "all", sized against all of its history (none: the largest in view full size).
 - "outline": true on a line, dots, an area, a baseline, bars, candles or a trend: edged in the chart's background (its line's width on each side; bars and candles 1.5px), standing out over what's under it.
 - "format": how its values read (by its unit if none): usd, btc, sats, percent, ratio, count, number, days, seconds, persecond, perday, bytes, vbytes, weight, sigops, hashrate, difficulty, feerate, hashprice, hashvalue, coindays, coinblocks, dollarblocks or dollardays.
@@ -74,7 +78,7 @@ For a script run in the page (a browser's console, an assistant driving a browse
 - await studio.png(options): its picture, as Export makes it (its title, legends and dates), as a data URL ("data:image/png;base64," and its base64), in one result, the same whatever the window. If your tool says the output was too long and saved it to a file, decode the base64 from that file: that's the picture, no need to retype it. Options, each if wanted: width and height, in CSS pixels (1200 and 760 if none); scale, 1 or 2 (pixels for each, 1 if none); type, "image/png" (if none), "image/webp" or "image/jpeg", with quality, 0.01 to 1 (0.9 if none); part, only if long output gets cut off and nothing is saved: 0, 1 and so on, each call with part 0's options, the picture in parts, each {part, parts, mime, base64}, partSize characters of its base64 (45000 if none: each part, all told, under 50,000); part 0 makes the picture of the chart as it is, the others are from that same picture, however long after: join their base64, "data:" + mime + ";base64," before it. Sizes, at 1200 by 760, for a chart of a few lines: a PNG about 130,000 to 160,000 characters (three or four parts), a WebP about 50,000, a JPEG about 100,000; at scale 2, about 330,000, 130,000 and 270,000.
 - studio.chart(): the chart open, as a link writes it.
 - await studio.errors(): once it's drawn, its layers that show nothing, and why, as [{"layer": "B", "error": "...", "closest": "..."}]: a series name this server doesn't have (with the closest it has), a series it has only by block (with its day's, if it has one), a formula it can't read.
-- await studio.search(words, count): series names for those words (count of them, 10 if not given, 1 to 50), the best first, as Studio's search finds them, only those it can chart (by date; by the words of their names and descriptions: "sma 200d", "transaction count"). No browsing needed: the page knows the catalog, and asks analytics.debitmydata.io only for its first seconds, until its own search is up. It answers within a few seconds, the page shown or not, else it's rejected with why.
+- await studio.search(words, count): series names for those words (count of them, 10 if not given, 1 to 50), the best first, as Studio's search finds them, only those it can chart (by date; by the words of their names and descriptions: "sma 200d", "transaction count"). No browsing needed: the browser searches its catalog, including consecutive word initials. A cold page first loads its search index, whether shown or hidden; a failed catalog read rejects with why.
 
 What a chart can't hold is left out, or at its default, without a word: past 40 layers, left out; an interval or a range it doesn't know, day1 or 8y.
 
@@ -101,66 +105,67 @@ An assistant without web access can't look names up: whoever uses it can, and ha
 
 Each section's page lists its charts; each chart's own address is in https://analytics.debitmydata.io/studio/sitemap.xml.
 
-- Price (65): https://analytics.debitmydata.io/studio/presets/price/
+- Price (26): https://analytics.debitmydata.io/studio/presets/price/
   - All-time high (2): https://analytics.debitmydata.io/studio/presets/price/all-time-high/
-  - Returns (16): https://analytics.debitmydata.io/studio/presets/price/returns/
-  - Moving averages (32): https://analytics.debitmydata.io/studio/presets/price/moving-averages/
-  - Range (3): https://analytics.debitmydata.io/studio/presets/price/range/
-  - Technical (10): https://analytics.debitmydata.io/studio/presets/price/technical/
-- Valuation (70): https://analytics.debitmydata.io/studio/presets/valuation/
+  - Returns (5): https://analytics.debitmydata.io/studio/presets/price/returns/
+  - Moving averages (5): https://analytics.debitmydata.io/studio/presets/price/moving-averages/
+  - Range (1): https://analytics.debitmydata.io/studio/presets/price/range/
+  - Technical (11): https://analytics.debitmydata.io/studio/presets/price/technical/
+- Valuation (29): https://analytics.debitmydata.io/studio/presets/valuation/
   - Compass (5): https://analytics.debitmydata.io/studio/presets/valuation/compass/
-  - Cointime prices (6): https://analytics.debitmydata.io/studio/presets/valuation/cointime-prices/
-  - Rarity meter (44): https://analytics.debitmydata.io/studio/presets/valuation/rarity-meter/
+  - Cointime prices (7): https://analytics.debitmydata.io/studio/presets/valuation/cointime-prices/
 - Supply (5): https://analytics.debitmydata.io/studio/presets/supply/
-- Holders (382): https://analytics.debitmydata.io/studio/presets/holders/
-  - Compare (16): https://analytics.debitmydata.io/studio/presets/holders/compare/
-  - All coins (41): https://analytics.debitmydata.io/studio/presets/holders/all-coins/
-  - Short-term holders (43): https://analytics.debitmydata.io/studio/presets/holders/short-term-holders/
-  - Long-term holders (41): https://analytics.debitmydata.io/studio/presets/holders/long-term-holders/
-  - Age cutoffs (183): https://analytics.debitmydata.io/studio/presets/holders/age-cutoffs/
-  - Entry price (58): https://analytics.debitmydata.io/studio/presets/holders/entry-price/
-- Coin age (1223): https://analytics.debitmydata.io/studio/presets/coin-age/
-  - Age bands (707): https://analytics.debitmydata.io/studio/presets/coin-age/age-bands/
-  - Halving epochs (121): https://analytics.debitmydata.io/studio/presets/coin-age/halving-epochs/
-  - Vintages (394): https://analytics.debitmydata.io/studio/presets/coin-age/vintages/
-- Profitability (237): https://analytics.debitmydata.io/studio/presets/profitability/
-  - All coins (79): https://analytics.debitmydata.io/studio/presets/profitability/all-coins/
-  - Short-term holders (79): https://analytics.debitmydata.io/studio/presets/profitability/short-term-holders/
-  - Long-term holders (79): https://analytics.debitmydata.io/studio/presets/profitability/long-term-holders/
-- UTXOs (367): https://analytics.debitmydata.io/studio/presets/utxos/
-  - By amount (213): https://analytics.debitmydata.io/studio/presets/utxos/by-amount/
-  - By type (153): https://analytics.debitmydata.io/studio/presets/utxos/by-type/
-- Addresses (419): https://analytics.debitmydata.io/studio/presets/addresses/
+- Holders (518): https://analytics.debitmydata.io/studio/presets/holders/
+  - Compare (25): https://analytics.debitmydata.io/studio/presets/holders/compare/
+  - All coins (51): https://analytics.debitmydata.io/studio/presets/holders/all-coins/
+  - Short-term holders (59): https://analytics.debitmydata.io/studio/presets/holders/short-term-holders/
+  - Long-term holders (57): https://analytics.debitmydata.io/studio/presets/holders/long-term-holders/
+  - Age cutoffs (248): https://analytics.debitmydata.io/studio/presets/holders/age-cutoffs/
+  - Entry price (78): https://analytics.debitmydata.io/studio/presets/holders/entry-price/
+- Coin age (2963): https://analytics.debitmydata.io/studio/presets/coin-age/
+  - Age bands (962): https://analytics.debitmydata.io/studio/presets/coin-age/age-bands/
+  - At or above each age (664): https://analytics.debitmydata.io/studio/presets/coin-age/over-an-age/
+  - Under each age (738): https://analytics.debitmydata.io/studio/presets/coin-age/under-an-age/
+  - Halving epochs (40): https://analytics.debitmydata.io/studio/presets/coin-age/halving-epochs/
+  - Vintages (558): https://analytics.debitmydata.io/studio/presets/coin-age/vintages/
+- Profitability (588): https://analytics.debitmydata.io/studio/presets/profitability/
+  - All coins (196): https://analytics.debitmydata.io/studio/presets/profitability/all-coins/
+  - Short-term holders (196): https://analytics.debitmydata.io/studio/presets/profitability/short-term-holders/
+  - Long-term holders (196): https://analytics.debitmydata.io/studio/presets/profitability/long-term-holders/
+- UTXOs (1213): https://analytics.debitmydata.io/studio/presets/utxos/
+  - By amount (328): https://analytics.debitmydata.io/studio/presets/utxos/by-amount/
+  - At or above each UTXO amount (324): https://analytics.debitmydata.io/studio/presets/utxos/over-an-amount/
+  - Under each UTXO amount (324): https://analytics.debitmydata.io/studio/presets/utxos/under-an-amount/
+  - By type (235): https://analytics.debitmydata.io/studio/presets/utxos/by-type/
+- Addresses (1157): https://analytics.debitmydata.io/studio/presets/addresses/
   - Count (4): https://analytics.debitmydata.io/studio/presets/addresses/count/
-  - Reused (11): https://analytics.debitmydata.io/studio/presets/addresses/reused/
-  - Respent (11): https://analytics.debitmydata.io/studio/presets/addresses/respent/
-  - Exposed (3): https://analytics.debitmydata.io/studio/presets/addresses/exposed/
+  - Reused addresses (13): https://analytics.debitmydata.io/studio/presets/addresses/reused/
+  - Addresses with more than one spent output (11): https://analytics.debitmydata.io/studio/presets/addresses/respent/
+  - Addresses with exposed keys or scripts (3): https://analytics.debitmydata.io/studio/presets/addresses/exposed/
   - Supply (3): https://analytics.debitmydata.io/studio/presets/addresses/supply/
-  - Capital (2): https://analytics.debitmydata.io/studio/presets/addresses/capital/
+  - Capital (3): https://analytics.debitmydata.io/studio/presets/addresses/capital/
   - By type (184): https://analytics.debitmydata.io/studio/presets/addresses/by-type/
-  - By balance (200): https://analytics.debitmydata.io/studio/presets/addresses/by-balance/
-- Mining (971): https://analytics.debitmydata.io/studio/presets/mining/
-  - Hashing (4): https://analytics.debitmydata.io/studio/presets/mining/hashing/
+  - By balance (315): https://analytics.debitmydata.io/studio/presets/addresses/by-balance/
+  - At or above each address balance (310): https://analytics.debitmydata.io/studio/presets/addresses/over-a-balance/
+  - Under each address balance (310): https://analytics.debitmydata.io/studio/presets/addresses/under-a-balance/
+- Mining (37): https://analytics.debitmydata.io/studio/presets/mining/
+  - Hashing (6): https://analytics.debitmydata.io/studio/presets/mining/hashing/
   - Difficulty (3): https://analytics.debitmydata.io/studio/presets/mining/difficulty/
   - Halvings (2): https://analytics.debitmydata.io/studio/presets/mining/halvings/
   - Rewards (12): https://analytics.debitmydata.io/studio/presets/mining/rewards/
-  - Pools (950): https://analytics.debitmydata.io/studio/presets/mining/pools/
-- Network (523): https://analytics.debitmydata.io/studio/presets/network/
-  - Blocks (11): https://analytics.debitmydata.io/studio/presets/network/blocks/
-  - Transactions (85): https://analytics.debitmydata.io/studio/presets/network/transactions/
-  - Inputs (47): https://analytics.debitmydata.io/studio/presets/network/inputs/
-  - Outputs (49): https://analytics.debitmydata.io/studio/presets/network/outputs/
-  - OP_RETURN (331): https://analytics.debitmydata.io/studio/presets/network/op-return/
-- Cointime (183): https://analytics.debitmydata.io/studio/presets/cointime/
+  - Pools (14): https://analytics.debitmydata.io/studio/presets/mining/pools/
+- Network (1056): https://analytics.debitmydata.io/studio/presets/network/
+  - Blocks (20): https://analytics.debitmydata.io/studio/presets/network/blocks/
+  - Transactions (303): https://analytics.debitmydata.io/studio/presets/network/transactions/
+  - Inputs (150): https://analytics.debitmydata.io/studio/presets/network/inputs/
+  - Outputs (103): https://analytics.debitmydata.io/studio/presets/network/outputs/
+  - OP_RETURN (350): https://analytics.debitmydata.io/studio/presets/network/op-return/
+  - Chain statistics (130): https://analytics.debitmydata.io/studio/presets/network/chain-statistics/
+- Cointime (250): https://analytics.debitmydata.io/studio/presets/cointime/
   - Activity (8): https://analytics.debitmydata.io/studio/presets/cointime/activity/
   - Value (6): https://analytics.debitmydata.io/studio/presets/cointime/value/
   - Age bands (97): https://analytics.debitmydata.io/studio/presets/cointime/age-bands/
-  - Awake coins (71): https://analytics.debitmydata.io/studio/presets/cointime/awake-coins/
-- Coinflow (170): https://analytics.debitmydata.io/studio/presets/coinflow/
+  - Awake coins (138): https://analytics.debitmydata.io/studio/presets/cointime/awake-coins/
+- Coinflow (237): https://analytics.debitmydata.io/studio/presets/coinflow/
   - Age bands (99): https://analytics.debitmydata.io/studio/presets/coinflow/age-bands/
-  - Mobile coins (71): https://analytics.debitmydata.io/studio/presets/coinflow/mobile-coins/
-- Bedrock (23): https://analytics.debitmydata.io/studio/presets/bedrock/
-  - Compare (5): https://analytics.debitmydata.io/studio/presets/bedrock/compare/
-  - Awake (6): https://analytics.debitmydata.io/studio/presets/bedrock/awake/
-  - Mobile (6): https://analytics.debitmydata.io/studio/presets/bedrock/mobile/
-  - Unweighted (6): https://analytics.debitmydata.io/studio/presets/bedrock/unweighted/
+  - Mobile coins (138): https://analytics.debitmydata.io/studio/presets/coinflow/mobile-coins/

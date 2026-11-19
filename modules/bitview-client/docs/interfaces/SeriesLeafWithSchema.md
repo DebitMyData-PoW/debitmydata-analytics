@@ -6,7 +6,7 @@
 
 # Interface: SeriesLeafWithSchema
 
-Defined in: modules/bitview-client/index.js:1353
+Defined in: [modules/bitview-client/index.js:1320](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1320)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: modules/bitview-client/index.js:1353
 
 > `optional` **description?**: `string` \| `null`
 
-Defined in: modules/bitview-client/index.js:1359
+Defined in: [modules/bitview-client/index.js:1326](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1326)
 
 Human-readable metric definition, when documented.
 
@@ -24,7 +24,7 @@ Human-readable metric definition, when documented.
 
 > **indexes**: [`Index`](../type-aliases/Index.md)[]
 
-Defined in: modules/bitview-client/index.js:1356
+Defined in: [modules/bitview-client/index.js:1323](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1323)
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: modules/bitview-client/index.js:1356
 
 > **kind**: `string`
 
-Defined in: modules/bitview-client/index.js:1355
+Defined in: [modules/bitview-client/index.js:1322](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1322)
 
 The value type, by its schema's name (e.g., "Sats", "Ratio").
 
@@ -42,7 +42,7 @@ The value type, by its schema's name (e.g., "Sats", "Ratio").
 
 > **name**: `string`
 
-Defined in: modules/bitview-client/index.js:1354
+Defined in: [modules/bitview-client/index.js:1321](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1321)
 
 ***
 
@@ -50,10 +50,10 @@ Defined in: modules/bitview-client/index.js:1354
 
 > **nullable**: [`Index`](../type-aliases/Index.md)[]
 
-Defined in: modules/bitview-client/index.js:1357
+Defined in: [modules/bitview-client/index.js:1324](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1324)
 
 Indexes whose values can be null: a missing value (e.g. a period without blocks) or an
-undefined one (e.g. NaN).
+  undefined one (e.g. NaN).
 
 ***
 
@@ -61,6 +61,6 @@ undefined one (e.g. NaN).
 
 > **type**: [`JsonType`](../type-aliases/JsonType.md)
 
-Defined in: modules/bitview-client/index.js:1360
+Defined in: [modules/bitview-client/index.js:1327](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1327)
 
 What the values are on the wire.

@@ -5,8 +5,9 @@ use proc_macro2::{Group, Spacing, Span, TokenStream as ProcMacro2TokenStream, To
 use quote::quote;
 use syn::{
     Attribute, Data, DeriveInput, Error, Expr, ExprLit, Field, Fields, GenericArgument,
-    GenericParam, Generics, Ident, Index, Lit, LitStr, Member, Meta, PathArguments, Result, Token,
-    Type, TypeParam, WherePredicate, parse_macro_input, parse_quote, punctuated::Punctuated,
+    GenericParam, Generics, Ident, Index, Lit, LitStr, Member, Meta, MetaNameValue, PathArguments,
+    Result, Token, Type, TypeParam, WherePredicate, parse_macro_input, parse_quote,
+    punctuated::Punctuated,
 };
 
 struct FieldModel<'a> {
@@ -19,8 +20,13 @@ struct FieldModel<'a> {
     hidden: bool,
     rename: Option<String>,
     wrap: Option<String>,
+    /// The client name of the branch holding the field's series: the one `wrap` makes around it,
+    /// else its own, in place of its type's.
+    client: Option<LitStr>,
     /// A few plain words for anyone, opening the description of every series under the field.
     lead: Option<String>,
+    /// The accumulation of every series under the field, unless one nearer them declares its own.
+    accumulation: Option<Ident>,
     description: Option<String>,
 }
 
@@ -57,13 +63,7 @@ fn parse_struct_options(attrs: &[Attribute]) -> Result<(bool, Option<LitStr>)> {
                 else {
                     return Err(Error::new_spanned(&name_value.value, "expected a string"));
                 };
-                if !is_type_name(&value.value()) {
-                    return Err(Error::new_spanned(
-                        value,
-                        "a client name is a type name: ASCII letters and digits, an uppercase first",
-                    ));
-                }
-                client = Some(value.clone());
+                client = Some(declared_client(value)?);
             }
             _ => {
                 return Err(Error::new_spanned(
@@ -76,11 +76,50 @@ fn parse_struct_options(attrs: &[Attribute]) -> Result<(bool, Option<LitStr>)> {
     Ok((merge, client))
 }
 
+/// Sets a field's option, declared once: a second declaration of it is an error, not a silent
+/// override.
+fn set_once<T>(slot: &mut Option<T>, value: T, declared: &MetaNameValue) -> Result<()> {
+    if slot.is_some() {
+        return Err(Error::new_spanned(&declared.path, "declared twice"));
+    }
+    *slot = Some(value);
+    Ok(())
+}
+
+/// An option's value, out of the invisible groups a declarative macro passing it wraps it in.
+fn ungrouped(mut value: &Expr) -> &Expr {
+    while let Expr::Group(group) = value {
+        value = &group.expr;
+    }
+    value
+}
+
+/// A declared accumulation: an `Accumulation` variant by its name, which the compiler checks.
+fn declared_accumulation(value: &Expr) -> Result<Ident> {
+    match ungrouped(value) {
+        Expr::Path(path) if path.qself.is_none() => path.path.get_ident().cloned(),
+        _ => None,
+    }
+    .ok_or_else(|| Error::new_spanned(value, "expected an `Accumulation` variant, such as `Flow`"))
+}
+
 /// ASCII letters and digits, an uppercase first: valid in every client language, and clear of
 /// their keywords, which are lowercase.
 fn is_type_name(name: &str) -> bool {
     name.starts_with(|c: char| c.is_ascii_uppercase())
         && name.chars().all(|c| c.is_ascii_alphanumeric())
+}
+
+/// A declared client name, a type name.
+fn declared_client(value: &LitStr) -> Result<LitStr> {
+    if is_type_name(&value.value()) {
+        Ok(value.clone())
+    } else {
+        Err(Error::new_spanned(
+            value,
+            "a client name is a type name: ASCII letters and digits, an uppercase first",
+        ))
+    }
 }
 
 fn parse_field(index: usize, field: &Field) -> Result<FieldModel<'_>> {
@@ -95,7 +134,9 @@ fn parse_field(index: usize, field: &Field) -> Result<FieldModel<'_>> {
         hidden: false,
         rename: None,
         wrap: None,
+        client: None,
         lead: None,
+        accumulation: None,
         description: doc_comment(field),
     };
     for meta in traversable_metas(&field.attrs)? {
@@ -103,20 +144,28 @@ fn parse_field(index: usize, field: &Field) -> Result<FieldModel<'_>> {
             Meta::Path(path) if path.is_ident("skip") => model.skipped = true,
             Meta::Path(path) if path.is_ident("flatten") => model.flatten = true,
             Meta::Path(path) if path.is_ident("hidden") => model.hidden = true,
+            Meta::NameValue(name_value) if name_value.path.is_ident("accumulation") => {
+                set_once(&mut model.accumulation, declared_accumulation(&name_value.value)?, name_value)?;
+            }
+            Meta::NameValue(name_value) if name_value.path.is_ident("client") => {
+                let Expr::Lit(ExprLit {
+                    lit: Lit::Str(value),
+                    ..
+                }) = &name_value.value
+                else {
+                    return Err(Error::new_spanned(&name_value.value, "expected a string"));
+                };
+                set_once(&mut model.client, declared_client(value)?, name_value)?;
+            }
             Meta::NameValue(name_value)
                 if name_value.path.is_ident("rename")
                     || name_value.path.is_ident("wrap")
                     || name_value.path.is_ident("lead") =>
             {
-                // (A string a declarative macro passed in arrives in an invisible group.)
-                let mut value = &name_value.value;
-                while let Expr::Group(group) = value {
-                    value = &group.expr;
-                }
                 let Expr::Lit(ExprLit {
                     lit: Lit::Str(value),
                     ..
-                }) = value
+                }) = ungrouped(&name_value.value)
                 else {
                     return Err(Error::new_spanned(&name_value.value, "expected a string"));
                 };
@@ -127,12 +176,12 @@ fn parse_field(index: usize, field: &Field) -> Result<FieldModel<'_>> {
                 } else {
                     &mut model.lead
                 };
-                *slot = Some(value.value());
+                set_once(slot, value.value(), name_value)?;
             }
             _ => {
                 return Err(Error::new_spanned(
                     meta,
-                    "expected `skip`, `flatten`, `hidden`, `rename = \"..\"`, `wrap = \"..\"` or `lead = \"..\"`",
+                    "expected `skip`, `flatten`, `hidden`, `rename = \"..\"`, `wrap = \"..\"`, `client = \"..\"`, `lead = \"..\"` or `accumulation = Variant`",
                 ));
             }
         }
@@ -194,7 +243,7 @@ fn doc_comment(field: &Field) -> Option<String> {
     let mut closed = false;
     for line in lines {
         // (`/// text` is " text": the space after the slashes isn't the text's.)
-        let raw = line.strip_prefix(' ').unwrap_or(&line);
+        let raw = line.trim_prefix(' ');
         let line = raw.trim_end();
         let text = line.trim_start();
         let ticks = text.bytes().take_while(|&byte| byte == b'`').count();
@@ -250,15 +299,21 @@ fn starts_block(text: &str) -> bool {
     ordered || ["- ", "* ", "+ ", "> ", "|", "#"].iter().any(|start| text.starts_with(start))
 }
 
-/// `collect` with the field's description fragments on the path, its lead's and its doc
-/// comment's, as long as it runs.
-fn with_description_fragment(field: &FieldModel, collect: ProcMacro2TokenStream) -> ProcMacro2TokenStream {
+/// `collect` with the field's metadata fragments on the path, its lead's, its doc comment's
+/// and its accumulation's, as long as it runs.
+fn with_metadata_fragments(field: &FieldModel, collect: ProcMacro2TokenStream) -> ProcMacro2TokenStream {
     let fragments = field
         .lead
         .as_deref()
-        .map(|lead| quote! { bitview_traversable::Fragment::Lead(#lead) })
+        .map(|lead| quote! { ::bitview_traversable::Fragment::Lead(#lead) })
         .into_iter()
-        .chain(field.description.as_deref().map(|detail| quote! { bitview_traversable::Fragment::Detail(#detail) }))
+        .chain(field.description.as_deref().map(|detail| quote! { ::bitview_traversable::Fragment::Detail(#detail) }))
+        .map(|fragment| quote! { ::bitview_traversable::MetadataFragment::Description(#fragment) })
+        .chain(field.accumulation.as_ref().map(|accumulation| {
+            quote! {
+                ::bitview_traversable::MetadataFragment::Accumulation(::bitview_traversable::Accumulation::#accumulation)
+            }
+        }))
         .collect::<Vec<_>>();
     if fragments.is_empty() {
         return collect;
@@ -266,11 +321,11 @@ fn with_description_fragment(field: &FieldModel, collect: ProcMacro2TokenStream)
     let expected = fragments.iter().rev();
 
     quote! {{
-        #(description_fragments.push(#fragments);)*
+        #(path_fragments.push(#fragments);)*
         #collect
         #(
-            let popped = description_fragments.pop();
-            debug_assert_eq!(popped, Some(#expected));
+            let popped = path_fragments.pop();
+            ::std::debug_assert_eq!(popped, ::std::option::Option::Some(#expected));
         )*
     }}
 }
@@ -387,7 +442,7 @@ fn substitute_mode(
                 let projects = matches!(trees.get(i + 1), Some(TokenTree::Punct(p))
                     if p.as_char() == ':' && p.spacing() == Spacing::Joint);
                 out.extend(if projects {
-                    quote! { <#to as bitview_traversable::StorageMode> }
+                    quote! { <#to as ::bitview_traversable::StorageMode> }
                 } else {
                     to.clone()
                 });
@@ -483,7 +538,7 @@ fn client_name(
         return Ok(Some(client.value()));
     }
     let ident = input.ident.to_string();
-    let name = ident.strip_suffix("Vecs").unwrap_or(&ident);
+    let name = ident.trim_suffix("Vecs");
     Ok(is_type_name(name).then(|| name.to_owned()))
 }
 
@@ -509,36 +564,36 @@ fn gen_traversable(
         && let Member::Unnamed(_) = field.member
     {
         let where_clause = build_where_clause(generics, &[field.ty]);
-        let collect_description = with_description_fragment(
+        let collect_metadata = with_metadata_fragments(
             field,
             quote! {
-                self.0.collect_series_descriptions(description_fragments, descriptions);
+                self.0.collect_series_metadata(path_fragments, metadata);
             },
         );
         return quote! {
-            impl #impl_generics bitview_traversable::Traversable for #name #ty_generics #where_clause {
-                fn to_tree_node(&self) -> bitview_traversable::TreeNode {
+            impl #impl_generics ::bitview_traversable::Traversable for #name #ty_generics #where_clause {
+                fn to_tree_node(&self) -> ::bitview_traversable::TreeNode {
                     self.0.to_tree_node()
                 }
 
-                fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn bitview_traversable::AnyExportableVec> {
+                fn iter_any_exportable(&self) -> impl ::std::iter::Iterator<Item = &dyn ::bitview_traversable::AnyExportableVec> {
                     self.0.iter_any_exportable()
                 }
 
-                fn iter_any_visible(&self) -> impl Iterator<Item = &dyn bitview_traversable::AnyExportableVec> {
+                fn iter_any_visible(&self) -> impl ::std::iter::Iterator<Item = &dyn ::bitview_traversable::AnyExportableVec> {
                     self.0.iter_any_visible()
                 }
 
-                fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn bitview_traversable::AnyStoredVec> {
+                fn iter_any_stored_mut(&mut self) -> impl ::std::iter::Iterator<Item = &mut dyn ::bitview_traversable::AnyStoredVec> {
                     self.0.iter_any_stored_mut()
                 }
 
-                fn collect_series_descriptions<'a>(
-                    &'a self,
-                    description_fragments: &mut Vec<bitview_traversable::Fragment>,
-                    descriptions: &mut std::collections::BTreeMap<&'a str, Vec<bitview_traversable::Fragment>>,
+                fn collect_series_metadata<'__series>(
+                    &'__series self,
+                    path_fragments: &mut ::std::vec::Vec<::bitview_traversable::MetadataFragment>,
+                    metadata: &mut ::std::collections::BTreeMap<&'__series str, ::std::vec::Vec<::bitview_traversable::MetadataFragment>>,
                 ) {
-                    #collect_description
+                    #collect_metadata
                 }
             }
         };
@@ -551,35 +606,35 @@ fn gen_traversable(
     let where_clause = build_where_clause(generics, &traversed_types);
 
     let to_tree_node_body = generate_field_traversals(client, &visible, merge);
-    let exportable_vec = quote! { &dyn bitview_traversable::AnyExportableVec };
+    let exportable_vec = quote! { &dyn ::bitview_traversable::AnyExportableVec };
     let exportable = collect_iters(&traversed, "iter_any_exportable", &exportable_vec);
     let visible_iter = collect_iters(&visible, "iter_any_visible", &exportable_vec);
     let stored = collect_iters(
         &traversed,
         "iter_any_stored_mut",
-        &quote! { &mut dyn bitview_traversable::AnyStoredVec },
+        &quote! { &mut dyn ::bitview_traversable::AnyStoredVec },
     );
-    let description_impl = generate_description_impl(&visible);
+    let metadata_impl = generate_metadata_impl(&visible);
 
     quote! {
-        impl #impl_generics bitview_traversable::Traversable for #name #ty_generics #where_clause {
-            fn to_tree_node(&self) -> bitview_traversable::TreeNode {
+        impl #impl_generics ::bitview_traversable::Traversable for #name #ty_generics #where_clause {
+            fn to_tree_node(&self) -> ::bitview_traversable::TreeNode {
                 { #to_tree_node_body }
             }
 
-            fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn bitview_traversable::AnyExportableVec> {
+            fn iter_any_exportable(&self) -> impl ::std::iter::Iterator<Item = &dyn ::bitview_traversable::AnyExportableVec> {
                 #exportable
             }
 
-            fn iter_any_visible(&self) -> impl Iterator<Item = &dyn bitview_traversable::AnyExportableVec> {
+            fn iter_any_visible(&self) -> impl ::std::iter::Iterator<Item = &dyn ::bitview_traversable::AnyExportableVec> {
                 #visible_iter
             }
 
-            fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn bitview_traversable::AnyStoredVec> {
+            fn iter_any_stored_mut(&mut self) -> impl ::std::iter::Iterator<Item = &mut dyn ::bitview_traversable::AnyStoredVec> {
                 #stored
             }
 
-            #description_impl
+            #metadata_impl
         }
     }
 }
@@ -590,8 +645,8 @@ fn build_where_clause(generics: &Generics, traversed_types: &[&Type]) -> ProcMac
     let original_predicates = generics.where_clause.as_ref().map(|w| &w.predicates);
     quote! {
         where
-            #(#traversed_types: bitview_traversable::Traversable,)*
-            #(#generic_params: Send + Sync,)*
+            #(#traversed_types: ::bitview_traversable::Traversable,)*
+            #(#generic_params: ::std::marker::Send + ::std::marker::Sync,)*
             #original_predicates
     }
 }
@@ -613,10 +668,10 @@ fn collect_iters(
         })
         .collect();
     match iters.as_slice() {
-        [] => quote! { std::iter::empty() },
+        [] => quote! { ::std::iter::empty() },
         [only] => quote! { #only },
         [first, rest @ ..] => quote! {
-            let mut vecs: Vec<#item> = #first.collect();
+            let mut vecs: ::std::vec::Vec<#item> = #first.collect();
             #(vecs.extend(#rest);)*
             vecs.into_iter()
         },
@@ -654,11 +709,11 @@ fn generate_field_traversals(
                 .unwrap_or_else(|| field_name.to_string());
             return quote! {
                 match self.#member.to_tree_node() {
-                    bitview_traversable::TreeNode::Branch(map) => {
+                    ::bitview_traversable::TreeNode::Branch(map) => {
                         collected.merge_fields(map);
                     }
-                    leaf @ bitview_traversable::TreeNode::Leaf(_) => {
-                        collected.merge_field(String::from(#leaf_key), leaf);
+                    leaf @ ::bitview_traversable::TreeNode::Leaf(_) => {
+                        collected.merge_field(::std::string::String::from(#leaf_key), leaf);
                     }
                 }
             };
@@ -666,8 +721,8 @@ fn generate_field_traversals(
 
         let field_name_str = {
             let s = field_name.to_string();
-            let s = s.strip_prefix("r#").unwrap_or(&s);
-            s.strip_prefix('_').unwrap_or(s).to_string()
+            let s = s.trim_prefix("r#");
+            s.trim_prefix('_').to_string()
         };
 
         // With `wrap = "a/b"`, the node appears at `a/b/<rename-or-field-name>`.
@@ -682,62 +737,66 @@ fn generate_field_traversals(
             None => (key, vec![]),
         };
 
-        let build_wrapped = |base: ProcMacro2TokenStream| -> ProcMacro2TokenStream {
-            wrap_path.iter().rev().fold(base, |inner, key| {
-                quote! { bitview_traversable::TreeNode::wrap(#key, #inner) }
-            })
-        };
-
-        let node_expr = build_wrapped(quote! { self.#member.to_tree_node() });
+        // The innermost wrap, holding the field, takes the field's client name; without one, the
+        // field's own node does.
+        let mut node_expr = quote! { self.#member.to_tree_node() };
+        let mut wraps = wrap_path.iter().rev();
+        if let Some(innermost) = wraps.next() {
+            node_expr = quote! { ::bitview_traversable::TreeNode::wrap(#innermost, #node_expr) };
+        }
+        if let Some(client) = &field.client {
+            node_expr = quote! {
+                #node_expr.with_client_name(::std::option::Option::Some(#client))
+            };
+        }
+        for key in wraps {
+            node_expr = quote! { ::bitview_traversable::TreeNode::wrap(#key, #node_expr) };
+        }
         quote! {
-            collected.merge_field(String::from(#outer_key), #node_expr);
+            collected.merge_field(::std::string::String::from(#outer_key), #node_expr);
         }
     });
 
     let final_expr = if merge {
-        quote! { bitview_traversable::TreeNode::Branch(collected).merge_branches() }
+        quote! { ::bitview_traversable::TreeNode::Branch(collected).merge_branches() }
     } else {
-        quote! { bitview_traversable::TreeNode::Branch(collected) }
+        quote! { ::bitview_traversable::TreeNode::Branch(collected) }
     };
 
     // The branch records its client name, for client type names.
     let client_name = match client {
-        Some(name) => quote! { Some(#name) },
-        None => quote! { None },
+        Some(name) => quote! { ::std::option::Option::Some(#name) },
+        None => quote! { ::std::option::Option::None },
     };
     quote! {
-        let mut collected = bitview_traversable::TreeBranch::default();
+        let mut collected = ::bitview_traversable::TreeBranch::default();
         #(#field_operations)*
-        let mut node = #final_expr;
-        if let bitview_traversable::TreeNode::Branch(branch) = &mut node {
-            branch.client_name = #client_name;
-        }
-        node
+        #final_expr.with_client_name(#client_name)
     }
 }
 
-/// Collects each visible field's descriptions under its doc comment. Without visible fields
+/// Collects each visible field's series metadata under its own fragments. Without visible fields
 /// the trait's default (which visits no vec) applies.
-fn generate_description_impl(visible: &[&FieldModel]) -> ProcMacro2TokenStream {
+fn generate_metadata_impl(visible: &[&FieldModel]) -> ProcMacro2TokenStream {
     if visible.is_empty() {
         return quote! {};
     }
 
     let fields = visible.iter().map(|field| {
         let member = &field.member;
-        with_description_fragment(
+        with_metadata_fragments(
             field,
             quote! {
-                self.#member.collect_series_descriptions(description_fragments, descriptions);
+                self.#member.collect_series_metadata(path_fragments, metadata);
             },
         )
     });
 
     quote! {
-        fn collect_series_descriptions<'a>(
-            &'a self,
-            description_fragments: &mut Vec<bitview_traversable::Fragment>,
-            descriptions: &mut std::collections::BTreeMap<&'a str, Vec<bitview_traversable::Fragment>>,
+        fn collect_series_metadata<'__series>(
+            &'__series self,
+            path_fragments: &mut ::std::vec::Vec<::bitview_traversable::MetadataFragment>,
+            metadata: &mut ::std::collections::BTreeMap<&'__series str, ::std::vec::Vec<::bitview_traversable::MetadataFragment>>,
         ) {
             #(#fields)*
         }
@@ -745,8 +804,9 @@ fn generate_description_impl(visible: &[&FieldModel]) -> ProcMacro2TokenStream {
 }
 
 /// `ReadOnlyClone` for a derived type: a `StorageMode` param maps `Rw` to `Ro`. Otherwise container
-/// params (unbounded, or used as a bare non-skipped field type) propagate it; without any, nothing
-/// is generated.
+/// params (held by a traversed field: unbounded, or as its whole type) propagate it; a param only
+/// skipped fields hold stays itself, those fields cloned. Without a container, nothing is
+/// generated.
 fn gen_read_only_clone(input: &DeriveInput, fields: &[FieldModel]) -> ProcMacro2TokenStream {
     let generics = &input.generics;
     let name = &input.ident;
@@ -776,10 +836,15 @@ fn gen_read_only_clone(input: &DeriveInput, fields: &[FieldModel]) -> ProcMacro2
     };
 
     let bare_field_params = find_bare_field_params(fields, &type_params);
+    let traversed = |tp: &TypeParam| {
+        fields
+            .iter()
+            .any(|field| !field.skipped && type_contains_ident(field.ty, &tp.ident))
+    };
 
     let container_params: Vec<&Ident> = type_params
         .iter()
-        .filter(|tp| !is_bounded(tp) || bare_field_params.contains(&&tp.ident))
+        .filter(|tp| traversed(tp) && (!is_bounded(tp) || bare_field_params.contains(&&tp.ident)))
         .map(|tp| &tp.ident)
         .collect();
 
@@ -819,12 +884,12 @@ fn gen_read_only_clone_field_value(
         return quote! { () };
     }
     if field.skipped || !is_relevant(ty) {
-        return quote! { self.#member.clone() };
+        return quote! { ::std::clone::Clone::clone(&self.#member) };
     }
     if is_box_type(ty) {
-        quote! { Box::new(bitview_traversable::ReadOnlyClone::read_only_clone(&*self.#member)) }
+        quote! { ::std::boxed::Box::new(::bitview_traversable::ReadOnlyClone::read_only_clone(&*self.#member)) }
     } else {
-        quote! { bitview_traversable::ReadOnlyClone::read_only_clone(&self.#member) }
+        quote! { ::bitview_traversable::ReadOnlyClone::read_only_clone(&self.#member) }
     }
 }
 
@@ -880,8 +945,8 @@ fn gen_read_only_clone_storage_mode(
         })
     };
 
-    let ty_args_rw = make_ty_args(quote! { bitview_traversable::Rw });
-    let ty_args_ro = make_ty_args(quote! { bitview_traversable::Ro });
+    let ty_args_rw = make_ty_args(quote! { ::bitview_traversable::Rw });
+    let ty_args_ro = make_ty_args(quote! { ::bitview_traversable::Ro });
 
     // With other type params, the conversion of each field depending on them is
     // stated: fields holding `M` convert through `ReadOnlyClone`, projections
@@ -897,7 +962,7 @@ fn gen_read_only_clone_storage_mode(
         .filter_map(|f| -> Option<WherePredicate> {
             let ty = f.ty;
             if f.skipped {
-                return type_projects_param(ty, &other_params).then(|| parse_quote! { #ty: Clone });
+                return type_projects_param(ty, &other_params).then(|| parse_quote! { #ty: ::std::clone::Clone });
             }
             let generic = other_params.iter().any(|p| type_contains_ident(ty, p));
             if generic && type_contains_ident(ty, mode_param) {
@@ -905,16 +970,16 @@ fn gen_read_only_clone_storage_mode(
                 let rw = substitute_mode(
                     quote! { #ty },
                     mode_param,
-                    &quote! { bitview_traversable::Rw },
+                    &quote! { ::bitview_traversable::Rw },
                 );
                 let ro = substitute_mode(
                     quote! { #ty },
                     mode_param,
-                    &quote! { bitview_traversable::Ro },
+                    &quote! { ::bitview_traversable::Ro },
                 );
-                Some(parse_quote! { #rw: bitview_traversable::ReadOnlyClone<ReadOnly = #ro> })
+                Some(parse_quote! { #rw: ::bitview_traversable::ReadOnlyClone<ReadOnly = #ro> })
             } else if type_projects_param(ty, &other_params) {
-                Some(parse_quote! { #ty: Clone })
+                Some(parse_quote! { #ty: ::std::clone::Clone })
             } else {
                 None
             }
@@ -924,8 +989,8 @@ fn gen_read_only_clone_storage_mode(
     // The impl keeps every other param, its bounds and the struct's predicates, with the mode
     // param they name now `Rw`; `ReadOnly` instantiates the struct with `Ro`, so those naming
     // the mode param also hold with `Ro`.
-    let rw = quote! { bitview_traversable::Rw };
-    let ro = quote! { bitview_traversable::Ro };
+    let rw = quote! { ::bitview_traversable::Rw };
+    let ro = quote! { ::bitview_traversable::Ro };
     let mut mode_predicates: Vec<WherePredicate> = Vec::new();
     // The mode param's own inline bounds besides `StorageMode` hold for both modes (`?Sized`
     // relaxes a param and means nothing on a concrete type).
@@ -998,7 +1063,7 @@ fn gen_read_only_clone_storage_mode(
     let body = gen_read_only_clone_body(name, fields, |ty| type_contains_ident(ty, mode_param));
 
     quote! {
-        impl #impl_generics bitview_traversable::ReadOnlyClone for #name<#(#ty_args_rw),*> #where_clause {
+        impl #impl_generics ::bitview_traversable::ReadOnlyClone for #name<#(#ty_args_rw),*> #where_clause {
             type ReadOnly = #name<#(#ty_args_ro),*>;
 
             fn read_only_clone(&self) -> Self::ReadOnly {
@@ -1039,11 +1104,11 @@ fn gen_read_only_clone_generics(
         if !tp.bounds.is_empty() {
             let bounds = &tp.bounds;
             extra_where.push(parse_quote! {
-                <#ident as bitview_traversable::ReadOnlyClone>::ReadOnly: #bounds
+                <#ident as ::bitview_traversable::ReadOnlyClone>::ReadOnly: #bounds
             });
         }
         tp.bounds
-            .push(parse_quote!(bitview_traversable::ReadOnlyClone));
+            .push(parse_quote!(::bitview_traversable::ReadOnlyClone));
     }
     for pred in generics.where_clause.iter().flat_map(|w| &w.predicates) {
         if let WherePredicate::Type(pt) = pred
@@ -1054,8 +1119,19 @@ fn gen_read_only_clone_generics(
             let ident = &seg.ident;
             let bounds = &pt.bounds;
             extra_where.push(parse_quote! {
-                <#ident as bitview_traversable::ReadOnlyClone>::ReadOnly: #bounds
+                <#ident as ::bitview_traversable::ReadOnlyClone>::ReadOnly: #bounds
             });
+        }
+    }
+    // A field the projection clones (no container in it) keeps its type: one holding another
+    // param needs that type to clone.
+    let type_params: Vec<&Ident> = generics.type_params().map(|tp| &tp.ident).collect();
+    for field in fields.iter().filter(|field| !is_write_only_type(field.ty)) {
+        let ty = field.ty;
+        let converted =
+            !field.skipped && container_params.iter().any(|tp| type_contains_ident(ty, tp));
+        if !converted && type_params.iter().any(|tp| type_contains_ident(ty, tp)) {
+            extra_where.push(parse_quote! { #ty: ::std::clone::Clone });
         }
     }
     impl_generics
@@ -1067,7 +1143,7 @@ fn gen_read_only_clone_generics(
     let ro_ty_args = collect_ty_args(generics, |tp| {
         let id = &tp.ident;
         if is_container(id) {
-            quote! { <#id as bitview_traversable::ReadOnlyClone>::ReadOnly }
+            quote! { <#id as ::bitview_traversable::ReadOnlyClone>::ReadOnly }
         } else {
             quote! { #id }
         }
@@ -1080,7 +1156,7 @@ fn gen_read_only_clone_generics(
     });
 
     quote! {
-        impl #impl_generics bitview_traversable::ReadOnlyClone for #name #ty_generics #where_clause {
+        impl #impl_generics ::bitview_traversable::ReadOnlyClone for #name #ty_generics #where_clause {
             type ReadOnly = #name<#(#ro_ty_args),*>;
 
             fn read_only_clone(&self) -> Self::ReadOnly {

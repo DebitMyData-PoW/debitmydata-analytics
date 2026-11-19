@@ -3,16 +3,20 @@
 
 use brk_types::Txid;
 
-/// `Replaced` = a tx added this cycle, or one still live, spends one of
-/// its inputs (BIP-125 replacement inferred from conflicting outpoints).
-/// `by` is the immediate successor. The chain extends if `by` is itself
-/// later replaced. Walk it forward via `TxGraveyard::replacement_root_of`.
+/// `Replaced` = a tx added this cycle, or one a new block confirmed, spends one of its inputs. The
+/// replacement is inferred from conflicting outpoints, and a confirmed conflict is mempool.space's
+/// mined replacement. `by` is the immediate successor, and the chain extends if `by` is replaced
+/// later. Walk it forward with `TxGraveyard::next_version`.
 ///
-/// `Vanished` = any other reason we can't distinguish from the data at
-/// hand (mined, expired, evicted, or replaced by a tx we didn't fetch
-/// due to the per-cycle fetch cap).
+/// `Mined` = a block since the last cycle confirmed it (until a reorg takes that block off the
+/// chain: then `Vanished`, or `Replaced` by a conflict the new blocks confirmed).
+///
+/// `Vanished` = any other reason we can't distinguish from the data at hand (expired, evicted,
+/// confirmed more than a few blocks back). One replaced by a tx the per-cycle fetch cap held back
+/// reads `Replaced` once that tx arrives (`TxGraveyard::relink`).
 #[derive(Debug, Clone, Copy)]
 pub enum TxRemoval {
     Replaced { by: Txid },
+    Mined,
     Vanished,
 }

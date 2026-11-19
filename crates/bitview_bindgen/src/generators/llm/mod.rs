@@ -2,42 +2,92 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fmt::Write,
     io,
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 use bitview_catalog::TreeNode;
-use serde_json::Value;
+use serde_json::{Value, json, to_string_pretty};
 
-use super::write_if_changed;
-use crate::{Endpoint, ResponseKind, Ty, TypeSchemas, collect_schema_refs, openapi::Spec};
+use super::{reading_rules, sha256_hex, write_if_changed};
+use crate::{
+    ClientOutputPaths, Endpoint, ResponseKind, Ty, TypeSchemas, collect_schema_refs, model::Model,
+    openapi::{Info, Spec},
+};
 
 mod manifest;
+mod skill;
 
 const BASE_URL: &str = "https://analytics.debitmydata.io";
+const DEFINITION: &str = "DebitMyData Analytics is a free, open-source data server for the DebitMyData (DMD) chain, built on Bitview: on-chain metrics, blocks, mempool and mining data, with charts and an API. US dollar values use DMD's reference price (the cost of mining one DMD, at least $0.001), not a market price.";
+/// What an agent can ask: the skill's trigger and the MCP instructions' opening.
+const SCOPE: &str = "on-chain metrics (realized price, holder cohorts, supply by age), blocks, transactions, addresses, mempool and fees, mining, hashrate and difficulty, and DMD's reference price in US dollars, computed from the chain since its first block in February 2026";
+const ACCESS: &str = "Free and read-only, with no API key.";
+/// The code's license, in one line.
+const LICENSES: &str = "Code: MIT.";
+/// The series flow, written once: each step and the operations it calls, named as routes in
+/// llms.txt and the skill, as tools in the MCP instructions.
+const SERIES_FLOW: [(&str, &[&str]); 3] = [
+    (
+        "search by meaning with plain words; it returns series ids",
+        &["search_series"],
+    ),
+    (
+        "read a returned id's description, supported indexes, value type, unit (what the value type measures), accumulation (how its values combine over time), and the indexes whose values can be null (missing or undefined)",
+        &["get_series_info"],
+    ),
+    (
+        "pick one of those indexes and fetch its values (`start` inclusive, `end` exclusive), the latest value alone, or several comma-separated series at once",
+        &["get_series", "get_series_latest", "get_series_bulk"],
+    ),
+];
+const SERIES_RULE: &str = "Never invent a series id: only ids the API returned exist.";
+/// What else agents get wrong reading series.
+const AGENT_RULES: [&str; 4] = [
+    "Index names are exact (`day1`, not `day`); a wrong one is rejected with the valid list.",
+    "The latest value is the newest one only, never a past one.",
+    "Convert values only as asked.",
+    "Compute derived numbers at full precision; round only the final answer, if at all.",
+];
+const SKILL: &str = "debitmydata-analytics";
+/// Where a site serves its skills: the agent-skills discovery RFC's convention (v0.2.0).
+const SKILLS_PATH: &str = ".well-known/agent-skills";
+const REPOSITORY: &str = "https://github.com/DebitMyData-PoW/debitmydata-analytics";
 
 pub(crate) fn generate_llm_clients(
     catalog: &TreeNode,
+    model: &Model,
     spec: &Spec,
     endpoints: &[Endpoint],
     schemas: &TypeSchemas,
-    roots: &[PathBuf],
-    manifest_path: Option<&Path>,
+    paths: &ClientOutputPaths,
 ) -> io::Result<()> {
+    // The sentence the skill and the MCP instructions use to point at the help page.
+    let terms_and_help = format!("Help and source: {}.", spec.info.support);
+    let roots = &paths.llm;
     if !roots.is_empty() {
-        let metric_count = count_metrics(catalog);
         let generated = endpoints
             .iter()
             .filter(|endpoint| endpoint.should_generate())
             .collect::<Vec<_>>();
+        let flow = render_series_flow(&generated, route)?;
+        let metric_count = count_metrics(catalog);
+        let skill = skill::render(
+            catalog,
+            model,
+            endpoints,
+            metric_count,
+            &flow,
+            &terms_and_help,
+        )?;
+        let index = render_skill_index(&skill[0].1)?;
         let llms = render_llms(
-            &spec.info.title,
-            &spec.info.version,
+            &spec.info,
             metric_count,
             &generated,
+            &flow,
         );
         let llms_full = render_llms_full(
-            &spec.info.title,
-            &spec.info.version,
+            &spec.info,
             metric_count,
             &generated,
             schemas,
@@ -45,12 +95,31 @@ pub(crate) fn generate_llm_clients(
         for root in roots {
             write_if_changed(&root.join("llms.txt"), &llms)?;
             write_if_changed(&root.join("llms-full.txt"), &llms_full)?;
+            let skills = root.join(SKILLS_PATH);
+            write_if_changed(&skills.join("index.json"), &index)?;
+            write_skill(&skills.join(SKILL), &skill)?;
         }
     }
-    if let Some(path) = manifest_path {
-        manifest::generate_tool_manifest(endpoints, schemas, path)?;
+    if let Some(path) = &paths.llm_manifest {
+        let tools = endpoints
+            .iter()
+            .filter(|endpoint| !endpoint.deprecated && !endpoint.mcp_ignored)
+            .collect::<Vec<_>>();
+        manifest::generate_tool_manifest(
+            &tools,
+            schemas,
+            &render_mcp_instructions(&tools, &terms_and_help)?,
+            path,
+        )?;
     }
     Ok(())
+}
+
+/// The traps for the skill and the MCP instructions: the reading rules, then the agents' own.
+pub(super) fn render_traps() -> String {
+    reading_rules::markdown()
+        .chain(AGENT_RULES.iter().map(|rule| format!("- {rule}\n")))
+        .collect()
 }
 
 /// Distinct series ids: a series reached through several typed paths counts once.
@@ -62,10 +131,109 @@ fn count_metrics(node: &TreeNode) -> usize {
     names.len()
 }
 
-fn render_llms(title: &str, version: &str, metric_count: usize, endpoints: &[&Endpoint]) -> String {
+fn write_skill(folder: &Path, files: &skill::Files) -> io::Result<()> {
+    for (path, content) in files {
+        write_if_changed(&folder.join(path), content)?;
+    }
+    Ok(())
+}
+
+/// The operation `id` among those offered: one renamed or removed fails generation.
+fn find<'a>(endpoints: &[&'a Endpoint], id: &str) -> io::Result<&'a Endpoint> {
+    endpoints
+        .iter()
+        .copied()
+        .find(|endpoint| endpoint.operation_id == id)
+        .ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("the LLM references name a missing operation: {id}"),
+            )
+        })
+}
+
+/// The series flow as a numbered list, each step naming its operations through `name`.
+fn render_series_flow(
+    endpoints: &[&Endpoint],
+    name: fn(&Endpoint) -> String,
+) -> io::Result<String> {
+    let mut output = String::new();
+    for (step, (text, operations)) in SERIES_FLOW.iter().enumerate() {
+        let names = operations
+            .iter()
+            .map(|id| Ok(format!("`{}`", name(find(endpoints, id)?))))
+            .collect::<io::Result<Vec<_>>>()?;
+        writeln!(output, "{}. {}: {text}.", step + 1, names.join(", ")).unwrap();
+    }
+    Ok(output)
+}
+
+/// `GET /api/series/search?q=<q>`: the route with its required query parameters.
+fn route(endpoint: &Endpoint) -> String {
+    let query = endpoint
+        .query_params
+        .iter()
+        .filter(|parameter| parameter.required)
+        .map(|parameter| format!("{0}=<{0}>", parameter.name))
+        .collect::<Vec<_>>();
+    if query.is_empty() {
+        format!("{} {}", endpoint.method, endpoint.path)
+    } else {
+        format!("{} {}?{}", endpoint.method, endpoint.path, query.join("&"))
+    }
+}
+
+/// The site's skill index, per the agent-skills discovery RFC v0.2.0: the digest is of the
+/// served SKILL.md's bytes, its url relative to the index.
+fn render_skill_index(skill: &str) -> io::Result<String> {
+    let digest = format!("sha256:{}", sha256_hex(skill.as_bytes()));
+    pretty(&json!({
+        "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+        "skills": [{
+            "name": SKILL,
+            "type": "skill-md",
+            "description": skill::description(),
+            "url": format!("{SKILL}/SKILL.md"),
+            "digest": digest,
+        }],
+    }))
+}
+
+fn pretty(value: &Value) -> io::Result<String> {
+    let mut content = to_string_pretty(value)
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
+    content.push('\n');
+    Ok(content)
+}
+
+/// The MCP server's instructions: the skill's pointer, with tools in place of routes.
+fn render_mcp_instructions(tools: &[&Endpoint], terms_and_help: &str) -> io::Result<String> {
+    let traps = render_traps();
+    let flow = render_series_flow(tools, |endpoint| endpoint.operation_id.clone())?;
+    Ok(format!(
+        "Live and historical DebitMyData (DMD) chain data from DebitMyData Analytics, read from a full node: {SCOPE}. {ACCESS} {terms_and_help}\n\n\
+For a series:\n\n\
+{flow}\n\
+{SERIES_RULE}\n\n\
+{traps}\n\
+Source of this data: DebitMyData Analytics ({BASE_URL}), built on Bitview. Binary responses are returned as embedded MCP resources."
+    ))
+}
+
+fn render_llms(
+    Info {
+        title,
+        version,
+        support: _,
+        ..
+    }: &Info,
+    metric_count: usize,
+    endpoints: &[&Endpoint],
+    flow: &str,
+) -> String {
     format!(
         "# {title}\n\n\
-> Free, open-source analytics API for the DebitMyData (DMD) chain, built on Bitview. {metric_count} on-chain time-series and {} API operations. US dollar values use DMD's reference price (the cost of mining one DMD, at least $0.001), not a market price.\n\n\
+> {DEFINITION} {metric_count} on-chain time-series and {} API operations.\n\n\
 ## API\n\n\
 - Version: `{version}`\n\
 - Base URL: {BASE_URL}\n\
@@ -78,34 +246,40 @@ fn render_llms(title: &str, version: &str, metric_count: usize, endpoints: &[&En
 - [Interactive documentation]({BASE_URL}/api)\n\n\
 Build tools from the full OpenAPI document; the compact summary is a smaller custom (non-OpenAPI) overview. Use `llms-full.txt` only when a complete readable reference is needed.\n\n\
 ## Series workflow\n\n\
-Never invent a series identifier.\n\n\
-1. Search by meaning: `GET /api/series/search?q=<plain-language concept>`.\n\
-2. Inspect a returned identifier: `GET /api/series/<series>` returns its description, supported indexes, value type, unit (what the value type measures), and the indexes whose values can be null (missing or undefined).\n\
-3. Fetch data: `GET /api/series/<series>/<index>?start=<inclusive>&end=<exclusive>`.\n\
-4. Fetch one current value with `GET /api/series/<series>/<index>/latest`. For several series, use `GET /api/series/bulk?series=<comma-separated names>&index=<index>`.\n\n\
-## Source\n\n\
-- [GitHub](https://github.com/DebitMyData-PoW/debitmydata-analytics), a fork of [Bitview](https://github.com/bitcoinresearchkit/mono)\n\
-- MIT licensed\n",
+{flow}\n\
+{SERIES_RULE}\n\n\
+## Agent Skill\n\n\
+- [SKILL.md]({BASE_URL}/{SKILLS_PATH}/{SKILL}/SKILL.md), listed in the [skill index]({BASE_URL}/{SKILLS_PATH}/index.json)\n\n\
+## Source and license\n\n\
+- [GitHub]({REPOSITORY}), a fork of [Bitview](https://github.com/bitcoinresearchkit/mono)\n\
+- {LICENSES}\n",
         endpoints.len(),
     )
 }
 
 fn render_llms_full(
-    title: &str,
-    version: &str,
+    Info {
+        title,
+        version,
+        support,
+        ..
+    }: &Info,
     metric_count: usize,
     endpoints: &[&Endpoint],
     schemas: &TypeSchemas,
 ) -> String {
     let mut output = String::new();
     writeln!(output, "# {title} — Full API Reference\n").unwrap();
+    writeln!(output, "> {DEFINITION}\n").unwrap();
     writeln!(
         output,
-        "> Generated from BRK's OpenAPI specification and metric tree. Do not edit this file manually.\n"
+        "> Generated from this server's OpenAPI specification and metric tree. Do not edit this file manually.\n"
     )
     .unwrap();
     writeln!(output, "- Version: `{version}`").unwrap();
     writeln!(output, "- Base URL: {BASE_URL}").unwrap();
+    writeln!(output, "- Support: {support}").unwrap();
+    writeln!(output, "- {LICENSES}").unwrap();
     writeln!(output, "- Metrics: {metric_count}").unwrap();
     writeln!(output, "- Operations: {}\n", endpoints.len()).unwrap();
     writeln!(
@@ -148,11 +322,14 @@ fn render_llms_full(
 }
 
 fn endpoint_group(path: &str) -> String {
-    let segment = path
-        .split('/')
+    title_case(endpoint_segment(path))
+}
+
+/// The segment naming a path's group: the first past `api` and `v1`.
+fn endpoint_segment(path: &str) -> &str {
+    path.split('/')
         .find(|part| !part.is_empty() && *part != "api" && *part != "v1")
-        .unwrap_or("server");
-    title_case(segment)
+        .unwrap_or("server")
 }
 
 fn title_case(value: &str) -> String {

@@ -91,8 +91,9 @@ macro_rules! with_transaction_features {
                 /// Non-coinbase transactions with at least one output below the type-specific dust threshold: 672
                 /// sats for P2PK65, 576 for P2PK33, 546 for P2PKH, 540 for P2SH, 294 for P2WPKH, 330 for P2WSH or
                 /// P2TR, 240 for P2A, and 471 for an empty script. P2MS and unknown scripts use their computed
-                /// minimal non-dust value; OP_RETURN is excluded.
-                #[traversable(lead = "Transactions with dust: outputs below the node's dust threshold.")]
+                /// minimal non-dust value; unspendable outputs (OP_RETURN, or a script over 10,000 bytes) are
+                /// excluded, as in DebitMyData Core.
+                #[traversable(lead = "Transactions with dust: outputs below DebitMyData Core's dust threshold.")]
                 dust_output: has_dust_output, DUST_OUTPUT = 21;
                 /// Version-1 transactions tagged as EPOBC colored-coin transfers or issuances: the first
                 /// input's sequence number is below 4,096 (bits 12 to 31 zero) and its low six bits are

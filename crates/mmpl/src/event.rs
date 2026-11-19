@@ -2,8 +2,11 @@
 //! `jq` / `grep` to filter. Per-event fields are flat (no nested
 //! objects) so `jq -c 'select(...)'` works without `..` walks.
 
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use brk_types::{
-    BlockHash, FeeRate, Height, MempoolBlockHash, PreciseRecommendedFees, Sats, Timestamp, Txid, VSize,
+    BlockHash, FeeRate, Height, MempoolBlockHash, PreciseRecommendedFees, Sats, Timestamp, Txid,
+    VSize,
 };
 use serde::Serialize;
 
@@ -59,18 +62,34 @@ pub enum Event {
         count: usize,
         vsize: VSize,
         fee: Sats,
-        took_ms: u64,
+        /// How long the cycle's mempool tick took (the emit after it not included).
+        tick_ms: u64,
     },
+    /// A cycle that published nothing (the node unreachable, an RPC error, a block arriving
+    /// mid-cycle, the node reloading its mempool): no heartbeat this time; the next tries again,
+    /// backing off while failures repeat.
+    Stall { t: f64, reason: String },
 }
 
 #[derive(Serialize)]
 #[serde(tag = "reason", rename_all = "snake_case")]
 pub enum LeaveReason {
-    Replaced { by: Txid },
+    Replaced {
+        by: Txid,
+    },
+    /// A block confirmed it.
+    Mined,
     Vanished,
 }
 
 impl Event {
+    pub fn stall(reason: String) -> Self {
+        Self::Stall {
+            t: now_secs(),
+            reason,
+        }
+    }
+
     pub fn fees(t: f64, fees: &PreciseRecommendedFees) -> Self {
         Self::Fees {
             t,
@@ -81,4 +100,11 @@ impl Event {
             minimum: fees.minimum_fee,
         }
     }
+}
+
+pub fn now_secs() -> f64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs_f64()
 }

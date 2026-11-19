@@ -4,12 +4,16 @@ use brk_error::Result;
 use brk_types::{
     BlkPosition, Height, RawLockTime, SigOps, SigOps32, TxIndex, Txid, Version, Weight, Weight32,
 };
-use vecdb::{AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, PcoVec, Rw, StorageMode};
+use vecdb::{
+    AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, PcoVec, Rw, StorageMode,
+};
 
+pub mod counters;
 pub mod features;
 pub mod metadata;
 pub mod versions;
 
+pub use counters::{BlockCounterVecs, BlockCounters};
 pub use features::TransactionFeaturesVecs;
 pub use features::{BlockCount, FeatureVecs, FlagView, TransactionCounts, TxFeatureFlags};
 pub use metadata::TxMetadataVecs;
@@ -39,17 +43,18 @@ pub struct TransactionsVecs<M: StorageMode = Rw> {
     pub raw_locktime: M::Stored<PcoVec<TxIndex, RawLockTime>>,
     /// BIP-141 transaction weight in weight units: non-witness bytes count as
     /// four weight units and witness bytes count as one.
+    #[traversable(accumulation = Flow)]
     pub weight: Compact<PcoVec<TxIndex, Weight32>, Weight, M>,
     /// Serialized size in bytes, including witness data: the byte length of the
     /// transaction's consensus serialization.
-    #[traversable(rename = "size")]
+    #[traversable(rename = "size", accumulation = Flow)]
     pub total_size: Compact<PcoVec<TxIndex, Bytes32>, Bytes, M>,
     /// BIP-141 signature-operation cost: legacy scriptPubKey, scriptSig, and
     /// P2SH redeem-script sigops cost four units; P2WPKH and P2WSH sigops cost
     /// one. This is a static count, not the number of signatures executed.
     /// Tapscript sigops are excluded because BIP-342 uses a separate per-input
     /// budget.
-    #[traversable(rename = "sigop_cost")]
+    #[traversable(rename = "sigop_cost", accumulation = Flow)]
     pub total_sigop_cost: Compact<PcoVec<TxIndex, SigOps32>, SigOps, M>,
     /// Global zero-based transaction-input index in canonical blockchain order.
     /// At `height`, this is where the block begins and equals the number of
@@ -63,6 +68,9 @@ pub struct TransactionsVecs<M: StorageMode = Rw> {
     // Stored in 5 bytes per transaction.
     pub first_txout_index: Compact<BytesVec<TxIndex, Index40<TxOutIndex>>, TxOutIndex, M>,
     pub features: TransactionFeaturesVecs<M>,
+    /// Each block's counts of what it holds: sources of cumulative series other plugins own.
+    #[traversable(hidden)]
+    pub counters: BlockCounterVecs<M>,
     /// Counts every transaction, including coinbase, by its signed 32-bit
     /// Transaction version.
     pub versions: VersionCountVecs<M>,
@@ -106,6 +114,7 @@ impl TransactionsVecs {
             first_txin_index,
             first_txout_index,
             features,
+            counters,
             versions,
             position,
         ) = parallel_import! {
@@ -119,6 +128,7 @@ impl TransactionsVecs {
             first_txin_index = PcoVec::import(db, "first_txin_index", version),
             first_txout_index = BytesVec::import(db, "first_txout_index", version).map(Compact::new),
             features = TransactionFeaturesVecs::import(db, version),
+            counters = BlockCounterVecs::import(db, version),
             versions = VersionCountVecs::import(db, version),
             position = PcoVec::import(db, "tx_position", version),
         };
@@ -133,6 +143,7 @@ impl TransactionsVecs {
             first_txin_index,
             first_txout_index,
             features,
+            counters,
             versions,
             position,
         })
@@ -153,6 +164,7 @@ impl TransactionsVecs {
         ]
         .into_iter()
         .chain(self.features.iter_any())
+        .chain(self.counters.iter_any())
         .chain(self.versions.iter_any())
     }
 }

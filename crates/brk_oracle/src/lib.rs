@@ -18,21 +18,23 @@
 //! 2020 crash, while the output cap helps the thin pre-2020 mix for longer and
 //! still prevents modern fan-out clusters from dominating one EMA slot.
 
-use std::convert::Infallible;
-
-use brk_types::{Dollars, Histogram};
+use brk_types::Dollars;
 
 mod config;
 mod filter;
+mod histogram;
 mod scale;
 mod seed;
 mod stencil;
+#[cfg(test)]
+mod tests;
 mod window;
 
 pub use config::{Config, START_HEIGHT_FAST, START_HEIGHT_SLOW};
 pub use filter::{PaymentFilter, Skip, Tally};
+pub use histogram::Histogram;
 use scale::NUM_BINS;
-pub use scale::{bin_to_cents, cents_to_bin, sats_to_bin};
+pub use scale::{bin_to_cents, cents_to_bin, dollars_bin_offset, one_dollar_bin, sats_to_bin};
 pub use seed::{FIRST_PRICE_HEIGHT, pre_oracle_prices_from};
 
 pub use stencil::ROUND_DOLLARS;
@@ -119,7 +121,7 @@ impl Oracle {
             kept.iter().for_each(|h| {
                 o.process_histogram(h);
             });
-            Ok::<_, Infallible>(())
+            Ok::<_, !>(())
         });
         *self = oracle;
     }
@@ -131,7 +133,8 @@ impl Oracle {
     }
 
     /// The search behind the last block's pick, `prev_bin` the reference before it: the window's
-    /// first candidate bin and each candidate's score, as the oracle ranked them. Exact from
+    /// first candidate bin and each candidate's score. The pick is the best candidate with mass on
+    /// two arms, or the reference without one, so the highest score isn't always it. Exact from
     /// [`START_HEIGHT_FAST`] on; below it, the slow regime's shape profile has already learned
     /// from the pick it scored.
     pub fn search(&self, prev_bin: f64) -> Option<Search> {

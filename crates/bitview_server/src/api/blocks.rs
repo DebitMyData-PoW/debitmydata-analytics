@@ -5,12 +5,11 @@ use axum::{
     http::{HeaderMap, HeaderValue, Method, header},
     response::Response,
 };
-use bitcoin::hashes::{Hash, HashEngine, sha256};
 use bitview_query::{
     Error as QueryError, Query, ResolvedBlocks, ResolvedBlocksV1, Result as QueryResult,
 };
 use bitview_types::{BlockInfo, BlockInfoV1, BlockStatus, BlockTimestamp, BlockTxIndex};
-use brk_types::{BlockHash, Dollars, Height, Hex, Timestamp, Transaction, Txid};
+use brk_types::{BlockHash, Height, Hex, Timestamp, Transaction, Txid};
 use serde::Serialize;
 use serde_json::to_vec;
 
@@ -30,6 +29,7 @@ const BLOCK_TXS_PAGE_SIZE: u32 = 25;
 const BASE_BLOCK_SCHEMA: &str = "v3";
 const HEADER_SCHEMA: &str = "header-v2";
 const RAW_SCHEMA: &str = "raw-v2";
+/// Covers the extended rows' formulas and bundled pool catalog: bumped when either changes.
 pub const V1_BLOCK_SCHEMA: &str = "v1-5";
 
 fn recent_blocks_params(snapshot: &ResolvedBlocks, cdn_cache_mode: CdnCacheMode) -> CacheParams {
@@ -40,25 +40,8 @@ fn recent_blocks_params(snapshot: &ResolvedBlocks, cdn_cache_mode: CdnCacheMode)
     CacheParams::live(tag).stable_if(snapshot.is_settled(), cdn_cache_mode)
 }
 
-// The namespace covers the row formulas and bundled pool catalog. Bump it when
-// either changes. Prices also participate, so a deploy changing them (oracle
-// configs, price tapes) never validates an older body. Hash exactly the values
-// used by the body.
-pub fn blocks_v1_identity(anchor: Option<BlockHash>, prices: &[Dollars]) -> sha256::Hash {
-    let mut engine = sha256::Hash::engine();
-    engine.input(&[u8::from(anchor.is_some())]);
-    if let Some(hash) = anchor {
-        engine.input(&*hash);
-    }
-    for price in prices {
-        engine.input(&f64::from(*price).to_bits().to_le_bytes());
-    }
-    sha256::Hash::from_engine(engine)
-}
-
 fn blocks_v1_params(snapshot: &ResolvedBlocksV1, cdn_cache_mode: CdnCacheMode) -> CacheParams {
-    let identity = blocks_v1_identity(snapshot.anchor(), snapshot.prices());
-    let tag = format!("blocks-{V1_BLOCK_SCHEMA}-{identity}");
+    let tag = format!("blocks-{V1_BLOCK_SCHEMA}-{:x}", snapshot.identity());
     CacheParams::live(tag).stable_if(snapshot.is_settled(), cdn_cache_mode)
 }
 
@@ -69,8 +52,8 @@ fn block_v1_params(
     let height = snapshot
         .last_height()
         .ok_or(QueryError::Internal("Missing resolved block"))?;
-    let identity = blocks_v1_identity(snapshot.anchor(), snapshot.prices());
-    let params = CacheParams::live(format!("block-{V1_BLOCK_SCHEMA}-{height}-{identity}"));
+    let identity = snapshot.identity();
+    let params = CacheParams::live(format!("block-{V1_BLOCK_SCHEMA}-{height}-{identity:x}"));
     Ok(params.stable_if(snapshot.is_settled(), cdn_cache_mode))
 }
 
@@ -114,6 +97,28 @@ fn block_json_response(params: CacheParams, value: &impl Serialize) -> QueryResu
     }))
 }
 
+#[derive(Clone, Copy)]
+enum BlockTxSelection {
+    Index(BlockTxIndex),
+    Page(BlockTxIndex),
+}
+
+impl BlockTxSelection {
+    fn validate(self, q: &Query, snapshot: &ResolvedBlocks) -> QueryResult<()> {
+        let index = match self {
+            Self::Index(index) | Self::Page(index) => index,
+        };
+        snapshot.validate_tx_index(q, index)?;
+        // Keep range errors first, as on the ordinary Esplora response.
+        if matches!(self, Self::Page(_)) && u32::from(index) % BLOCK_TXS_PAGE_SIZE != 0 {
+            return Err(QueryError::InvalidParam(format!(
+                "start index must be a multiple of {BLOCK_TXS_PAGE_SIZE}"
+            )));
+        }
+        Ok(())
+    }
+}
+
 impl AppState {
     async fn respond_block_tip(&self, headers: HeaderMap, hash: bool) -> Result<Response, Error> {
         Ok(self
@@ -125,7 +130,7 @@ impl AppState {
                 } else {
                     snapshot.last_height().map(|height| height.to_string())
                 }
-                .ok_or(QueryError::StateUpdating)?;
+                .ok_or_else(|| QueryError::updating())?;
                 // The owned value is the whole representation. In particular, a
                 // same-height reorg changes the hash endpoint but not the height.
                 let params = CacheParams::revalidate(format!("block-tip-v2-{value}"));
@@ -158,7 +163,7 @@ impl AppState {
         let budget = self.raw_block_bodies.clone();
         Ok(self
             .read_body(
-                &self.sync_query,
+                &self.chain_query,
                 &self.raw_block_bodies,
                 move |q, permit| {
                     let snapshot = q.resolve_block_snapshot(&hash)?;
@@ -281,7 +286,7 @@ impl AppState {
         headers: HeaderMap,
         hash: BlockHash,
         schema: &'static str,
-        tx_index: Option<BlockTxIndex>,
+        tx_selection: Option<BlockTxSelection>,
         build: impl FnOnce(&Query, ResolvedBlocks, CacheParams) -> QueryResult<Response>
         + Clone
         + Send
@@ -292,8 +297,8 @@ impl AppState {
             && let Some(snapshot) =
                 self.preflight(|q| q.try_resolve_block_snapshot(&hash, height))?
         {
-            if let Some(index) = tx_index {
-                self.query.sync(|q| snapshot.validate_tx_index(q, index))?;
+            if let Some(selection) = tx_selection {
+                self.query.sync(|q| selection.validate(q, &snapshot))?;
             }
             let params = block_params(&snapshot, schema, cdn_cache_mode)?;
             if params.etag.matches(&headers) {
@@ -303,19 +308,17 @@ impl AppState {
 
         let bodies = self.chain_bodies.clone();
         Ok(self
-            .read_body(&self.sync_query, &self.chain_bodies, move |q, permit| {
+            .read_body(&self.chain_query, &self.chain_bodies, move |q, permit| {
                 let snapshot = q.resolve_block_snapshot(&hash)?;
-                if let Some(index) = tx_index {
-                    snapshot.validate_tx_index(q, index)?;
+                if let Some(selection) = tx_selection {
+                    selection.validate(q, &snapshot)?;
                 }
                 let params = block_params(&snapshot, schema, cdn_cache_mode)?;
                 if params.etag.matches(&headers) {
                     return Ok(Some(ResponseExtended::new_not_modified(&params)));
                 }
-                let Some(permit) = permit.or_else(|| RawBodyPermit::try_acquire(&bodies)) else {
-                    return Ok(None);
-                };
-                Ok(Some(permit.attach(build(q, snapshot, params)?)))
+                let response = build(q, snapshot, params)?;
+                Ok(RawBodyPermit::attach_built(permit, &bodies, response))
             })
             .await?)
     }
@@ -426,7 +429,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         .tag(tags::BLOCKS)
                         .summary("Block information")
                         .description(
-                            "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*",
+                            "Details of a block by hash: height, time, transaction count, size, weight, and difficulty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*",
                         )
                         .json_response::<BlockInfo>()
                         .not_modified()
@@ -574,7 +577,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     op.id("get_block_tip_height")
                         .tag(tags::BLOCKS)
                         .summary("Block tip height")
-                        .description("*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*")
+                        .description("Height of the latest block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*")
                         .text_response::<Height>()
                         .not_modified()
                 },
@@ -590,7 +593,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     op.id("get_block_tip_hash")
                         .tag(tags::BLOCKS)
                         .summary("Block tip hash")
-                        .description("*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*")
+                        .description("Hash of the latest block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*")
                         .text_response::<BlockHash>()
                         .not_modified()
                 },
@@ -604,7 +607,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                        _: Empty,
                        RequestState(state): RequestState|
                        -> Result<Response, Error> {
-                    state.respond_exact_block(headers, path.hash, "txid-v2", Some(path.index), move |q, snapshot, params| {
+                    state.respond_exact_block(headers, path.hash, "txid-v2", Some(BlockTxSelection::Index(path.index)), move |q, snapshot, params| {
                         let bytes = Bytes::from(snapshot.anchor_txid(q, path.index)?.to_string());
                         Ok(AppState::assemble_response(params, bytes, |headers| {
                             headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/plain"));
@@ -658,7 +661,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                        _: Empty,
                        RequestState(state): RequestState|
                        -> Result<Response, Error> {
-                    state.respond_exact_block(headers, path.hash, "txs-v2", Some(BlockTxIndex::default()), |q, snapshot, params| {
+                    state.respond_exact_block(headers, path.hash, "txs-v2", Some(BlockTxSelection::Page(BlockTxIndex::default())), |q, snapshot, params| {
                         block_json_response(params, &snapshot.anchor_txs(q, BlockTxIndex::default(), BLOCK_TXS_PAGE_SIZE)?)
                     }).await
                 },
@@ -685,13 +688,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                        _: Empty,
                        RequestState(state): RequestState|
                        -> Result<Response, Error> {
-                    state.respond_exact_block(headers, path.hash, "txs-v2", Some(path.start_index), move |q, snapshot, params| {
-                        // After the range check (404), as Esplora: pages start on page boundaries.
-                        if u32::from(path.start_index) % BLOCK_TXS_PAGE_SIZE != 0 {
-                            return Err(QueryError::InvalidParam(format!(
-                                "start index must be a multiple of {BLOCK_TXS_PAGE_SIZE}"
-                            )));
-                        }
+                    state.respond_exact_block(headers, path.hash, "txs-v2", Some(BlockTxSelection::Page(path.start_index)), move |q, snapshot, params| {
                         block_json_response(params, &snapshot.anchor_txs(q, path.start_index, BLOCK_TXS_PAGE_SIZE)?)
                     }).await
                 },

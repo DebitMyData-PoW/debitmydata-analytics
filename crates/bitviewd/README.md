@@ -1,6 +1,6 @@
 # Bitview
 
-Bitview is a composable, self-hostable Bitcoin data platform built on the
+Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at [bitview.space](https://bitview.space) or beside your own Bitcoin Core node. It is built on the
 [Bitcoin Research Kit](https://bitcoinresearchkit.org). Learn more at
 [bitview.dev](https://bitview.dev).
 
@@ -19,7 +19,7 @@ arguments, configuration files, logging, signal handling, and serving.
   pruned node)
 - About 290 GiB of disk space for the current default composition, plus Bitcoin
   Core storage and growth headroom (see [Disk usage](#disk-usage))
-- 16 GB of RAM recommended for a full sync (see [perf.bitview.dev](https://perf.bitview.dev)
+- 16 GB of RAM recommended for a full sync (see [bitview.space/benchmarks](https://bitview.space/benchmarks/)
   for what each measured run used).
 
 ## Disk usage
@@ -70,7 +70,7 @@ Regenerating section of [`bitview_bindgen`](https://crates.io/crates/bitview_bin
 
 The initial sync processes the entire blockchain: about an hour and a half on a 16 GB Mac
 mini with a fast SSD, longer on slower disks and CPUs. Every measured run, with its
-memory, disk and CPU, is at [perf.bitview.dev](https://perf.bitview.dev).
+memory, disk and CPU, is at [bitview.space/benchmarks](https://bitview.space/benchmarks/).
 While more than 10,000 blocks behind, indexing completes before the server
 starts to reduce memory use. The web interface at `localhost:3110` becomes
 available after the sync finishes.
@@ -91,6 +91,26 @@ bitcoindir = "/path/to/.bitcoin"
 ```
 
 All fields are optional. See `bitviewd -h` for the full list.
+
+## Several servers behind one URL
+
+One server needs nothing here, and neither does a load balancer that keeps each client
+on one server (sticky sessions).
+
+Without that affinity (round robin, DNS, a CDN spreading requests over origins), give
+each server its own reachable URL and set it:
+
+```toml
+publicurl = "https://a.example.com"
+```
+
+Each answer then names its server in a `bitview-origin` header. The Bitview clients (and
+the pages they serve) send what follows to that server, so the forming block's diffs
+come from the server that holds the client's copy. Users still configure only the shared
+URL. A server that fails is skipped for ten minutes and the request goes through the
+shared URL again, so a wrong or unreachable `publicurl` costs one retried request at
+most every ten minutes. It never causes an error or a loop. Each server's own URL also
+gets its own cache, if a CDN sits in front.
 
 ## Environment variables
 

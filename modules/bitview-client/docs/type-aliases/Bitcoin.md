@@ -8,6 +8,6 @@
 
 > **Bitcoin** = `number`
 
-Defined in: modules/bitview-client/index.js:108
+Defined in: [modules/bitview-client/index.js:74](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L74)
 
 ## Type Parameters

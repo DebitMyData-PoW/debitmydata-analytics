@@ -1,11 +1,9 @@
-use std::collections::hash_map::Entry;
-
 use brk_types::{Transaction, Txid, Vin, Vout};
-use rustc_hash::FxHashMap;
+use rustc_hash::FxBuildHasher;
 
 use crate::{
     key::{OutpointKey, TxKey},
-    stores::{ReadOnlyTxStore, tx_store::TxRecord},
+    stores::{ReadOnlyTxStore, cow::CowMap, tx_store::TxRecord},
 };
 
 /// Mempool index from spent outpoint to spending mempool tx.
@@ -16,28 +14,20 @@ use crate::{
 /// looked up against `TxStore` to recover the full spender record.
 #[derive(Clone, Default)]
 pub struct OutpointSpends {
-    map: FxHashMap<OutpointKey, TxKey>,
+    map: CowMap<OutpointKey, TxKey, FxBuildHasher>,
     /// Bumped on every mapping change, so a change of owner alone (no
     /// membership change) still republishes.
     revision: u64,
 }
 
 impl OutpointSpends {
-    /// `replace` takes over outpoints already spent by another tx; otherwise
-    /// only free ones are claimed.
-    pub fn insert_spends(&mut self, tx: &Transaction, spender: TxKey, replace: bool) {
+    /// `spender` owns the outpoints `tx` spends.
+    pub fn insert_spends(&mut self, tx: &Transaction, spender: TxKey) {
         let mut changed = false;
         for key in Self::spent_outpoints(tx) {
-            changed |= if replace {
-                self.map.insert(key, spender) != Some(spender)
-            } else {
-                match self.map.entry(key) {
-                    Entry::Vacant(vacant) => {
-                        vacant.insert(spender);
-                        true
-                    }
-                    Entry::Occupied(_) => false,
-                }
+            changed |= self.map.get(&key) != Some(&spender) && {
+                self.map.insert(key, spender);
+                true
             };
         }
         self.bump_if(changed);
@@ -79,21 +69,7 @@ impl OutpointSpends {
         txid: &Txid,
         vout: Vout,
     ) -> Option<(&'a TxRecord, Vin)> {
-        self.spender_if(txs, txid, vout, |_| true)
-    }
-
-    /// [`Self::spender`] when the stored key passes `accept`, checked before
-    /// the input scan.
-    pub fn spender_if<'a>(
-        &self,
-        txs: &'a ReadOnlyTxStore,
-        txid: &Txid,
-        vout: Vout,
-        accept: impl FnOnce(TxKey) -> bool,
-    ) -> Option<(&'a TxRecord, Vin)> {
-        let key = self
-            .get(&OutpointKey::new(TxKey::from(txid), vout))
-            .filter(|key| accept(*key))?;
+        let key = self.get(&OutpointKey::new(TxKey::from(txid), vout))?;
         let spender = txs.record_by_key(&key)?;
         let vin = spender
             .tx
@@ -101,6 +77,21 @@ impl OutpointSpends {
             .iter()
             .position(|input| input.txid == *txid && input.vout == vout)?;
         Some((spender, Vin::from(vin)))
+    }
+
+    /// The live spenders of `tx`'s outputs, each once, verified once against its inputs:
+    /// O(outputs + their inputs), however many of `tx`'s outputs one spends.
+    pub fn children<'a>(&self, txs: &'a ReadOnlyTxStore, tx: &Transaction) -> Vec<&'a TxRecord> {
+        let parent = TxKey::from(&tx.txid);
+        let mut keys: Vec<TxKey> = (0..tx.output.len())
+            .filter_map(|vout| self.get(&OutpointKey::new(parent, Vout::from(vout))))
+            .collect();
+        keys.sort_unstable();
+        keys.dedup();
+        keys.iter()
+            .filter_map(|key| txs.record_by_key(key))
+            .filter(|child| child.tx.input.iter().any(|input| input.txid == tx.txid))
+            .collect()
     }
 
     /// Mempool txs are never coinbase: every input spends an outpoint.

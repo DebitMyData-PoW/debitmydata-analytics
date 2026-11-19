@@ -1,6 +1,6 @@
 use bitcoin::{Script, opcodes::all::OP_PUSHNUM_13, script::Instruction};
 use bitview_primitives::{Bytes32, OpReturnKind};
-use brk_types::SigOpCount;
+use brk_types::{Height, SigOpCount};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Facts {
@@ -11,9 +11,15 @@ pub struct Facts {
     pub post_op_return_bytes: Bytes32,
 }
 
-pub fn analyze(script: &Script) -> Facts {
+/// The Runes protocol's activation (ord's `first_rune_height` on mainnet, the fourth halving): an
+/// earlier `OP_RETURN OP_13` output is no Runestone.
+const FIRST_RUNE_HEIGHT: Height = Height::new(840_000);
+
+pub fn analyze(script: &Script, height: Height) -> Facts {
     let data = &script.as_bytes()[1..];
-    let (kind, legacy_sigops) = if data.first().copied() == Some(OP_PUSHNUM_13.to_u8()) {
+    let (kind, legacy_sigops) = if height >= FIRST_RUNE_HEIGHT
+        && data.first().copied() == Some(OP_PUSHNUM_13.to_u8())
+    {
         (OpReturnKind::Runes, SigOpCount::of(&script[1..]).legacy)
     } else {
         let (prefix, legacy_sigops) = scan(script);
@@ -65,6 +71,8 @@ fn classify(data: &[u8], prefix: Option<&[u8]>) -> OpReturnKind {
         OpReturnKind::Ascribe
     } else if is_stampery(prefix) {
         OpReturnKind::Stampery
+    } else if is_bip47_payment_code(data) {
+        OpReturnKind::Bip47
     } else if data.len() == 82 {
         OpReturnKind::Veriblock
     } else if (36..=38).contains(&data.len()) {
@@ -102,6 +110,20 @@ fn scan(script: &Script) -> (Option<&[u8]>, usize) {
 /// identifier, and a 32- or 64-byte hash.
 fn is_stampery(prefix: &[u8]) -> bool {
     matches!(prefix, [b'S', b'1'..=b'9', ..]) && matches!(prefix.len(), 34 | 36 | 66 | 68)
+}
+
+/// A BIP-47 notification: `OP_PUSHDATA1 80` and an 80-byte payment code, its reserved last 13
+/// bytes zero.
+fn is_bip47_payment_code(data: &[u8]) -> bool {
+    let [0x4c, 80, payload @ ..] = data else {
+        return false;
+    };
+    payload.len() == 80
+        && matches!(payload[0], 1 | 2)
+        && matches!(payload[2], 2 | 3)
+        && payload[3..35].iter().any(|&byte| byte != 0)
+        && payload[35..67].iter().any(|&byte| byte != 0)
+        && payload[67..].iter().all(|&byte| byte == 0)
 }
 
 fn is_memo(prefix: &[u8]) -> bool {

@@ -6,7 +6,7 @@
 
 # Interface: BlockOrphan
 
-Defined in: modules/bitview-client/index.js:258
+Defined in: [modules/bitview-client/index.js:269](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L269)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: modules/bitview-client/index.js:258
 
 > **branchlen**: `number`
 
-Defined in: modules/bitview-client/index.js:261
+Defined in: [modules/bitview-client/index.js:272](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L272)
 
 Length of the fork's branch, in blocks
 
@@ -24,7 +24,7 @@ Length of the fork's branch, in blocks
 
 > **hash**: `string`
 
-Defined in: modules/bitview-client/index.js:260
+Defined in: [modules/bitview-client/index.js:271](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L271)
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: modules/bitview-client/index.js:260
 
 > **height**: `number`
 
-Defined in: modules/bitview-client/index.js:259
+Defined in: [modules/bitview-client/index.js:270](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L270)
 
 ***
 
@@ -40,7 +40,7 @@ Defined in: modules/bitview-client/index.js:259
 
 > **prevhash**: `string`
 
-Defined in: modules/bitview-client/index.js:263
+Defined in: [modules/bitview-client/index.js:274](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L274)
 
 Hash of the block the stale block builds on
 
@@ -50,4 +50,4 @@ Hash of the block the stale block builds on
 
 > **status**: [`BlockOrphanStatus`](../type-aliases/BlockOrphanStatus.md)
 
-Defined in: modules/bitview-client/index.js:262
+Defined in: [modules/bitview-client/index.js:273](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L273)

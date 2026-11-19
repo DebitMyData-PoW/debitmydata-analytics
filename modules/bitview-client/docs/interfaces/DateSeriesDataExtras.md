@@ -6,7 +6,7 @@
 
 # Interface: DateSeriesDataExtras\<T\>
 
-Defined in: modules/bitview-client/index.js:1986
+Defined in: [modules/bitview-client/index.js:1938](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1938)
 
 ## Type Parameters
 
@@ -18,13 +18,13 @@ Defined in: modules/bitview-client/index.js:1986
 
 ### dateEntries
 
-> **dateEntries**: () => \[`Date`, `T`\][]
+> **dateEntries**: () => \[`Date`, [`Frozen`](../type-aliases/Frozen.md)\<`T`\>\][]
 
-Defined in: modules/bitview-client/index.js:1988
+Defined in: [modules/bitview-client/index.js:1940](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1940)
 
 #### Returns
 
-\[`Date`, `T`\][]
+\[`Date`, [`Frozen`](../type-aliases/Frozen.md)\<`T`\>\][]
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: modules/bitview-client/index.js:1988
 
 > **dates**: () => `Date`[]
 
-Defined in: modules/bitview-client/index.js:1987
+Defined in: [modules/bitview-client/index.js:1939](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1939)
 
 Get dates for each data point
 
@@ -44,10 +44,10 @@ Get dates for each data point
 
 ### toDateMap
 
-> **toDateMap**: () => `Map`\<`Date`, `T`\>
+> **toDateMap**: () => `Map`\<`Date`, [`Frozen`](../type-aliases/Frozen.md)\<`T`\>\>
 
-Defined in: modules/bitview-client/index.js:1989
+Defined in: [modules/bitview-client/index.js:1941](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1941)
 
 #### Returns
 
-`Map`\<`Date`, `T`\>
+`Map`\<`Date`, [`Frozen`](../type-aliases/Frozen.md)\<`T`\>\>

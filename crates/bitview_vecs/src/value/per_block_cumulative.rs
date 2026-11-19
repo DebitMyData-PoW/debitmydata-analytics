@@ -2,16 +2,18 @@ use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{AnyVec, ComputeVec, Database, ReadableVec, Rw, StorageMode, VecValue, WritableVec};
+use vecdb::{ComputeVec, Database, ReadableVec, Rw, StorageMode, VecValue};
 
 use crate::{CumulativeState, IndexSources, LazyValueBlock, ValuePerBlock};
 
 #[derive(Traversable)]
 pub struct ValuePerBlockCumulative<M: StorageMode = Rw> {
     /// Value for the represented block.
+    #[traversable(accumulation = Flow)]
     pub block: LazyValueBlock,
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
+    #[traversable(accumulation = Cumulative)]
     pub cumulative: ValuePerBlock<M>,
     last_sats: M::WriteOnly<CumulativeState<Sats>>,
     last_cents: M::WriteOnly<CumulativeState<Cents>>,
@@ -45,11 +47,7 @@ impl ValuePerBlockCumulative {
 
     /// Appends one block's sats; fiat values compute apart.
     pub fn push_sats(&mut self, value: Sats) {
-        let sats = &mut self.cumulative.sats.height;
-        let total = self
-            .last_sats
-            .add_at(Height::from(sats.len()), &*sats, |total| *total += value);
-        sats.push(total);
+        self.last_sats.push(&mut self.cumulative.sats.height, value);
     }
 
     pub fn compute_from<S>(
@@ -69,7 +67,7 @@ impl ValuePerBlockCumulative {
             source,
             |(height, value, this)| {
                 let value = transform(height, value);
-                last.add_at(height, this, |total| *total += value)
+                last.add_at(height, this, value)
             },
             exit,
         )?;
@@ -96,7 +94,7 @@ impl ValuePerBlockCumulative {
             source2,
             |(height, value1, value2, this)| {
                 let value = transform(height, value1, value2);
-                last.add_at(height, this, |total| *total += value)
+                last.add_at(height, this, value)
             },
             exit,
         )?;
@@ -116,7 +114,7 @@ impl ValuePerBlockCumulative {
             price_cents,
             |(height, sats, price, this)| {
                 let value = sats.value_at(price);
-                last.add_at(height, this, |total| *total += value)
+                last.add_at(height, this, value)
             },
             exit,
         )?)

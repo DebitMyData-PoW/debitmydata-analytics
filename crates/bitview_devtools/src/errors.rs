@@ -50,6 +50,7 @@ pub(crate) fn render_errors(plugins: &DefaultPlugins) -> Result<Snapshot> {
                 cdn_cache_mode: CdnCacheMode::default(),
                 max_weight: DEFAULT_MAX_WEIGHT,
                 max_utxos: DEFAULT_MAX_UTXOS,
+                public_url: None,
             },
         )
         .await
@@ -119,6 +120,14 @@ fn requests() -> Vec<(&'static str, Method, String, Vec<u8>)> {
         get(
             "request: unknown index in series path",
             "/api/series/difficulty/notanindex".into(),
+        ),
+        get(
+            "request: former index spelling in series path",
+            "/api/series/difficulty/day".into(),
+        ),
+        get(
+            "request: former query parameter name",
+            "/api/series/difficulty/day1?from=-14".into(),
         ),
         get(
             "request: invalid timestamp parameter",
@@ -204,8 +213,8 @@ fn requests() -> Vec<(&'static str, Method, String, Vec<u8>)> {
             "/api/v1/fees/recommended".into(),
         ),
         get(
-            "mempool unavailable (template diff)",
-            "/api/v1/mempool/block-template/diff/1".into(),
+            "mempool unavailable (block diff)",
+            "/api/mempool-blocks/0/diff/1".into(),
         ),
         get("cpfp of unknown txid", format!("/api/v1/cpfp/{HASH}")),
         get(
@@ -217,8 +226,14 @@ fn requests() -> Vec<(&'static str, Method, String, Vec<u8>)> {
             "/api/v1/mining/blocks/timestamp/0".into(),
         ),
         get("oracle price not computed", "/api/oracle/price".into()),
-        get("oracle block before its start", "/api/oracle/blocks/100".into()),
-        get("oracle payments off a day's start", "/api/oracle/payments/972721".into()),
+        get(
+            "oracle block before its start",
+            "/api/oracle/blocks/100".into(),
+        ),
+        get(
+            "oracle payments off a day's start",
+            "/api/oracle/payments/972721".into(),
+        ),
         get("urpd without history", "/api/urpd/all".into()),
         get("urpd of unknown cohort", "/api/urpd/nocohort/100".into()),
         get("urpd at a point", "/api/urpd/all/100".into()),
@@ -301,6 +316,10 @@ fn errors() -> Vec<(&'static str, ServerError)> {
             QueryError::TooManyUtxos {
                 max: DEFAULT_MAX_UTXOS,
             },
+        ),
+        query(
+            "limit exceeded",
+            QueryError::LimitExceeded("RBF history exceeds its depth limit"),
         ),
         query("query read timeout", QueryError::ReadTimeout),
         // Built by the server itself.

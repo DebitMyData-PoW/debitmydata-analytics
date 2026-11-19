@@ -1,4 +1,5 @@
-use brk_types::{FeeRate, MempoolEntryInfo, Sats, Timestamp, Txid, VSize, Weight};
+use bitcoin::Wtxid;
+use brk_types::{MempoolEntryInfo, Sats, Timestamp, Txid, VSize, Weight};
 
 use crate::key::TxKey;
 
@@ -7,13 +8,16 @@ use crate::key::TxKey;
 #[derive(Debug, Clone)]
 pub struct TxEntry {
     pub txid: Txid,
+    /// The body's witness id: a restored record Core holds under another is fetched afresh.
+    pub wtxid: Wtxid,
     pub fee: Sats,
     pub vsize: VSize,
     pub weight: Weight,
     /// Serialized tx size in bytes (witness + non-witness).
     pub size: u64,
     pub first_seen: Timestamp,
-    /// BIP-125 explicit signaling: any input has sequence < 0xfffffffe.
+    /// BIP125 signaling: an input with sequence < 0xfffffffe, its own or an unconfirmed
+    /// ancestor's (what Core's `bip125-replaceable` reports).
     pub rbf: bool,
 }
 
@@ -21,6 +25,7 @@ impl TxEntry {
     pub fn new(info: &MempoolEntryInfo, size: u64, rbf: bool) -> Self {
         Self {
             txid: info.txid,
+            wtxid: info.wtxid,
             fee: info.fee,
             vsize: info.vsize,
             weight: info.weight,
@@ -28,11 +33,6 @@ impl TxEntry {
             first_seen: info.first_seen,
             rbf,
         }
-    }
-
-    #[inline]
-    pub fn fee_rate(&self) -> FeeRate {
-        FeeRate::from((self.fee, self.vsize))
     }
 
     #[inline]

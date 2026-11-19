@@ -1,13 +1,11 @@
 [workspace]
 resolver = "3"
 members = ["crates/*", "examples/custom_plugin"]
-package.description = "The Bitcoin Research Kit is a suite of tools designed to extract, compute and display data stored on a Bitcoin Core node"
 package.license = "MIT"
 package.edition = "2024"
 package.version = "0.13.0"
 package.homepage = "https://bitcoinresearchkit.org"
 package.repository = "https://github.com/bitcoinresearchkit/mono"
-package.readme = "README.md"
 
 [profile.dev]
 # No cross-crate LTO, default codegen units: on macOS, cross-crate ThinLTO with unpacked debuginfo keeps per-binary
@@ -33,6 +31,7 @@ inherits = "release"
 [profile.profiling]
 inherits = "release"
 debug = true
+strip = false
 
 [workspace.dependencies]
 arc-swap = "1.9.3"
@@ -68,6 +67,7 @@ bitview_plugin_pools = { version = "0.13.0", path = "crates/bitview_plugin_pools
 bitview_plugin_price = { version = "0.13.0", path = "crates/bitview_plugin_price" }
 bitview_plugin_profitability = { version = "0.13.0", path = "crates/bitview_plugin_profitability" }
 bitview_plugin_rarity_meter = { version = "0.13.0", path = "crates/bitview_plugin_rarity_meter" }
+bitview_plugin_silent_payments = { version = "0.13.0", path = "crates/bitview_plugin_silent_payments" }
 bitview_plugin_supply = { version = "0.13.0", path = "crates/bitview_plugin_supply" }
 bitview_plugin_transactions = { version = "0.13.0", path = "crates/bitview_plugin_transactions" }
 bitview_plugin_utxo_set = { version = "0.13.0", path = "crates/bitview_plugin_utxo_set" }
@@ -96,6 +96,7 @@ byteview = { package = "brk_byteview", version = "0.13.0", path = "crates/bytevi
 corepc-jsonrpc = { package = "jsonrpc", version = "0.19.0", default-features = false }
 derive_more = { version = "2.1.1", features = ["add_assign", "deref", "deref_mut"] }
 fjall = { package = "brk_fjall", path = "crates/fjall", version = "0.13.0" }
+flate2 = "1.1.10"
 include_dir = "0.7"
 indexmap = { version = "2.14.2", features = ["serde"] }
 itoa = "1.0.18"
@@ -123,13 +124,12 @@ smallvec = "1.16.3"
 statedb = { path = "crates/statedb", version = "0.13.0" }
 tempfile = "3.27.0"
 thiserror = "2.0.21"
-tokio = { version = "1.54.1", features = ["rt-multi-thread"] }
+tokio = "1.54.1"
 tower = { version = "0.5.3", features = ["util"] }
-tower-http = { version = "0.7.1", features = ["catch-panic", "compression-br", "compression-gzip", "compression-zstd", "cors", "normalize-path", "timeout", "trace"] }
-tower-layer = "0.3"
+tower-http = "0.7.1"
 tracing = { version = "0.1", default-features = false, features = ["std"] }
-ureq = { version = "3.5.0", features = ["json"] }
-vecdb = { path = "crates/vecdb", version = "0.13.0", features = ["derive", "serde", "pco"] }
+ureq = "3.5.0"
+vecdb = { path = "crates/vecdb", version = "0.13.0" }
 vecdb_derive = { path = "crates/vecdb_derive", version = "0.13.0" }
 
 

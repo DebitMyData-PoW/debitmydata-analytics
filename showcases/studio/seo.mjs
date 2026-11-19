@@ -1,39 +1,89 @@
 // Beside the page, for those who find Studio: sitemap.xml, every address it has (Home, the presets' page,
-// each section, each preset: the page's own code makes them, read from it), and llms.txt, its guide for assistants (the
-// page's own "about" section, as Markdown, with the presets' sections at their addresses). Made from the presets as a
-// server's chain makes them (the local one's by default), and written again whenever the presets or the guide change:
+// each section, each preset: made by addresses.js, the page's own), llms.txt, its guide for assistants (the page's own
+// "about" section, as Markdown, with the presets' sections at their addresses), and presets.hash, what the page keys
+// its presets' cache by (see below). Made from the presets as a server's chain makes them (the local one's by default;
+// its facts kept beside them, chain-facts.json) and the client's series, their titles checked against the rules every
+// title keeps (see TITLE_RULES), and written again whenever the presets, the guide or the client change:
 //
-//   bun showcases/studio/seo.mjs [server]          writes them
-//   bun showcases/studio/seo.mjs --check [server]  fails if they're not what they'd be now
-//   bun showcases/studio/seo.mjs --drop [server]   writes them though charts have gone (see below)
+//   bun showcases/studio/seo.mjs [server]          writes them, by the server's chain now
+//   bun showcases/studio/seo.mjs --check           fails if the code makes them otherwise now (by the chain's facts
+//                                                  they were written by: what the chain did since fails nothing)
+//   bun showcases/studio/seo.mjs --drop [server]   writes them though charts have gone or old addresses changed (below)
+//
+// And moved.txt: every address a preset once had (once one a window, now that preset at it: see addresses.js) and what
+// it opens, each kept so for good, the build stopped where one changes or another place takes it.
+import { gunzipSync, gzipSync } from "node:zlib";
+import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { addressesOf } from "./addresses.js";
+import { CHAIN_STATISTICS } from "./chain-statistics.js";
+import { studioApplication, presetInfo, sectionInfo, presetDataset, presetDistributions, STUDIO_TITLE, STUDIO_DESCRIPTION, STUDIO_ORIGIN } from "./page-info.js";
+import { shownStep } from "./words.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const check = process.argv.includes("--check"), drop = process.argv.includes("--drop");
 const SERVER = process.argv.slice(2).find((arg) => !arg.startsWith("--")) ?? "http://127.0.0.1:3110";
 // (The address Studio's known by, on every domain it's served on: see ORIGIN in the page.)
-const ORIGIN = "https://analytics.debitmydata.io/studio";
+const ORIGIN = STUDIO_ORIGIN;
 
 const html = readFileSync(join(HERE, "index.html"), "utf8");
+const presetsEdit = readFileSync(join(HERE, "presets-edit.js"), "utf8");
 const { BitviewClient } = await import(pathToFileURL(join(HERE, "..", "modules", "bitview-client", "index.js")).href);
-const { studioPresets, chainFacts } = await import(pathToFileURL(join(HERE, "presets.js")).href);
-// (Without the chain's facts the presets would hold what never happened: stopped, not written.)
-const facts = await chainFacts(SERVER).catch((error) => {
+const { studioPresets } = await import(pathToFileURL(join(HERE, "presets.js")).href);
+const { chainFacts, factsKey, factsOfKey } = await import(pathToFileURL(join(HERE, "facts.js")).href);
+const writtenBytes = (/** @type {string} */ name) => {
+  try { return readFileSync(join(HERE, name)); }
+  catch (error) { if (error.code === "ENOENT") return Buffer.alloc(0); throw error; }
+};
+const written = (/** @type {string} */ name) => writtenBytes(name).toString("utf8");
+// (Checked, by the facts they were written by; written, by the server's now. Without them the presets would hold what
+// never happened: stopped.)
+const kept = written("chain-facts.json").trim();
+if (check && !kept) throw new Error("No chain-facts.json: write them first, bun showcases/studio/seo.mjs");
+const facts = check ? factsOfKey(kept) : await chainFacts(SERVER).catch((error) => {
   throw new Error(`${SERVER}'s chain facts unread (${error.message}): is it running?`);
 });
-const presets = studioPresets(new BitviewClient({ baseUrl: SERVER }), facts);
-// The presets the empty chart offers first (the page's RECOMMENDED), each one of them: a place renamed would drop it.
-const recommended = /const RECOMMENDED = \[([\s\S]*?)\];/.exec(html)?.[1];
-if (!recommended) throw new Error("No RECOMMENDED in the page");
+// (What the presets report while they're made, a band the client renamed (see reported in presets.js), stops them here:
+// the page goes on without it, so a preset quietly gone breaks this, never only a line in a console.)
+const reported = /** @type {string[]} */ ([]);
+const client = new BitviewClient({ baseUrl: SERVER });
+const { presets, labels } = studioPresets(client, facts, (problem) => reported.push(problem));
+if (reported.length) throw new Error(`The presets reported ${reported.length} problem${reported.length === 1 ? "" : "s"}, fix them, then write these again:\n  ${reported.join("\n  ")}`);
+/**
+ * What every title keeps, each a rule and the titles that break it: one colon at most, the group whose it is after
+ * it; a share names its whole ("Share of all coins", "Supply share", never "Share in profit"); a window's days, never
+ * months (a window counts fixed days: an age says months, "1 month to under 2 months old", and a calendar period,
+ * "by month"); never "all addresses" (the addresses tracked aren't all outputs'). The last two, every name shown too
+ * (legends, the tree's): `titles`, a title's alone.
+ * @type {[string, (text: string) => boolean, titles?: boolean][]}
+ */
+const TITLE_RULES = [
+  ["more than one colon", (title) => (title.match(/:/g) ?? []).length > 1, true],
+  ["a share that names no whole", (title) => [...title.matchAll(/\bshare\b/gi)].some((m) => !/^ of /i.test(title.slice(m.index + 5)) && !/[a-z)] $/i.test(title.slice(0, m.index))), true],
+  ["a month that isn't an age", (text) => /(?<!\b(?:by|per|each) )\bmonths?\b(?![^,:]*\bold\b)/.test(text)],
+  ["all addresses", (text) => /\ball addresses\b/i.test(text)],
+];
+// (Chain statistics' charts keep the names of the site they reproduce: no rule of these is theirs.)
+const ruled = presets.filter((preset) => !preset.p.includes(CHAIN_STATISTICS));
+/** Every step of every place, once, by its key. @type {Map<string, string[]>} */
+const steps = new Map();
+for (const preset of ruled) for (let i = 1; i <= preset.p.length; i++) steps.set(JSON.stringify(preset.p.slice(0, i)), preset.p.slice(0, i));
+/** Every name shown, each with whether it's a title and its place: titles, legends, the tree's steps as shown. @type {[string, boolean, string[]][]} */
+const shown = [
+  ...ruled.flatMap((preset) => [[preset.t, true, preset.p], ...preset.c.layers.flatMap((layer) => (layer.label ? [[layer.label, false, preset.p]] : []))]),
+  ...[...steps.values()].map((path) => [shownStep(labels, path), false, path]),
+];
+const broken = shown.flatMap(([text, title, path]) => TITLE_RULES.flatMap(([rule, breaks, titles]) => ((title || !titles) && breaks(text) ? [`${rule}: "${text}" (${path.join(" › ")})`] : [])));
+if (broken.length) throw new Error(`${broken.length} name${broken.length === 1 ? "" : "s"} shown break${broken.length === 1 ? "s" : ""} the rules:\n  ${broken.slice(0, 20).join("\n  ")}${broken.length > 20 ? `\n  and ${broken.length - 20} more` : ""}`);
+// The presets the empty chart offers first (the app's RECOMMENDED), each one of them: a place renamed would drop it.
+const recommended = /const RECOMMENDED = \[([\s\S]*?)\];/.exec(presetsEdit)?.[1];
+if (!recommended) throw new Error("No RECOMMENDED in presets-edit.js");
 const places = new Set(presets.map((preset) => preset.p.join(" › ")));
 const unknown = [...recommended.matchAll(/"([^"]+)"/g)].map(([, place]) => place).filter((place) => !places.has(place));
 if (unknown.length) throw new Error(`Recommended, but no preset there: ${unknown.join("; ")}`);
 
-const code = /\/\* addresses:[^*]*\*\/([\s\S]*?)\/\* \/addresses \*\//.exec(html)?.[1];
-if (!code) throw new Error("No addresses in the page: the sitemap is made from them");
-const addressesOf = /** @type {(list: { p: string[] }[]) => { presets: string[], sections: Map<string, string> }} */ (new Function(`${code}\nreturn addressesOf;`)());
 const book = addressesOf(presets);
 
 const about = /<section id="about"[^>]*>([\s\S]*?)<\/section>/.exec(html)?.[1];
@@ -47,22 +97,90 @@ const markdown = [...about.matchAll(/<(h1|h2|h3|p|li|pre)(?:\s[^>]*)?>([\s\S]*?)
   .replace(/\n\n(?=- )/g, "\n");
 // (Its presets' sections, two levels down, each at its address with how many charts it holds: where to send someone
 // asking for one; the charts themselves, in the sitemap.)
+// (Each by its name as shown: its label, where it has one; see shownStep.)
 const held = new Map();
-for (const preset of presets) for (let depth = 1; depth < preset.p.length && depth <= 2; depth++) ((key) => held.set(key, (held.get(key) ?? 0) + 1))(JSON.stringify(preset.p.slice(0, depth)));
-const sections = [...held].map(([key, count]) => `${JSON.parse(key).length > 1 ? "  " : ""}- ${JSON.parse(key).at(-1)} (${count}): ${ORIGIN}${book.sections.get(key)}`);
+for (const preset of presets) for (let depth = 1; depth < preset.p.length && depth <= 2; depth++) {
+  const key = JSON.stringify(preset.p.slice(0, depth));
+  held.set(key, (held.get(key) ?? 0) + 1);
+}
+const sections = [...held].map(([key, count]) => {
+  const path = JSON.parse(key);
+  return `${path.length > 1 ? "  " : ""}- ${shownStep(labels, path)} (${count}): ${ORIGIN}${book.sections.get(key)}`;
+});
 // (In plain ASCII where it can be: it's served as a text file is, without a charset.)
 const ascii = (/** @type {string} */ text) => text.replace(/[…⋯]/g, "...").replace(/›/g, ">").replace(/[−–—]/g, "-").replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
 const urls = ["/", ...book.sections.values(), ...book.presets];
+// What the presets are made from, presets.js, the facts' reader (facts.js: the page's worker makes them by it) and
+// every module they import (followed by their relative imports, as Bun reads them, each once), hashed, each by its path
+// from here (the same on every system): the page keys its presets' cache by it (with the client's own stamp, HASH, and
+// the chain's facts), so a change to any of them makes them again, with nothing read in the page to know it.
+const sources = new Set([join(HERE, "presets.js"), join(HERE, "facts.js")]), transpiler = new Bun.Transpiler({ loader: "js" }), sha = createHash("sha256");
+for (const file of sources) {
+  const text = readFileSync(file, "utf8");
+  sha.update(`${relative(HERE, file).replaceAll(sep, "/")}\0${text}\0`);
+  for (const { path } of transpiler.scanImports(text)) if (path.startsWith(".")) sources.add(join(dirname(file), path));
+}
 
+// A section's direct children, in the page's order: sections before charts.
+const children = new Map([...book.sections.keys()].map((key) => [key, new Map()]));
+for (const [key, address] of book.sections) {
+  const path = JSON.parse(key);
+  if (path.length) children.get(JSON.stringify(path.slice(0, -1))).set(address, shownStep(labels, path));
+}
+for (const [i, preset] of presets.entries()) children.get(JSON.stringify(preset.p.slice(0, -1))).set(book.presets[i], preset.t);
+const pageInfo = {};
+for (const [key, address] of book.sections) {
+  const path = JSON.parse(key), links = children.get(key), info = sectionInfo(path, labels, [...links.values()]);
+  const canonical = `${ORIGIN}${address}`;
+  pageInfo[address] = { ...info, canonical, json_ld: studioApplication(canonical, info.description),
+    markdown: `# ${path.length ? shownStep(labels, path) : "Studio presets"}\n\n${info.description}\n\n[Open this page](${canonical})\n\n## Charts and sections\n\n${[...links].map(([address, name]) => `- [${name}](${ORIGIN}${address})`).join("\n")}\n` };
+}
+for (const [i, preset] of presets.entries()) {
+  const canonical = `${ORIGIN}${book.presets[i]}`, info = presetInfo(preset, labels), distributions = presetDistributions(preset, client.series);
+  pageInfo[book.presets[i]] = { ...info, canonical, json_ld: presetDataset(preset, labels, client.series, canonical),
+    markdown: `# ${preset.t}\n\n${info.description}\n\n[Open this chart](${canonical})\n\n## What the chart shows\n\n${preset.c.layers.map((layer, i) => `- ${String.fromCharCode(65 + i)}: ${layer.label ?? layer.series ?? (layer.formula ? `Formula ${layer.formula}` : layer.heatmap ? `Cost basis distribution: ${layer.heatmap}` : layer.profile ? `Cost basis profile: ${layer.profile.join(", ")}` : `Cloud between ${(layer.cloud ?? []).join(" and ")}`)}${layer.hidden ? " (hidden initially)" : ""}`).join("\n")}\n\n## Data sources\n\n${distributions.map((source) => `- ${source.name}: [${source.encodingFormat === "text/csv" ? "CSV" : "JSON"}](${source.contentUrl})`).join("\n")}\n` };
+}
+pageInfo["/"] = { title: STUDIO_TITLE, description: STUDIO_DESCRIPTION, canonical: `${ORIGIN}/`, json_ld: studioApplication(`${ORIGIN}/`, STUDIO_DESCRIPTION), markdown: `# Bitview Studio\n\n${STUDIO_DESCRIPTION}\n\n[Browse the presets](${ORIGIN}/presets/)\n\n[Guide for assistants](${ORIGIN}/llms.txt)\n` };
+
+const pageInfoText = `${JSON.stringify(pageInfo)}\n`;
 const files = {
+  "page-info.json.gz": gzipSync(pageInfoText, { level: 9 }),
   "llms.txt": ascii(`${markdown}\n\n## The presets' sections\n\nEach section's page lists its charts; each chart's own address is in ${ORIGIN}/sitemap.xml.\n\n${sections.join("\n")}\n`),
+  "presets.hash": `${sha.digest("hex")}\n`,
+  "chain-facts.json": `${factsKey(facts)}\n`,
   "sitemap.xml": `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((url) => `<url><loc>${ORIGIN}${url.replaceAll("&", "&amp;")}</loc></url>`).join("\n")}\n</urlset>\n`,
 };
-const written = (/** @type {string} */ name) => { try { return readFileSync(join(HERE, name), "utf8"); } catch { return ""; } };
+// The addresses the presets once had (a chart's `was`, see addresses.js), each with what it opens: a preset's own
+// address at its window. Kept in moved.txt, each opening the same for good: one that opens another now (renamed,
+// taken by a new place) or nothing stops the build, written over only when meant (--drop).
+if (book.clashes.length) {
+  console.error(`Old addresses another place has now, ${book.clashes.length}:\n${book.clashes.map((clash) => `  ${clash}`).join("\n")}`);
+  console.error("Name the new place otherwise: an old address is shared, and opens what it did.");
+  process.exit(1);
+}
+/** What an address opens: a preset's address (at a window, if one), a section's, or nothing. @param {string} path */
+const opens = (path) => {
+  const to = book.at.get(path);
+  if (!to) return "nothing";
+  if (!("preset" in to)) return path;
+  return to.window ? `${book.presets[to.preset]}#window=${to.window}` : book.presets[to.preset];
+};
+const moved = new Map();
+for (const [path, to] of book.at) if ("window" in to) moved.set(path, opens(path));
+const changed = written("moved.txt").split("\n").filter(Boolean).map((line) => line.split("\t")).filter(([path, to]) => opens(path) !== to);
+if (changed.length) {
+  console.error(`Moved addresses that open another place now, or nothing, ${changed.length}:\n${changed.slice(0, 12).map(([path, to]) => `  ${path}: ${to} → ${opens(path)}`).join("\n")}${changed.length > 12 ? `\n  and ${changed.length - 12} more` : ""}`);
+  if (!drop) {
+    console.error("Keep the places the presets had (a chart's `was`, presets.js), as their addresses are shared; meant to change: bun showcases/studio/seo.mjs --drop");
+    process.exit(1);
+  }
+}
+files["moved.txt"] = [...moved].sort(([a], [b]) => (a < b ? -1 : 1)).map(([path, to]) => `${path}\t${to}\n`).join("");
 // Charts gone since the sitemap was last written: a preset whose series the server renamed or took away goes without a
-// word (its layer reads nothing, so it isn't made). Named, and written over only when meant (--drop).
+// word (its layer reads nothing, so it isn't made). Named, and written over only when meant (--drop). One the address
+// book still answers (moved, above) isn't gone.
 const now = new Set(urls.map((url) => `${ORIGIN}${url}`));
-const gone = [...written("sitemap.xml").matchAll(/<loc>([^<]*)<\/loc>/g)].map(([, loc]) => loc.replaceAll("&amp;", "&")).filter((loc) => !now.has(loc));
+const gone = [...written("sitemap.xml").matchAll(/<loc>([^<]*)<\/loc>/g)].map(([, loc]) => loc.replaceAll("&amp;", "&")).filter((loc) => !now.has(loc) && !book.at.has(loc.slice(ORIGIN.length)));
 if (gone.length && !drop) {
   console.error(`Gone since last written, ${gone.length} addresses:\n${gone.slice(0, 12).map((loc) => `  ${loc}`).join("\n")}${gone.length > 12 ? `\n  and ${gone.length - 12} more` : ""}`);
   console.error("A series renamed or taken away on the server? Fix the presets; meant to go: bun showcases/studio/seo.mjs --drop");
@@ -71,10 +189,14 @@ if (gone.length && !drop) {
 const stale = [];
 for (const [name, text] of Object.entries(files)) {
   if (!check) writeFileSync(join(HERE, name), text);
-  else if (written(name) !== text) stale.push(name);
+  else {
+    const kept = writtenBytes(name);
+    if (name === "page-info.json.gz" ? !kept.length || gunzipSync(kept).toString("utf8") !== pageInfoText : !kept.equals(Buffer.from(text))) stale.push(name);
+  }
 }
 if (stale.length) {
   console.error(`Stale: ${stale.join(", ")}. Write them again: bun showcases/studio/seo.mjs`);
   process.exit(1);
 }
-console.log(`${check ? "Up to date" : "Written"}: llms.txt (${(files["llms.txt"].length / 1024).toFixed(0)} KB), sitemap.xml (${urls.length} addresses), from ${SERVER}'s chain`);
+console.log(`Page info: ${Object.keys(pageInfo).length} addresses, ${Buffer.byteLength(files["page-info.json.gz"])} bytes`);
+console.log(`${check ? "Up to date" : "Written"}: llms.txt (${(files["llms.txt"].length / 1024).toFixed(0)} KB), sitemap.xml (${urls.length} addresses), presets.hash (${sources.size} modules), from ${check ? "the chain's facts they were written by" : `${SERVER}'s chain`}; ${shown.length} names shown keep the rules`);

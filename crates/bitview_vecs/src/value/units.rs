@@ -27,4 +27,8 @@ pub struct SpotValue<S, B, U> {
     /// Reported in US dollars: the amount at the spot price (its market cap).
     #[traversable(lead = "Its market value: valued at the price of the day.")]
     pub usd: U,
+    /// Reported in US dollars: the amount at the spot price as its market cap, the same values
+    /// as its USD series, zero before the first exchange price (block 74,641, August 2010).
+    #[traversable(lead = "Its market cap: valued at the price of the day.")]
+    pub market_cap: U,
 }

@@ -1,4 +1,4 @@
-use axum::{http::HeaderMap, response::Response};
+use axum::{body::Bytes, http::HeaderMap, response::Response};
 
 use crate::{AppState, CacheParams, error::Result, extended::ResponseExtended};
 
@@ -11,7 +11,7 @@ pub async fn serve(state: AppState, headers: HeaderMap) -> Result<Response> {
     }
     Ok(state
         .respond_admitted(
-            &state.sync_query,
+            &state.chain_query,
             &state.mempool_txid_bodies,
             headers,
             "application/json",
@@ -21,7 +21,7 @@ pub async fn serve(state: AppState, headers: HeaderMap) -> Result<Response> {
                 let params = CacheParams::live_hash(txids.hash());
                 Ok((txids, params))
             },
-            |_, txids| Ok(txids.json().into()),
+            |_, txids| Ok(Bytes::from_owner(txids.json())),
         )
         .await?)
 }

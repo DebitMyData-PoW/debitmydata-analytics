@@ -56,3 +56,19 @@ fn the_debitmydata_pool() {
         PoolSlug::DebitMyData
     );
 }
+
+/// Five bytes hold values below 2^40 - 1 as they are, and all ones stand for `u64::MAX`, the
+/// sentinel `TxInIndex::UNSPENT` is stored as.
+#[test]
+fn index40_round_trips_and_keeps_its_sentinel() {
+    use crate::{Index40, TxInIndex};
+
+    for value in [0, 1, 255, 1 << 32, (1 << 40) - 2] {
+        assert_eq!(Index40::<u64>::new(value).get(), value);
+    }
+    let unspent = Index40::new(TxInIndex::UNSPENT);
+    assert_eq!(unspent.get(), TxInIndex::UNSPENT);
+    assert_eq!(Index40::<u64>::new(u64::MAX).get(), u64::MAX);
+    #[cfg(feature = "storage")]
+    assert_eq!(vecdb::Bytes::to_bytes(&unspent), [0xff; 5]);
+}

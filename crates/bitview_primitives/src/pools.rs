@@ -12,7 +12,7 @@ use vecdb::Version;
 
 /// Increment when pool IDs, payout addresses, coinbase tags or the matching rule change.
 #[cfg(feature = "storage")]
-pub const POOL_ATTRIBUTION_VERSION: Version = Version::new(4);
+pub const POOL_ATTRIBUTION_VERSION: Version = Version::new(6);
 
 const JSON_DATA: &str = include_str!("../pools-v2.json");
 const TESTNET_IDS: &[u16] = &[145, 146, 149, 150, 156, 163];
@@ -67,9 +67,14 @@ impl Pools {
         &self.pools[0]
     }
 
+    /// The table's entry for `slug`: an empty one for a reserved slug (no pool has it).
     pub fn get(&self, slug: PoolSlug) -> &Pool {
-        let i: u8 = slug.into();
-        &self.pools[i as usize]
+        &self.pools[usize::from(u8::from(slug))]
+    }
+
+    /// The pool named `slug`; none for a reserved slug.
+    pub fn find(&self, slug: PoolSlug) -> Option<&Pool> {
+        Some(self.get(slug)).filter(|pool| !pool.name.is_empty())
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &Pool> + '_ {
@@ -88,12 +93,8 @@ pub fn pools() -> &'static Pools {
         let entries: Vec<JsonPoolEntry> =
             from_str(JSON_DATA).expect("Failed to parse pools-v2.json");
 
-        let max_id = entries.iter().map(|entry| entry.id).max().unwrap_or(0);
-        debug_assert!(
-            max_id <= u8::MAX as u16,
-            "pool ID {max_id} exceeds PoolSlug's u8 range"
-        );
-        let mut pools: Vec<Pool> = (0..=usize::from(max_id)).map(empty_pool).collect();
+        // Every PoolSlug has an entry, so `get` can't miss: the reserved ones stay empty.
+        let mut pools: Vec<Pool> = (0..=usize::from(u8::MAX)).map(empty_pool).collect();
 
         pools[0].name = "Unknown";
         pools[0].lead = "Blocks not matched to a known mining pool.";

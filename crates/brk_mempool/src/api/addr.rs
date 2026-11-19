@@ -1,55 +1,204 @@
-use std::{cmp::Reverse, collections::BinaryHeap};
+use std::{
+    hash::{Hash, Hasher},
+    sync::Arc,
+};
 
 use brk_error::Result;
-use brk_types::{
-    AddressBytes, AddressMempoolStats, BlockHash, Sats, TxOut, Txid, TxidPrefix, Vout,
-};
-use rustc_hash::FxHashSet;
+use brk_types::{AddressBytes, AddressMempoolStats, Sats, TagHasher, TxOut, Txid, TxidPrefix, Vout};
+use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::{PublishedTx, ReadOnlyState, key::TxKey};
+use crate::{
+    PendingView, PublishedTx, ReadOnlyState,
+    key::{OutpointKey, TxKey},
+    state::Pool,
+    stores::{addr_tracker::AddrTx, tx_store::TxRecord},
+};
 
 /// An address's pending UTXO changes in one completed publication.
 #[derive(Default)]
 pub struct PendingUtxos {
-    /// Outpoints the address's mempool transactions spend.
-    pub spent: FxHashSet<(Txid, Vout)>,
-    /// Outputs mempool transactions pay the address that no mempool transaction spends, ordered
+    /// Outputs mempool transactions pay the address that no pending transaction spends, ordered
     /// by txid prefix and vout.
     pub created: Vec<(Txid, Vout, Sats)>,
-    /// Identifies the address's mempool transactions: zero without any.
+    /// Identifies the address's mempool transactions and the reader's view of them: zero
+    /// without any. With the spenders of its confirmed outputs ([`Spends::token`]), it identifies
+    /// its unspent outputs.
     pub token: u64,
+    /// The publication read, as the reader sees it: what spends an outpoint.
+    pool: Option<(Arc<Pool>, Arc<PendingView>)>,
+}
+
+impl PendingUtxos {
+    /// What pending transactions spend of the address's confirmed outputs, asked one outpoint at
+    /// a time.
+    pub fn spends(&self) -> Spends<'_> {
+        Spends {
+            pending: self,
+            filter: SpendFilter::default(),
+            met: FxHashSet::default(),
+        }
+    }
+}
+
+/// The pending spenders of the outpoints asked about, met so far.
+pub struct Spends<'a> {
+    pending: &'a PendingUtxos,
+    filter: SpendFilter,
+    met: FxHashSet<Txid>,
+}
+
+impl Spends<'_> {
+    /// Whether a pending transaction spends `txid:vout`. A spender whose prevouts are still
+    /// resolving counts, because its outpoints are known first. Each spender's inputs are read
+    /// once, however many of the outpoints it spends.
+    pub fn spent(&mut self, txid: &Txid, vout: Vout) -> bool {
+        let Some((pool, view)) = &self.pending.pool else {
+            return false;
+        };
+        let Some(spender) = self.filter.spender(pool, view, txid, vout) else {
+            return false;
+        };
+        self.met.insert(spender);
+        true
+    }
+
+    /// Identifies the unspent outputs read so far: the address's pending transactions, plus the
+    /// spenders found. Once every outpoint was asked, that covers all of them.
+    pub fn token(&self) -> u64 {
+        self.met
+            .iter()
+            .fold(self.pending.token, |token, txid| token ^ token_part(SPENDER, txid))
+    }
+}
+
+/// A transaction's role in an address's token: one of its own, or a spender of its outputs.
+const OWN: u8 = 0;
+const SPENDER: u8 = 1;
+
+/// `txid`'s contribution to a token, hashed per role so a transaction in both roles doesn't cancel
+/// itself out.
+fn token_part(role: u8, txid: &Txid) -> u64 {
+    let mut hasher = TagHasher::default();
+    hasher.write_u8(role);
+    txid.hash(&mut hasher);
+    hasher.finish()
+}
+
+/// The pending spenders found so far, each with its txid and the outpoints its inputs spend.
+/// `None` for one the reader's view settled.
+#[derive(Default)]
+struct SpendFilter(FxHashMap<TxKey, Option<(Txid, Inputs)>>);
+
+/// The outpoints a transaction's inputs spend.
+type Inputs = FxHashSet<(Txid, Vout)>;
+
+impl SpendFilter {
+    /// The pending transaction spending `txid:vout`, if any.
+    fn spender(
+        &mut self,
+        pool: &Pool,
+        view: &PendingView,
+        txid: &Txid,
+        vout: Vout,
+    ) -> Option<Txid> {
+        let key = pool
+            .outpoint_spends
+            .get(&OutpointKey::new(TxKey::from(txid), vout))?;
+        // The stored key can collide: the spender's own inputs decide.
+        self.0
+            .entry(key)
+            .or_insert_with(|| {
+                pool.txs
+                    .record_by_key(&key)
+                    .filter(|spender| view.pending(&spender.entry.txid))
+                    .map(|spender| {
+                        let inputs = spender
+                            .tx
+                            .input
+                            .iter()
+                            .map(|input| (input.txid, input.vout))
+                            .collect();
+                        (spender.entry.txid, inputs)
+                    })
+            })
+            .as_ref()
+            .filter(|(_, inputs)| inputs.contains(&(*txid, vout)))
+            .map(|(spender, _)| *spender)
+    }
 }
 
 impl ReadOnlyState {
-    /// Statistics from a completed publication anchored to the requested chain.
-    pub fn addr_stats(&self, addr: &AddressBytes, tip: &BlockHash) -> Result<AddressMempoolStats> {
-        let state = self.pool()?.resolved_at(tip)?;
-        Ok(state
-            .addrs
-            .get(addr)
-            .map(|entry| entry.stats.clone())
-            .unwrap_or_default())
+    /// The address's pending statistics, as far as known. A transaction's outputs count from its
+    /// arrival, and each input once its prevout resolves.
+    pub fn addr_stats(&self, addr: &AddressBytes, view: &PendingView) -> Result<AddressMempoolStats> {
+        let state = self.pool()?.at(view.tip())?;
+        let Some(entry) = state.addrs.get(addr) else {
+            return Ok(AddressMempoolStats::default());
+        };
+        let mut stats = entry.stats.clone();
+        if view.settles_nothing() {
+            return Ok(stats);
+        }
+        // Take out what the view hides, walking the smaller of the two sets.
+        let pays = |txout: &TxOut| txout.addr_bytes().as_ref() == Some(addr);
+        let mut take_out = |record: &TxRecord| {
+            for prevout in record.tx.input.iter().filter_map(|txin| txin.prevout.as_ref()) {
+                if pays(prevout) {
+                    stats.remove_spend(prevout);
+                }
+            }
+            for txout in record.tx.output.iter().filter(|txout| pays(txout)) {
+                stats.remove_funding(txout);
+            }
+            stats.tx_count -= 1;
+        };
+        if view.settled().len() < entry.txs.len() {
+            view.settled()
+                .iter()
+                .filter_map(|key| state.txs.record_by_key(key))
+                .filter(|record| entry.txs.contains(&AddrTx::from(*record)))
+                .for_each(&mut take_out);
+        } else {
+            entry
+                .txs
+                .iter()
+                .filter(|tx| !view.pending_key(&tx.key))
+                .filter_map(|tx| state.txs.record_by_key(&tx.key))
+                .for_each(&mut take_out);
+        }
+        Ok(stats)
     }
 
-    /// The address's pending spends and unspent pending outputs.
-    pub fn addr_pending_utxos(&self, addr: &AddressBytes, tip: &BlockHash) -> Result<PendingUtxos> {
-        let state = self.pool()?.resolved_at(tip)?;
-        let mut pending = PendingUtxos::default();
+    /// The address's unspent pending outputs, and what spends its outputs. Reading stops once they
+    /// are sure to pass `max`, leaving more than `max` in `created`: pending spends can remove at
+    /// most as many outputs as the address's pending inputs.
+    pub fn addr_pending_utxos(
+        &self,
+        addr: &AddressBytes,
+        max: usize,
+        view: &Arc<PendingView>,
+    ) -> Result<PendingUtxos> {
+        let pool = self.pool_arc()?;
+        let state = pool.at(view.tip())?;
+        let mut pending = PendingUtxos {
+            token: view.identity(),
+            pool: Some((pool.clone(), view.clone())),
+            ..PendingUtxos::default()
+        };
         let Some(entry) = state.addrs.get(addr) else {
             return Ok(pending);
         };
         let pays = |txout: &TxOut| txout.addr_bytes().as_ref() == Some(addr);
-        for txid in &entry.txids {
-            let Some(record) = state.txs.record(txid) else {
+        let enough = max.saturating_add(entry.stats.spent_txo_count as usize);
+        for at in entry.txs.iter().filter(|tx| view.pending_key(&tx.key)) {
+            if pending.created.len() > enough {
+                break;
+            }
+            let Some(record) = state.txs.record_by_key(&at.key) else {
                 continue;
             };
-            pending.token ^= *TxKey::from(txid);
+            pending.token ^= token_part(OWN, &record.entry.txid);
             let tx = &record.tx;
-            for txin in &tx.input {
-                if txin.prevout.as_ref().is_some_and(pays) {
-                    pending.spent.insert((txin.txid, txin.vout));
-                }
-            }
             for (vout, txout) in tx.output.iter().enumerate() {
                 if pays(txout) {
                     pending
@@ -58,70 +207,69 @@ impl ReadOnlyState {
                 }
             }
         }
+        // Drop outputs a pending transaction spends. Such a spender pays from the address's own
+        // output, so it is one of the address's transactions and already in the token.
+        let mut spends = SpendFilter::default();
         pending
             .created
-            .retain(|(txid, vout, _)| !pending.spent.contains(&(*txid, *vout)));
+            .retain(|(txid, vout, _)| spends.spender(state, view, txid, *vout).is_none());
         pending
             .created
             .sort_unstable_by_key(|(txid, vout, _)| (TxidPrefix::from(txid), *vout));
         Ok(pending)
     }
 
-    /// Live mempool txs touching `addr`, newest first by `first_seen`, after the
-    /// `after` cursor (older than it) or from the newest, capped at `limit`. A cursor
-    /// that isn't one of the address's transactions has none after it. Shares immutable
-    /// bodies from one completed publication; later prevout fills use copy-on-write and
-    /// cannot mutate this selection.
+    /// Whether `txid` is pending in `view`.
+    pub fn is_pending(&self, txid: &Txid, view: &PendingView) -> Result<bool> {
+        let state = self.pool()?.at(view.tip())?;
+        Ok(view.pending(txid) && state.txs.contains(txid))
+    }
+
+    /// Whether the pending tx `txid` touches `addr`, as far as that is known (an input still
+    /// unresolved touches none yet).
+    pub fn addr_has_tx(&self, addr: &AddressBytes, txid: &Txid, view: &PendingView) -> Result<bool> {
+        let state = self.pool()?.at(view.tip())?;
+        let Some(record) = state.txs.record(txid).filter(|_| view.pending(txid)) else {
+            return Ok(false);
+        };
+        Ok(state
+            .addrs
+            .get(addr)
+            .is_some_and(|entry| entry.txs.contains(&AddrTx::from(record))))
+    }
+
+    /// Pending txs touching `addr`, newest first by `first_seen` (ties by txid prefix, then key),
+    /// after the `after` cursor (older than it) or from the newest, capped at `limit`. A cursor
+    /// that isn't one of the address's transactions has none after it. O(log n + the page) in
+    /// the address's pending transactions (more past the chain's newer blocks: those settled are
+    /// skipped). Shares immutable bodies from one completed publication; later prevout fills use
+    /// copy-on-write and cannot mutate this selection.
     pub fn addr_txs(
         &self,
         addr: &AddressBytes,
         after: Option<&Txid>,
         limit: usize,
-        tip: &BlockHash,
+        view: &PendingView,
     ) -> Result<Vec<PublishedTx>> {
-        let state = self.pool()?.resolved_at(tip)?;
+        let state = self.pool()?.at(view.tip())?;
         let Some(entry) = state.addrs.get(addr) else {
             return Ok(Vec::new());
         };
-        if limit == 0 {
-            return Ok(Vec::new());
-        }
-        // Page order: the smallest timestamp is at the heap root; the txid prefix breaks
-        // equal-time ties deterministically.
-        let order = |txid: &Txid, first_seen| {
-            Reverse((first_seen, TxidPrefix::from(txid), TxKey::from(txid)))
-        };
-        let after = match after {
+        let cursor = match after {
             None => None,
-            Some(txid) => match entry.txids.contains(txid).then(|| state.txs.record(txid)) {
-                Some(Some(record)) => Some(order(txid, record.entry.first_seen)),
-                _ => return Ok(Vec::new()),
+            Some(txid) => match state.txs.record(txid).filter(|_| view.pending(txid)) {
+                Some(record) => Some(AddrTx::from(record)),
+                None => return Ok(Vec::new()),
             },
         };
-        // Retain only the requested page.
-        let mut newest = BinaryHeap::with_capacity(limit.min(entry.txids.len()));
-        for txid in &entry.txids {
-            let Some(record) = state.txs.record(txid) else {
-                continue;
-            };
-            let candidate = order(txid, record.entry.first_seen);
-            if after.as_ref().is_some_and(|after| candidate <= *after) {
-                continue;
-            }
-            if newest.len() < limit {
-                newest.push(candidate);
-            } else if let Some(mut oldest) = newest.peek_mut()
-                && candidate < *oldest
-            {
-                *oldest = candidate;
-            }
-        }
-        let transactions = newest
-            .into_sorted_vec()
-            .into_iter()
-            .filter_map(|Reverse((_, _, key))| state.txs.record_by_key(&key))
+        let Some(newest) = entry.txs.newest_before(cursor.as_ref()) else {
+            return Ok(Vec::new());
+        };
+        Ok(newest
+            .filter(|tx| view.pending_key(&tx.key))
+            .filter_map(|tx| state.txs.record_by_key(&tx.key))
+            .take(limit)
             .map(PublishedTx::from_record)
-            .collect();
-        Ok(transactions)
+            .collect())
     }
 }

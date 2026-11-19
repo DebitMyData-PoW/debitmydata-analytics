@@ -36,6 +36,7 @@ _*
 
 # Environment variables/configs
 .env
+docker/rpc-credentials
 
 # Profiling
 profile.json.gz
@@ -51,3 +52,8 @@ expand.rs
 
 # AI
 .claude
+
+# Cloudflare CLI (cf) account cache, written wherever it runs
+.cloudflare
+# Generated at publish (scripts/js-publish.sh) from the JSDoc.
+modules/bitview-client/*.d.ts

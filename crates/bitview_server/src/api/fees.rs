@@ -1,28 +1,24 @@
 use crate::request_state::RequestState;
 use aide::axum::{ApiRouter, routing::get_with};
-use axum::{http::HeaderMap, response::Response};
-use brk_types::{MempoolBlock, PreciseRecommendedFees, RecommendedFees};
+use axum::http::HeaderMap;
+use brk_types::{MempoolBlock, PreciseRecommendedFees, RecommendedFees, Version};
 
-use crate::{
-    AppState, api::tags, error::Result, extended::TransformResponseExtended, params::Empty,
-};
+use crate::{AppState, api::tags, extended::TransformResponseExtended, params::Empty};
 
 pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
     router.api_route(
         "/api/v1/fees/mempool-blocks",
         get_with(
-            async |headers: HeaderMap,
-                   _: Empty,
-                   RequestState(state): RequestState|
-                   -> Result<Response> {
-                let blocks = state.query.read(|q| q.mempool_blocks()).await?;
-                Ok(state.respond_json_content_value(&headers, blocks))
+            async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
+                state
+                    .respond_json_bound(headers, Version::ONE, |q| q.mempool_blocks_json())
+                    .await
             },
             |op| {
                 op.id("get_mempool_blocks")
                     .tag(tags::FEES)
                     .summary("Projected mempool blocks")
-                    .description("Projected blocks for fee estimation. Block 0 reflects the node's actual next-block selection; blocks 1+ are a fee-tier approximation.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*")
+                    .description("Projected blocks for fee estimation, up to eight as mempool.space's. Every block, block 0 the next, is packed as Core's block assembler packs (whole CPFP chunks by feerate, in dependency order, within Core's default weight and sigop budgets), ranked by the node's signed modified fees (including `prioritisetransaction`), with paid fees in the statistics. The last holds whatever is left: more than a block when the mempool is busy. `GET /api/mempool-blocks/{index}` serves each with its transactions, except such a last one.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*")
                     .json_response::<Vec<MempoolBlock>>()
                     .not_modified()
             },
@@ -31,12 +27,10 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
     .api_route(
         "/api/v1/fees/recommended",
         get_with(
-            async |headers: HeaderMap,
-                   _: Empty,
-                   RequestState(state): RequestState|
-                   -> Result<Response> {
-                let fees = state.query.read(|q| q.recommended_fees()).await?;
-                Ok(state.respond_json_content_value(&headers, fees))
+            async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
+                state
+                    .respond_json_bound(headers, Version::ONE, |q| q.recommended_fees_json())
+                    .await
             },
             |op| {
                 op.id("get_recommended_fees")
@@ -52,12 +46,10 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
     .api_route(
         "/api/v1/fees/precise",
         get_with(
-            async |headers: HeaderMap,
-                   _: Empty,
-                   RequestState(state): RequestState|
-                   -> Result<Response> {
-                let fees = state.query.read(|q| q.precise_fees()).await?;
-                Ok(state.respond_json_content_value(&headers, fees))
+            async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
+                state
+                    .respond_json_bound(headers, Version::ONE, |q| q.precise_fees_json())
+                    .await
             },
             |op| {
                 op.id("get_precise_fees")

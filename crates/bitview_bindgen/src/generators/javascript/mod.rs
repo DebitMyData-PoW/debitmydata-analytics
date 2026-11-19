@@ -2,12 +2,12 @@ use std::{collections::BTreeSet, fmt::Write, fs, io, path::Path};
 
 use serde_json::{Value, from_str, json, to_string_pretty};
 
-use super::write_if_changed;
+use super::{sha256_hex, write_if_changed};
 use crate::{Endpoint, IndexSetPattern, TypeSchemas, VERSION, model::Model};
 
-mod api;
+pub(crate) mod api;
 pub(crate) mod client;
-mod keep;
+pub(crate) mod keep;
 mod tree;
 pub(crate) mod types;
 
@@ -25,12 +25,25 @@ pub(crate) fn generate_javascript_client(
     writeln!(output, "// Auto-generated Bitview JavaScript client").unwrap();
     writeln!(output, "// Do not edit manually\n").unwrap();
 
+    let mut core = String::new();
+    client::generate_core(&mut core, schemas);
+
     types::generate_type_definitions(&mut output, schemas);
-    client::generate_base_client(&mut output);
+    client::generate_core_imports(&mut output);
     client::generate_index_accessors(&mut output, accessors);
     tree::generate_tree(&mut output, model, shape_names, accessors, undefined_types);
     tree::generate_main_client(&mut output, endpoints, schemas);
 
+    // (The stamp, its value written in last: the hash of the text with it empty, so whatever else changes, it does.)
+    if output.matches(client::HASH_STAMP).count() != 1 {
+        return Err(io::Error::other(
+            "the JavaScript client's HASH stamp isn't written exactly once",
+        ));
+    }
+    let hash = sha256_hex(format!("{core}{output}").as_bytes());
+    let stamp = client::HASH_STAMP.replacen("\"\"", &format!("\"{hash}\""), 1);
+    let output = output.replacen(client::HASH_STAMP, &stamp, 1);
+    write_if_changed(&output_path.with_file_name(client::CORE_FILE), &core)?;
     write_if_changed(output_path, &output)?;
 
     if let Some(parent) = output_path.parent() {

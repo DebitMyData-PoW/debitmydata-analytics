@@ -4,44 +4,51 @@ use aide::{
     axum::{ApiRouter, routing::get_with},
     transform::TransformOperation,
 };
-use axum::{Extension, http::HeaderMap, response::Redirect, routing::get};
+use axum::{
+    Extension,
+    http::HeaderMap,
+    response::Redirect,
+    routing::{any, get},
+};
 use schemars::{SchemaGenerator, generate::SchemaSettings, transform::ReplacePrefixItems};
 use serde_json::Value;
 
 use super::AppState;
-use crate::{Error, extended::TransformResponseExtended, params::Empty};
+use crate::{Error, error::changes_hint, extended::TransformResponseExtended, params::Empty};
 
-#[cfg(feature = "chain")]
+#[cfg(feature = "full-api")]
 mod addrs;
-#[cfg(feature = "chain")]
+#[cfg(feature = "full-api")]
+mod blindbit;
+#[cfg(feature = "full-api")]
 mod blocks;
-#[cfg(feature = "chain")]
+#[cfg(feature = "full-api")]
 pub mod broadcast;
-#[cfg(feature = "chain")]
+#[cfg(feature = "full-api")]
 mod fees;
-#[cfg(feature = "chain")]
+#[cfg(feature = "full-api")]
 mod general;
-#[cfg(feature = "chain")]
+#[cfg(feature = "full-api")]
 mod historical_price;
-#[cfg(feature = "chain")]
+#[cfg(feature = "full-api")]
 mod mempool;
-#[cfg(feature = "chain")]
+#[cfg(feature = "full-api")]
 mod mempool_block;
-#[cfg(feature = "chain")]
+#[cfg(feature = "full-api")]
 mod mempool_txids;
-#[cfg(feature = "chain")]
+#[cfg(feature = "full-api")]
 mod mining;
 mod openapi;
-#[cfg(feature = "price")]
+#[cfg(feature = "full-api")]
 mod oracle;
 #[cfg(feature = "series")]
 mod series;
-mod server;
-#[cfg(feature = "chain")]
+pub(crate) mod server;
+#[cfg(feature = "full-api")]
 mod transactions;
-#[cfg(feature = "urpd")]
+#[cfg(feature = "full-api")]
 mod urpd;
-#[cfg(feature = "chain")]
+#[cfg(feature = "full-api")]
 mod utxo_set;
 
 pub use openapi::*;
@@ -66,9 +73,9 @@ impl ApiRoutes for ApiRouter<AppState> {
         let router = server::add_routes(self);
         #[cfg(feature = "series")]
         let router = series::add_routes(router);
-        #[cfg(feature = "urpd")]
+        #[cfg(feature = "full-api")]
         let router = urpd::add_routes(router);
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         let router = [
             general::add_routes,
             addrs::add_routes,
@@ -78,10 +85,11 @@ impl ApiRoutes for ApiRouter<AppState> {
             mempool::add_routes,
             transactions::add_routes,
             utxo_set::add_routes,
+            blindbit::add_routes,
         ]
         .into_iter()
         .fold(router, |router, add| add(router));
-        #[cfg(feature = "price")]
+        #[cfg(feature = "full-api")]
         let router = oracle::add_routes(router);
 
         router
@@ -128,10 +136,15 @@ impl ApiRoutes for ApiRouter<AppState> {
                 "/.well-known/openapi.json",
                 get(|| async { Redirect::permanent("/openapi.json") }),
             )
+            // Any method: a removed endpoint's caller learns what replaced it whatever it sends (a real
+            // endpoint's wrong method is its own route's 405).
             .route(
                 "/api/{*path}",
-                get(|| async {
-                    Error::not_found("Unknown API endpoint. See /api for documentation.")
+                any(|| async {
+                    Error::not_found(format!(
+                        "Unknown API endpoint, see /api. {}",
+                        changes_hint(None)
+                    ))
                 }),
             )
             // Documented once for every operation instead of per route.

@@ -1,4 +1,4 @@
-use std::thread;
+use std::{sync::Arc, thread};
 
 use bitview_plugin::{BootstrapAction, ComputePluginSet, UpdateContext};
 use bitview_plugin_addresses::Dependencies as AddressesDependencies;
@@ -17,12 +17,13 @@ use bitview_plugin_outputs::Dependencies as OutputsDependencies;
 use bitview_plugin_pools::Dependencies as PoolsDependencies;
 use bitview_plugin_price::Dependencies as PriceDependencies;
 use bitview_plugin_profitability::Dependencies as ProfitabilityDependencies;
+use bitview_plugin_silent_payments::Dependencies as SilentPaymentsDependencies;
 use bitview_plugin_supply::Dependencies as SupplyDependencies;
 use bitview_plugin_transactions::Dependencies as TransactionsDependencies;
 use bitview_plugin_utxo_set::Dependencies as UtxoSetDependencies;
 use bitview_plugin_utxos::Dependencies as UtxosDependencies;
-use bitview_urpd::ReplayInputs;
 use brk_error::Result;
+use brk_types::Transaction;
 use rayon::join;
 use tracing::info;
 use vecdb::ReadableCloneableVec;
@@ -122,9 +123,17 @@ impl DefaultPlugins {
                     context,
                 )
             });
+            // Silent payments read only the indexer and Core's block files.
+            let silent_payments = scope.spawn(|| {
+                timed_compute(
+                    &mut *self.silent_payments,
+                    SilentPaymentsDependencies { indexer },
+                    context,
+                )
+            });
 
-            // Blocks beside Transactions (only Mining reads Blocks), then OP_RETURN beside Mining
-            // and Pools after it: the branch hands Mining over once it completes.
+            // Blocks beside Transactions, then OP_RETURN beside Mining and Pools after it (Mining
+            // and Pools read Blocks): the branch hands Mining over once it completes.
             let (op_return, pools) = (&mut *self.op_return, &mut *self.pools);
             let mining = scope.spawn(|| -> Result<_> {
                 let (blocks, transactions) = join(
@@ -172,9 +181,19 @@ impl DefaultPlugins {
                     },
                     context,
                 )?;
-                let mining = self.mining.as_ref();
+                let (blocks, mining) = (self.blocks.as_ref(), self.mining.as_ref());
                 let pools = scope.spawn(move || {
-                    timed_compute(pools, PoolsDependencies { indexer, mining }, context)
+                    timed_compute(
+                        pools,
+                        PoolsDependencies {
+                            indexer,
+                            blocks,
+                            transactions,
+                            mining,
+                            mappings,
+                        },
+                        context,
+                    )
                 });
                 Ok((mining, transactions, [op_return, pools]))
             });
@@ -214,6 +233,8 @@ impl DefaultPlugins {
                 UtxoSetDependencies {
                     spends: &inputs.spends,
                     creations,
+                    price,
+                    mappings,
                     from,
                     end: creations.end(),
                 },
@@ -221,11 +242,7 @@ impl DefaultPlugins {
             )?;
 
             let history = &self.utxo_set.reader(&inputs.spends, creations)?;
-            let urpd = ReplayInputs {
-                history,
-                prices: &price.spot.cents.height,
-                timestamps: &mappings.timestamp.monotonic,
-            };
+            let urpd = &self.utxo_set.urpd()?;
             let prices = &price.spot.cents.height.read_only_boxed_clone();
             let timestamps = &mappings.timestamp.monotonic.read_only_boxed_clone();
             thread::scope(|scope| -> Result<()> {
@@ -330,7 +347,7 @@ impl DefaultPlugins {
                 }
                 Ok(())
             })?;
-            for branch in [market, utxos, addresses] {
+            for branch in [market, utxos, addresses, silent_payments] {
                 branch.join().unwrap()?;
             }
             Ok(())
@@ -374,5 +391,12 @@ impl ComputePluginSet for DefaultPlugins {
 
     fn write_published(&mut self) -> Result<()> {
         self.addresses.write_published_state()
+    }
+
+    // The reads an update spends most of its time on when idle minutes left them on disk: the
+    // indexer's lookups and the addresses' data. Not the spend index: its writes read their pages
+    // from disk either way (rawdb's indexed writes on macOS).
+    fn warm(&self, txs: &[Arc<Transaction>]) {
+        self.addresses.warm(&self.indexer.warm(txs));
     }
 }

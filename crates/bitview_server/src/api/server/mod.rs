@@ -7,6 +7,7 @@ use axum::{
     http::HeaderMap,
     response::{IntoResponse, Response},
 };
+use bitview_http::CachePolicy;
 use bitview_types::{DiskUsage, Health, HealthStatus, Logs, ServerVersion, SyncStatus};
 use jiff::Timestamp;
 
@@ -15,12 +16,14 @@ use crate::{
     CacheParams, VERSION,
     api::tags,
     error::Result,
-    extended::{HeaderMapExtended, ResponseExtended, TransformResponseExtended},
+    extended::{ResponseExtended, TransformResponseExtended},
     params::Empty,
     request_state::RequestState,
 };
 
 mod disk;
+
+pub(crate) use disk::LastWalk;
 mod logs;
 
 pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
@@ -41,9 +44,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     sync,
                 })
                 .into_response();
-                let h = response.headers_mut();
-                h.insert_cache_control("no-store");
-                h.insert_cdn_cache_control("no-store");
+                CachePolicy::NoStore.apply(response.headers_mut());
                 Ok(response)
             },
             |op| {
@@ -105,7 +106,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 .mcp_ignore()
                 .summary("Logs")
                 .description(
-                    "The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) \
+                    "The server's last log lines, at most 1,000, oldest first: requests (status, method, path and duration; never who made them) \
                     and everything else it logs. To read on, send the answer's `next` back as `after`: the lines since, each once. \
                     A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the \
                     server restarted (and its answer has every kept line). Answers are cached for a second.",

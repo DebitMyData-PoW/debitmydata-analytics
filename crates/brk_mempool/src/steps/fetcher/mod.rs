@@ -1,120 +1,88 @@
 pub mod fetched;
 
-use crate::State;
 use brk_error::Result;
-use brk_rpc::Client;
-use brk_types::{MempoolEntryInfo, Timestamp, Txid, VSize};
+use brk_rpc::{Client, MempoolObservation};
+use brk_types::Txid;
 pub use fetched::Fetched;
-use rustc_hash::FxHashSet;
+use rapidhash::{RapidHashMap, RapidHashSet};
 
-/// Bounds the non-template transactions fetched per cycle (the RPC client
-/// separately chunks its batches). New template transactions are not subject
-/// to this cap: they're bounded by the block weight limit Core enforces on its
-/// own template.
+use crate::State;
+
+/// Bounds the new transactions fetched per cycle (the RPC client separately chunks its batches).
 pub(crate) const MAX_TX_FETCHES_PER_CYCLE: usize = 10_000;
 
-/// Scales with churn rather than mempool size: `getblocktemplate` +
-/// `getrawmempool false` + `getmempoolinfo` in one mixed batch, then
-/// `getmempoolentry` (+ `getrawtransaction` outside the template) for *new*
-/// txids, in batches of at most 2,000 txids.
-///
-/// New template transactions lead that batch, uncapped (Core bounds the
-/// template), entries only: their bodies are decoded from the template, and
-/// their entries carry Core's arrival time and sigop-adjusted vsize. One that
-/// left between the two batches is still materialized from the template, so
-/// block 0 always reflects Core's exact selection; only then is its arrival
-/// time (`now`) estimated (its policy vsize follows from the template's weight
-/// and sigops).
+/// Scales with churn rather than mempool size: `getbestblockhash` + `getmempoolinfo` +
+/// `getrawmempool false` + `getprioritisedtransactions` in one mixed batch, then
+/// `getmempoolentry` + `getrawtransaction` for *new* txids, in batches of at most 2,000 txids.
 ///
 /// Confirmed prevouts are resolved after apply, by the resolver passed to
 /// `Mempool::tick_with`.
-pub fn fetch(client: &Client, mempool: &State) -> Result<Fetched> {
-    let (mut state, block_template) = client.fetch_mempool_state()?;
+/// `failing`: listed txids that failed to load before, with how often; the untried go first,
+/// then the retries fewest failures first, so the cap is never filled by the same stuck ones
+/// every cycle and every retry comes round.
+pub fn fetch(
+    client: &Client,
+    mempool: &State,
+    failing: &RapidHashMap<Txid, u32>,
+    previous_modified: &[(Txid, i64)],
+) -> Result<Fetched> {
+    let MempoolObservation { state, modified_fees } = client.fetch_mempool_state(previous_modified)?;
 
-    // The same private pool decides the fetch list and template synthesis,
-    // so they agree on what's already known. The template's txids, trimmed
-    // below to those the raw listing lacks.
-    let mut template_only: FxHashSet<Txid> = block_template.iter().map(|g| g.txid).collect();
-    let template_new: FxHashSet<Txid> = block_template
-        .iter()
-        .map(|g| g.txid)
-        .filter(|txid| !mempool.txs.contains(txid))
-        .collect();
-    let template_txids: Vec<Txid> = block_template
-        .iter()
-        .map(|g| g.txid)
-        .filter(|txid| template_new.contains(txid))
-        .collect();
-    let new_txids: Vec<Txid> = state
-        .live_txids
-        .iter()
-        .filter(|t| !mempool.txs.contains(t) && !template_only.contains(t))
+    let unknown = || state.live_txids.iter().filter(|t| !mempool.txs.contains(t));
+    let mut new_txids: Vec<Txid> = unknown()
+        .filter(|t| !failing.contains_key(t))
         .take(MAX_TX_FETCHES_PER_CYCLE)
         .copied()
         .collect();
+    if !failing.is_empty() {
+        let room = MAX_TX_FETCHES_PER_CYCLE - new_txids.len();
+        let mut retries: Vec<(u32, Txid)> = unknown()
+            .filter_map(|t| failing.get(t).map(|&failures| (failures, *t)))
+            .collect();
+        retries.sort_unstable_by_key(|&(failures, _)| failures);
+        new_txids.extend(retries.into_iter().take(room).map(|(_, txid)| txid));
+    }
     let capped = new_txids.len() == MAX_TX_FETCHES_PER_CYCLE;
 
-    let (mut new_entries, mut new_txs) = client.fetch_new_pool_data(&template_txids, &new_txids)?;
-    let fetched: FxHashSet<Txid> = new_entries
-        .iter()
-        .map(|entry| entry.txid)
-        .filter(|txid| template_new.contains(txid))
-        .collect();
-
-    // Template entries lead (fetched in request order, synthesized ones after
-    // them), listing entries follow: a removal spent by both a stale template
-    // tx and its listed replacer names the replacer.
-    let listed_entries = new_entries.split_off(fetched.len());
-    debug_assert!(
-        new_entries
-            .iter()
-            .all(|entry| fetched.contains(&entry.txid))
-    );
-
-    // Consume `block_template` by value: the template's order is captured as a
-    // `Vec<Txid>` for the Rebuilder, which only reads txids, and new bodies are
-    // decoded from the template (known bodies stay undecoded).
-    let now = Timestamp::now();
-    let mut block_template_txids: Vec<Txid> = Vec::with_capacity(block_template.len());
-    for g in block_template {
-        let txid = g.txid;
-        if template_new.contains(&txid) {
-            new_txs.insert(txid, g.decode()?);
-            if !fetched.contains(&txid) {
-                new_entries.push(MempoolEntryInfo {
-                    txid,
-                    vsize: g.sigops.adjust_vsize(VSize::from(g.weight)),
-                    weight: g.weight,
-                    fee: g.fee,
-                    first_seen: now,
-                });
+    // Records restored from a shutdown save, a cap's worth per cycle, against Core's entries: one
+    // Core now holds under another witness is fetched afresh. Only while it is listed (the pool
+    // holds what one listing held).
+    let checked = mempool.unverified.len().min(MAX_TX_FETCHES_PER_CYCLE);
+    let checking = &mempool.unverified[mempool.unverified.len() - checked..];
+    let mut recheck: RapidHashSet<Txid> = checking.iter().copied().collect();
+    if !checking.is_empty() {
+        let (entries, _) = client.fetch_new_pool_data(checking, &[])?;
+        for entry in &entries {
+            if mempool.txs.record(&entry.txid).is_some_and(|record| record.entry.wtxid == entry.wtxid) {
+                recheck.remove(&entry.txid);
             }
         }
-        block_template_txids.push(txid);
-    }
-    new_entries.extend(listed_entries);
-
-    // Keep GBT-only bodies for the exact template projection, but do not
-    // call their union a coherent address view: a removed GBT transaction
-    // can conflict with a replacement in the newer raw listing.
-    // Reuse the block-sized GBT set instead of allocating a second full
-    // mempool set beside the one Preparer needs.
-    for txid in &state.live_txids {
-        template_only.remove(txid);
-    }
-    state.live_txids.extend(
-        block_template_txids
+        let variants: RapidHashSet<Txid> = entries
             .iter()
-            .filter(|txid| template_only.contains(*txid))
-            .copied(),
-    );
+            .filter(|entry| {
+                mempool
+                    .txs
+                    .record(&entry.txid)
+                    .is_some_and(|record| record.entry.wtxid != entry.wtxid)
+            })
+            .map(|entry| entry.txid)
+            .collect();
+        if !variants.is_empty() {
+            new_txids.extend(state.live_txids.iter().filter(|txid| variants.contains(*txid)));
+        }
+    }
+
+    let (new_entries, new_txs) = client.fetch_new_pool_data(&[], &new_txids)?;
+    let requested = new_txids;
 
     Ok(Fetched {
         state,
+        modified_fees,
+        checked,
+        recheck,
         new_entries,
         new_txs,
-        block_template_txids,
-        template_only,
         capped,
+        requested,
     })
 }

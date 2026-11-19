@@ -1,9 +1,6 @@
-use crate::{Amount, State, util::invalid};
-use pco::{
-    ChunkConfig, DeltaSpec, ModeSpec,
-    standalone::{simple_compress, simple_decompress_into},
-};
-use std::{fs::File, io::Result, os::unix::fs::FileExt};
+use crate::{Amount, State, columns::config, util::invalid};
+use pco::standalone::{simple_compress, simple_decompress_into};
+use std::{fs::File, io::Result, os::unix::fs::FileExt, sync::Arc};
 use zerocopy::IntoBytes;
 /// A retained checkpoint: both columns pco-compressed, appended to the retained data.
 const PACKED: &[u8; 8] = b"STATEP04";
@@ -56,6 +53,10 @@ pub(crate) fn versions(header: &[u8; HEADER]) -> (u64, u64) {
     (word(header, 48), word(header, 56))
 }
 
+/// PCO level of retained checkpoints: written once per interval and read by every restore, they
+/// pack 11% smaller than at the default level and decompress as fast.
+pub(crate) const PACKED_LEVEL: usize = 8;
+
 /// Appends a retained checkpoint at `offset`, returning its size.
 pub(crate) fn write_packed(
     file: &File,
@@ -63,10 +64,7 @@ pub(crate) fn write_packed(
     state: &State,
     versions: (u64, u64),
 ) -> Result<u64> {
-    let config = ChunkConfig::default()
-        .with_compression_level(3)
-        .with_mode_spec(ModeSpec::Classic)
-        .with_delta_spec(DeltaSpec::NoOp);
+    let config = config().with_compression_level(PACKED_LEVEL);
     // One column buffer: sats, then refilled with counts.
     let mut column: Vec<_> = state.amounts().iter().map(|v| v.sats).collect();
     let sats = simple_compress(&column, &config).map_err(|_| invalid("sats compression failed"))?;
@@ -120,6 +118,8 @@ enum Body {
     },
     /// A tip's directory and the page file it points into, as opened together.
     Paged { dir: File, pages: File },
+    /// The producer's state in memory.
+    Live(Arc<State>),
 }
 /// Opening a snapshot reads its identity; reconstruction reads its payload once.
 pub(crate) struct Snapshot {
@@ -165,6 +165,14 @@ impl Snapshot {
         };
         Self::new(header, versions, body)
     }
+    /// The producer's state, as the tip it equals.
+    pub fn live(state: Arc<State>, versions: (u64, u64)) -> Self {
+        Self {
+            header: header(PAGED, &state, versions, 0),
+            len: state.len(),
+            body: Body::Live(state),
+        }
+    }
     fn new(header: [u8; HEADER], versions: (u64, u64), body: Body) -> Result<Option<Self>> {
         if self::versions(&header) != versions {
             return Ok(None);
@@ -177,6 +185,7 @@ impl Snapshot {
     }
     pub fn state(&self) -> Result<State> {
         let amounts = match &self.body {
+            Body::Live(state) => return Ok(State::clone(state)),
             Body::Paged { dir, pages } => {
                 let slots = read_slots(dir, self.len)?;
                 let page_len = |page: usize| PAGE.min(self.len - page * PAGE);

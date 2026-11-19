@@ -2,8 +2,10 @@
 
 On-chain analytics for the DebitMyData (DMD) chain, at
 [analytics.debitmydata.io](https://analytics.debitmydata.io): thousands of ready-made charts
-(**Studio**), every series browsed like files (**Series**), each day's blocks and pools
-(**Calendar**), and every series, block and address as data through an open **API**.
+(**Studio**), the network's hashrate, reference price and difficulty on one screen (**Oracle**),
+every block, transaction and address (**Explorer**), where DMD stands against what its holders paid
+(**Compass**), each day's blocks and pools (**Calendar**), every series browsed like files
+(**Catalog**), and every series, block and address as data through an open **API**.
 
 It is a fork of [Bitview](https://github.com/bitcoinresearchkit/mono), the Bitcoin Research Kit,
 adapted to the DebitMyData chain. Bitview's own documentation is in [docs/](docs/README.md).
@@ -26,9 +28,15 @@ adapted to the DebitMyData chain. Bitview's own documentation is in [docs/](docs
 - **Mining.** DebitMyData's pool (its coinbase text, `Official`) instead of Bitcoin's pools; the
   difficulty adjusts at every block (LWMA): Bitview's 2,016-block periods are kept for charts.
 - **Left out.** Bitview's Bedrock and Rarity Meter models (calibrated on Bitcoin's market history),
-  and its Bitcoin-only pages (Oracle, Compass, Stack, Globe, the Satoshi Trail).
-- **The website.** DebitMyData's name, icon and colors; the home page, Studio, Series, Calendar,
-  the API's documentation and every series' description speak of DMD. The API keeps Bitview's
+  its Miners and Ledger pages, its benchmarks, its MCP server and its plugin for assistants, and its
+  terms, privacy and support pages (Bitview's own). Stack, Globe and the Satoshi Trail are not on
+  the site yet.
+- **The Oracle.** Bitview's Oracle reads Bitcoin's price from round-dollar payments; here its design
+  shows the network instead: hashrate (the default), the reference price or the difficulty, a
+  switch at the top, over 7, 30 or 90 days or the whole chain.
+- **The website.** DebitMyData's name and colors, its coin with the analytics badge at the top
+  left; the home page, Studio, Oracle, Explorer, Compass, Calendar, Catalog, the API's
+  documentation and every series' description speak of DMD. The API keeps Bitview's
   names (`btc`, `sats`, `cents`: DMD, its 10^-8 unit, millionths of a dollar), so that Bitview's
   clients and charts work unchanged.
 
@@ -145,10 +153,12 @@ bun showcases/studio/seo.mjs https://analytics.debitmydata.io
 
 Then commit the changed files and update the server.
 
-The home page's pictures are DebitMyData's own: the coin with the microscope badge, over a motif
-for each app. `bun showcases/home.mjs --pictures https://analytics.debitmydata.io` would put
-screenshots of the apps in their place (the coin then only on the share card); leave it unless
-you want that.
+The home page's pictures are screenshots of the apps, as Bitview's. Made again from the live site
+(with a Chromium installed):
+
+```
+bun showcases/home.mjs --pictures https://analytics.debitmydata.io
+```
 
 ## Security
 

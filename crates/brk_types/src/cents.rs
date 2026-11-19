@@ -106,16 +106,15 @@ impl Cents {
         }
     }
 
-    /// The whole sats (10^-8 DMD) one dollar buys at this price (cents per DMD), rounded down;
-    /// zero at a zero price. A NaN price has no whole-sats value.
+    /// The whole sats (10^-8 DMD) one dollar buys at this price ("cents" per DMD: millionths of a
+    /// dollar, CENTS_PER_DOLLAR), rounded down; none at a zero price, which buys no whole-sats
+    /// amount. A NaN price has no whole-sats value.
     #[inline]
-    pub fn sats_per_dollar(self) -> Sats {
+    pub fn sats_per_dollar(self) -> Option<Sats> {
         debug_assert!(!self.is_nan(), "a NaN price has no sats per dollar");
-        Sats::new(
-            (CENTS_PER_DOLLAR * Sats::ONE_BTC_U64)
-                .checked_div(self.inner())
-                .unwrap_or_default(),
-        )
+        (CENTS_PER_DOLLAR * Sats::ONE_BTC_U64)
+            .checked_div(self.inner())
+            .map(Sats::new)
     }
 
     pub fn to_dollars(self) -> Dollars {

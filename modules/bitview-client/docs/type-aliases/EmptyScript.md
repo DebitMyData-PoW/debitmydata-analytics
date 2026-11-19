@@ -8,7 +8,7 @@
 
 > **EmptyScript** = `object`
 
-Defined in: modules/bitview-client/index.js:6556
+Defined in: [modules/bitview-client/index.js:6530](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6530)
 
 ## Type Parameters
 
@@ -16,4 +16,4 @@ Defined in: modules/bitview-client/index.js:6556
 
 ### identity
 
-> **identity**: [`SeriesPattern24`](SeriesPattern24.md)\<[`EmptyScriptOutputIndex`](EmptyScriptOutputIndex.md)\>
+> **identity**: [`SeriesPattern25`](SeriesPattern25.md)\<[`EmptyScriptOutputIndex`](EmptyScriptOutputIndex.md)\>

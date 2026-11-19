@@ -4,6 +4,8 @@ Generated command-line client for the [Bitview](https://bitview.space) API.
 Every non-deprecated OpenAPI operation becomes a command derived from the
 server specification by `bitview_bindgen`.
 
+Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at [bitview.space](https://bitview.space) or beside your own Bitcoin Core node.
+
 ## Run
 
 Install it from the BRK workspace:
@@ -15,14 +17,14 @@ cargo install --locked --path crates/bitview_cli
 Or run it without installing:
 
 ```bash
-cargo run -p bitview_cli -- get-block-by-height 800000
+cargo run -p bitview_cli -- get-block-hash-by-height 800000
 ```
 
 The default server is `http://localhost:3110`. Point the CLI at the public
 instance with `--url` or `BITVIEW_URL`:
 
 ```bash
-bitview-cli --url https://bitview.space get-block-by-height 800000
+bitview-cli --url https://bitview.space get-block-hash-by-height 800000
 BITVIEW_URL=https://bitview.space bitview-cli get-health
 ```
 

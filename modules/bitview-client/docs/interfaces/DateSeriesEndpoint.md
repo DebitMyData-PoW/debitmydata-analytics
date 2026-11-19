@@ -6,7 +6,7 @@
 
 # Interface: DateSeriesEndpoint\<T\>
 
-Defined in: modules/bitview-client/index.js:2016
+Defined in: [modules/bitview-client/index.js:1968](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1968)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: modules/bitview-client/index.js:2016
 
 > **fetch**: (`arg?`, `options?`) => `Promise`\<[`DateSeriesData`](../type-aliases/DateSeriesData.md)\<`T`\>\>
 
-Defined in: modules/bitview-client/index.js:2022
+Defined in: [modules/bitview-client/index.js:1974](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1974)
 
 Fetch all data
 
@@ -44,7 +44,7 @@ Fetch all data
 
 > **fetchCsv**: (`options?`) => `Promise`\<`string`\>
 
-Defined in: modules/bitview-client/index.js:2023
+Defined in: [modules/bitview-client/index.js:1975](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1975)
 
 Fetch all data as CSV
 
@@ -64,7 +64,7 @@ Fetch all data as CSV
 
 > **first**: (`n`) => [`DateRangeBuilder`](DateRangeBuilder.md)\<`T`\>
 
-Defined in: modules/bitview-client/index.js:2019
+Defined in: [modules/bitview-client/index.js:1971](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1971)
 
 #### Parameters
 
@@ -82,7 +82,7 @@ Defined in: modules/bitview-client/index.js:2019
 
 > **get**: (`index`) => [`DateRangeBuilder`](DateRangeBuilder.md)\<`T`\>
 
-Defined in: modules/bitview-client/index.js:2017
+Defined in: [modules/bitview-client/index.js:1969](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1969)
 
 #### Parameters
 
@@ -100,7 +100,7 @@ Defined in: modules/bitview-client/index.js:2017
 
 > **last**: (`n`) => [`DateRangeBuilder`](DateRangeBuilder.md)\<`T`\>
 
-Defined in: modules/bitview-client/index.js:2020
+Defined in: [modules/bitview-client/index.js:1972](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1972)
 
 #### Parameters
 
@@ -118,7 +118,7 @@ Defined in: modules/bitview-client/index.js:2020
 
 > **len**: () => `Promise`\<`number`\>
 
-Defined in: modules/bitview-client/index.js:2024
+Defined in: [modules/bitview-client/index.js:1976](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1976)
 
 Get total number of data points
 
@@ -132,7 +132,7 @@ Get total number of data points
 
 > **path**: `string`
 
-Defined in: modules/bitview-client/index.js:2027
+Defined in: [modules/bitview-client/index.js:1979](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1979)
 
 ***
 
@@ -140,7 +140,7 @@ Defined in: modules/bitview-client/index.js:2027
 
 > **skip**: (`n`) => [`DateSkippedBuilder`](DateSkippedBuilder.md)\<`T`\>
 
-Defined in: modules/bitview-client/index.js:2021
+Defined in: [modules/bitview-client/index.js:1973](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1973)
 
 Skip first n items, chain with take()
 
@@ -160,7 +160,7 @@ Skip first n items, chain with take()
 
 > **slice**: (`start?`, `end?`) => [`DateRangeBuilder`](DateRangeBuilder.md)\<`T`\>
 
-Defined in: modules/bitview-client/index.js:2018
+Defined in: [modules/bitview-client/index.js:1970](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1970)
 
 #### Parameters
 
@@ -182,7 +182,7 @@ Defined in: modules/bitview-client/index.js:2018
 
 > **then**: \<`TResult1`, `TResult2`\>(`onfulfilled?`, `onrejected?`) => `PromiseLike`\<`TResult1` \| `TResult2`\>
 
-Defined in: modules/bitview-client/index.js:2026
+Defined in: [modules/bitview-client/index.js:1978](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1978)
 
 Thenable (await endpoint)
 
@@ -224,7 +224,7 @@ A Promise for the completion of which ever callback is executed.
 
 > **version**: () => `Promise`\<`number`\>
 
-Defined in: modules/bitview-client/index.js:2025
+Defined in: [modules/bitview-client/index.js:1977](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1977)
 
 #### Returns
 

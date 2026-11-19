@@ -1,5 +1,6 @@
 use std::{borrow::Cow, fmt, result::Result as StdResult};
 
+use brk_error::Updating;
 use thiserror::Error as ThisError;
 
 pub type Result<T> = StdResult<T, Error>;
@@ -30,6 +31,8 @@ pub enum Error {
     WeightExceeded { requested: usize, max: usize },
     #[error("Too many unspent transaction outputs (more than {max})")]
     TooManyUtxos { max: usize },
+    #[error("{0}")]
+    LimitExceeded(&'static str),
     #[error("after_txid not found")]
     UnknownAfterTxid,
 
@@ -55,7 +58,7 @@ pub enum Error {
     #[error("Mempool data is not available")]
     MempoolNotAvailable,
     #[error("State is updating")]
-    StateUpdating,
+    StateUpdating(Updating),
     #[error("Read exceeded its time limit")]
     ReadTimeout,
 
@@ -67,6 +70,13 @@ pub enum Error {
 }
 
 impl Error {
+    /// [`Error::StateUpdating`] at the caller's location ([`Updating::here`]).
+    #[track_caller]
+    #[inline]
+    pub fn updating() -> Self {
+        Self::StateUpdating(Updating::here())
+    }
+
     /// Another process holds the database open: transient, never a reason to delete data.
     pub fn is_lock_error(&self) -> bool {
         matches!(self, Self::Lower(error) if error.is_lock_error())
@@ -77,10 +87,11 @@ impl From<brk_error::Error> for Error {
     fn from(error: brk_error::Error) -> Self {
         use brk_error::Error as Lower;
         match error {
-            Lower::StateUpdating => Self::StateUpdating,
+            Lower::StateUpdating(at) => Self::StateUpdating(at),
             Lower::InvalidAddress => Self::InvalidAddress,
             Lower::InvalidNetwork => Self::InvalidNetwork,
             Lower::UnindexableDate => Self::UnindexableDate,
+            Lower::LimitExceeded(limit) => Self::LimitExceeded(limit),
             error => Self::Lower(error),
         }
     }
@@ -158,12 +169,19 @@ impl SeriesNotFound {
     }
 }
 
+impl SeriesNotFound {
+    /// The name asked for, as the message writes it (cut short past the display cap).
+    pub fn series(&self) -> &str {
+        &self.series
+    }
+}
+
 impl fmt::Display for SeriesNotFound {
+    /// A sentence or a question, whole.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "'{}' not found", self.series)?;
-
         if self.suggestions.is_empty() {
-            return Ok(());
+            return f.write_str(".");
         }
 
         f.write_str(", did you mean ")?;
@@ -173,17 +191,10 @@ impl fmt::Display for SeriesNotFound {
             }
             write!(f, "'{suggestion}'")?;
         }
-        f.write_str("?")?;
-
         let remaining = self.total_matches - self.suggestions.len();
         if remaining > 0 {
-            write!(
-                f,
-                " ({remaining} more — /api/series/search?q={} for all)",
-                self.series
-            )?;
+            write!(f, " ({remaining} more: /api/series/search?q={})", self.series)?;
         }
-
-        Ok(())
+        f.write_str("?")
     }
 }

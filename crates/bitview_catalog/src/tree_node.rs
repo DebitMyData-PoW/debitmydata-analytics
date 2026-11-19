@@ -37,29 +37,34 @@ impl TreeNode {
         }
     }
 
-    /// Attach interned descriptions to every matching series leaf.
-    pub fn set_descriptions(&mut self, descriptions: &BTreeMap<&str, Arc<str>>) {
+    /// Visit every leaf of this subtree mutably, in tree order.
+    pub fn for_each_leaf_mut(&mut self, f: &mut impl FnMut(&mut SeriesLeafWithSchema)) {
         match self {
             Self::Branch(children) => {
                 for child in children.values_mut() {
-                    child.set_descriptions(descriptions);
+                    child.for_each_leaf_mut(f);
                 }
             }
-            Self::Leaf(leaf) => {
-                let Some(description) = descriptions.get(leaf.leaf.name.as_str()) else {
-                    return;
-                };
-                if let Some(existing) = &leaf.leaf.description {
-                    debug_assert_eq!(
-                        existing, description,
-                        "Conflicting descriptions for series {}",
-                        leaf.leaf.name
-                    );
-                } else {
-                    leaf.leaf.description = Some(description.clone());
-                }
-            }
+            Self::Leaf(leaf) => f(leaf),
         }
+    }
+
+    /// Attach interned descriptions to every matching series leaf.
+    pub fn set_descriptions(&mut self, descriptions: &BTreeMap<&str, Arc<str>>) {
+        self.for_each_leaf_mut(&mut |leaf| {
+            let Some(description) = descriptions.get(leaf.leaf.name.as_str()) else {
+                return;
+            };
+            if let Some(existing) = &leaf.leaf.description {
+                debug_assert_eq!(
+                    existing, description,
+                    "Conflicting descriptions for series {}",
+                    leaf.leaf.name
+                );
+            } else {
+                leaf.leaf.description = Some(description.clone());
+            }
+        });
     }
 
     /// Removes every leaf of a series, and the branches left empty.
@@ -132,6 +137,14 @@ impl TreeNode {
         Self::branch(map)
     }
 
+    /// The node with `name` as its client name, if it is a branch.
+    pub fn with_client_name(mut self, name: Option<&'static str>) -> Self {
+        if let Self::Branch(branch) = &mut self {
+            branch.client_name = name;
+        }
+        self
+    }
+
     /// Merges all first-level branches into a single flattened structure.
     /// Direct leaves use their key (use #[traversable(rename = "...")] to control).
     /// Branch children are lifted with their keys.
@@ -172,7 +185,8 @@ impl TreeNode {
         Self::Leaf(merged)
     }
 
-    /// Whether every entry is a leaf of one series, its descriptions agreeing.
+    /// Whether every entry is a leaf of one series, its descriptions agreeing. Panics on one
+    /// series with two value types.
     fn collapsible(map: &TreeBranch) -> bool {
         let mut first: Option<&SeriesLeafWithSchema> = None;
         let mut description = None;
@@ -180,14 +194,24 @@ impl TreeNode {
             let Self::Leaf(leaf) = node else {
                 return false;
             };
-            if first.get_or_insert(leaf).leaf.name != leaf.leaf.name {
+            let first = first.get_or_insert(leaf);
+            if first.leaf.name != leaf.leaf.name {
                 return false;
             }
+            Self::one_kind(&first.leaf, &leaf.leaf);
             let incoming = leaf.leaf.description.as_ref();
             let agree = SeriesLeaf::descriptions_agree(description, incoming);
             description = description.or(incoming);
             agree
         }) && first.is_some()
+    }
+
+    fn one_kind(a: &SeriesLeaf, b: &SeriesLeaf) {
+        assert_eq!(
+            a.kind, b.kind,
+            "Series '{}' has two value types: give each view the same one",
+            a.name
+        );
     }
 
     fn leaf_and_group(key: &str, series: &str) -> ! {
@@ -197,8 +221,8 @@ impl TreeNode {
     }
 
     /// Merges a node into the target map at the given key.
-    /// Panics on a conflict: two different series, one series with two descriptions, or a key
-    /// that is both a series and a group.
+    /// Panics on a conflict: two different series, one series with two value types or two
+    /// descriptions, or a key that is both a series and a group.
     pub(crate) fn merge_node(target: &mut IndexMap<String, TreeNode>, key: String, node: TreeNode) {
         let Some(existing) = target.get_mut(&key) else {
             target.insert(key, node);
@@ -206,6 +230,7 @@ impl TreeNode {
         };
         match (existing, node) {
             (Self::Leaf(a), Self::Leaf(b)) if a.leaf.name == b.leaf.name => {
+                Self::one_kind(&a.leaf, &b.leaf);
                 if a.merge(&b).is_none() {
                     panic!(
                         "Conflicting descriptions for series '{}' at key '{key}'",

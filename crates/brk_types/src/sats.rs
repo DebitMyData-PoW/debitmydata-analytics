@@ -95,9 +95,11 @@ impl Sats {
     pub const MAX: Self = Self(u64::MAX);
     /// The block reward before the first halving, the genesis block's included: 35 DMD.
     pub const INITIAL_SUBSIDY: Self = Self(crate::chain::INITIAL_SUBSIDY);
+    /// Core's `MAX_MONEY`: no amount is more (21 million DMD, a cycle's supply).
+    pub const MAX_MONEY: Self = Self(21_000_000 * 1_00_000_000);
     pub const ONE_BTC_U64: u64 = 1_00_000_000;
     pub const ONE_BTC_U128: u128 = 1_00_000_000;
-    pub fn new(sats: u64) -> Self {
+    pub const fn new(sats: u64) -> Self {
         Self(sats)
     }
 

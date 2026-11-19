@@ -1,66 +1,66 @@
 use std::sync::Arc;
 
-use brk_types::Transaction;
+use brk_types::Txid;
 
 use crate::{
     Snapshot, TxRemoval,
     key::TxKey,
-    state::{State, TxEntry},
-    steps::preparer::{PoolDiff, TxAddition},
+    state::State,
+    steps::{
+        Confirmed,
+        preparer::{PoolDiff, TxAddition},
+    },
+    stores::Moment,
 };
 
-/// Applies a prepared diff to private working state: re-assert promoted
-/// spends, bury removals, insert additions, then evict old tombstones. A
-/// burial keeps its chunk rate from the previous cycle's graph, or its own fee
-/// rate if that graph lacks it.
-pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff) {
+/// Applies a prepared diff to private working state: bury removals, insert additions, tell the buried what the new blocks confirmed, then
+/// evict old tombstones. A burial keeps its chunk rate from the previous cycle's graph, or
+/// its own fee rate if that graph lacks it.
+pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff, confirmed: &Confirmed) {
     let PoolDiff {
-        live_len,
+        listed,
         added,
-        promoted,
         removed,
     } = diff;
-    let additional = live_len.saturating_sub(state.txs.len());
-    state.txs.reserve(additional);
-    // Before burials, so a leaving listed spender never drops their mapping.
-    // `prepare` kept only pooled promoted keys and pooled removals, from this same state.
-    for key in promoted {
-        let record = state
-            .txs
-            .record_by_key(&key)
-            .expect("promoted tx is pooled");
-        state.outpoint_spends.insert_spends(&record.tx, key, true);
-    }
+    // A signaling one leaving lets go of what signaled through it alone.
+    let mut orphaned = Vec::new();
     for (key, reason) in removed {
+        if let Some(record) = state.txs.record_by_key(&key)
+            && record.entry.rbf
+        {
+            orphaned.extend(state.pooled_children(&record.tx));
+        }
         bury_one(state, prev_snapshot, &key, reason);
     }
-    for TxAddition { tx, entry, listed } in added {
-        state.graveyard.exhume(&entry.txid);
-        insert_one(state, tx, entry, listed);
+    let mut entered = Vec::with_capacity(added.len());
+    for TxAddition { tx, entry } in added {
+        entered.push(entry.txid);
+        state.insert(Arc::new(tx), entry);
     }
-    state.graveyard.evict_old();
+    state.inherit_signaling(&entered);
+    state.recheck_signaling(orphaned);
+    let live = |txid: &Txid| listed.contains(&TxKey::from(txid));
+    if !confirmed.is_empty() {
+        state.graveyard.confirm(confirmed, live, &mut state.upkeep);
+    }
+    // After the blocks: a confirmed conflict outranks a late arrival.
+    state.graveyard.index_vanished(&mut state.upkeep);
+    let txs = &state.txs;
+    state.graveyard.relink_arrivals(
+        &entered,
+        !confirmed.incomplete,
+        |txid| txs.record(txid).map(|record| record.tx.as_ref()),
+        &mut state.upkeep,
+    );
+    // Pending is what Core lists, loaded or not: while the pool loads (after a restart, or past
+    // the fetch cap) a replacer it hasn't fetched yet still keeps its tree.
+    state.graveyard.evict_old(Moment::now(), live, &mut state.upkeep);
 }
 
 fn bury_one(state: &mut State, prev_snapshot: &Snapshot, key: &TxKey, reason: TxRemoval) {
-    let record = state.txs.remove_by_key(key).expect("removed tx is pooled");
-    let txid = record.entry.txid;
+    let record = state.remove(key);
     let chunk_rate = prev_snapshot
-        .chunk_rate_for(&txid)
-        .unwrap_or_else(|| record.entry.fee_rate());
-    state.info.remove(&record.tx, record.entry.fee);
-    state.addrs.remove_tx(&record.tx);
-    state.outpoint_spends.remove_spends(&record.tx, *key);
-    state.graveyard.bury(record, chunk_rate, reason);
-}
-
-/// A listed tx owns its outpoints. A template-only one only claims free ones:
-/// any other pooled spender is listed (the template is conflict-free), and a
-/// stale template tx must not hide it, nor take its outpoints when leaving.
-fn insert_one(state: &mut State, tx: Transaction, entry: TxEntry, listed: bool) {
-    let tx = Arc::new(tx);
-    let key = entry.key();
-    state.info.add(&tx, entry.fee);
-    state.addrs.add_tx(&tx);
-    state.outpoint_spends.insert_spends(&tx, key, listed);
-    state.txs.insert(tx, entry);
+        .chunk_rate_for(&record.entry.txid)
+        .unwrap_or_else(|| record.own_rate());
+    state.graveyard.bury(record, chunk_rate, reason, &mut state.upkeep);
 }

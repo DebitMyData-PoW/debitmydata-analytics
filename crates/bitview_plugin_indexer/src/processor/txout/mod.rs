@@ -6,8 +6,9 @@ pub use address::BlockAddresses;
 pub use processed::{ProcessedOutput, ProcessedOutputData, is_single_sig};
 
 use bitcoin::constants::WITNESS_SCALE_FACTOR;
+use bitcoin::Script;
 use bitview_primitives::{
-    AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, ByAddrType, Index40, TxOutIndex, TypeIndex,
+    AddrHash, Boolean, ByAddrType, Index40, TxOutIndex, TypeIndex,
 };
 use brk_error::Result;
 use brk_store::Store;
@@ -20,11 +21,18 @@ use super::{BlockProcessor, transaction::ComputedTx};
 use crate::{
     AddrsVecs, Lengths, OpReturnVecs, OutputsVecs, ScriptsVecs,
     constants::overwritten_tx_index,
-    stores::{UtxoKey, Utxos},
+    stores::{AddrIndexOutPoint, AddrIndexTxIndex, UtxoKey, Utxos},
 };
 
 /// Consensus's script size limit: Core treats a larger locking script as unspendable.
 const MAX_SCRIPT_SIZE: usize = 10_000;
+
+/// Core's `CScript::IsUnspendable`: an OP_RETURN output, or a locking script past the size
+/// limit. Core leaves such an output out of its UTXO set, and so does the indexer.
+#[inline]
+pub fn is_unspendable(output_type: OutputType, script: &Script) -> bool {
+    output_type == OutputType::OpReturn || script.len() > MAX_SCRIPT_SIZE
+}
 
 impl<'a> BlockProcessor<'a> {
     /// Classifies the block's outputs into `outputs`, cleared first.
@@ -39,13 +47,6 @@ impl<'a> BlockProcessor<'a> {
         outputs.extend(txs.iter().flat_map(|ct| &ct.tx.output).map(|txout| {
             let script = &txout.script_pubkey;
             let output_type = OutputType::from(script);
-            // Core leaves larger scripts out of its UTXO set as unspendable; none exist,
-            // which keeps the UTXO set's totals equal to Core's.
-            debug_assert!(
-                output_type == OutputType::OpReturn || script.len() <= MAX_SCRIPT_SIZE,
-                "unspendable {}-byte script outside Core's UTXO set",
-                script.len()
-            );
             // With the accurate sigop count a spend executes; the legacy count, for the
             // transaction's total, stays in the data (see `script_legacy_sigops`). A P2MS script
             // can hold extra signature opcodes before its CHECKMULTISIG and an unknown one
@@ -55,7 +56,7 @@ impl<'a> BlockProcessor<'a> {
                 let single_sig = usize::from(is_single_sig(output_type));
                 (ProcessedOutputData::Address(hash), single_sig)
             } else if likely(output_type == OutputType::OpReturn) {
-                (ProcessedOutputData::OpReturn(op_return::analyze(script)), 0)
+                (ProcessedOutputData::OpReturn(op_return::analyze(script, self.height)), 0)
             } else if output_type == OutputType::EmptyScript {
                 (ProcessedOutputData::None, 0)
             } else {
@@ -69,6 +70,7 @@ impl<'a> BlockProcessor<'a> {
 
             ProcessedOutput {
                 output_type,
+                is_unspendable: is_unspendable(output_type, script),
                 legacy_sigop_cost: SigOps32::from(executed * WITNESS_SCALE_FACTOR),
                 data,
             }
@@ -110,6 +112,7 @@ pub fn finalize_outputs(
             let vout_index = vout as u32;
             let vout = Vout::from(vout);
             let output_type = processed.output_type;
+            let unspendable = processed.is_unspendable;
             let legacy_sigop_cost = processed.legacy_sigop_cost;
             let data = processed.data;
             let sats = Sats::from(txout.value);
@@ -191,11 +194,17 @@ pub fn finalize_outputs(
             outputs
                 .type_index
                 .debug_checked_push(txout_index, type_index);
+            outputs
+                .is_unspendable
+                .debug_checked_push(txout_index, Boolean::from(unspendable));
             processed.data = ProcessedOutputData::Resolved(type_index);
 
-            // OP_RETURN outputs can never be spent. A BIP30 duplicate coinbase (two, in 2010)
-            // replaces its original's entry, as in Bitcoin Core.
-            if !output_type.is_unspendable() {
+            // Unspendable outputs never enter the set. A BIP30 duplicate coinbase (two, in 2010)
+            // replaces its original's entry, as in Bitcoin Core. (The store's deletes are weak:
+            // were one of those outputs spent, compaction would uncover the original's entry under
+            // the same key, a UTXO Core never lets be spent twice. Both are unspent to this day,
+            // so it never happens: no special path for it.)
+            if !unspendable {
                 utxos.insert(
                     UtxoKey::new(txid_prefix, vout_index),
                     tx_index,

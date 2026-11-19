@@ -8,20 +8,18 @@ use std::{
 
 use arguments::Arguments;
 use axum::serve;
-use brk_logger::init_with_default_level;
+use brk_logger::{LevelFilter, init_with_default_level};
 use manifest::Catalog;
-use page::Pages;
 use tokio::net::TcpListener;
 use tracing::info;
 
 mod arguments;
 mod config;
+mod discovery;
 mod logo;
 mod manifest;
 mod page;
 mod server;
-#[cfg(test)]
-mod tests;
 mod upstream;
 mod upstream_response;
 
@@ -29,7 +27,7 @@ const BIND_START: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    init_with_default_level(None, "info")?;
+    init_with_default_level(None, LevelFilter::INFO)?;
 
     let Arguments {
         api_url,
@@ -38,8 +36,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     } = Arguments::parse(env::args().skip(1)).unwrap_or_else(|error| usage(&error));
     let catalog = Catalog::embedded();
     let tool_count = catalog.tools().len();
-    let pages = Pages::render(&display_name, &public_url, &api_url);
-    let app = server::router(api_url, catalog, display_name, public_url, pages);
+    let home = page::render(&display_name, &public_url, &api_url, tool_count);
+    let app = server::router(api_url, catalog, display_name, public_url, home);
     let (listener, bind) = bind_available(BIND_START).await?;
 
     info!("Bitview MCP server listening on http://{bind} with {tool_count} tools");

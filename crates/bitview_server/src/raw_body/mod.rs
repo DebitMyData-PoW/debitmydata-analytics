@@ -15,7 +15,7 @@ use bytes::RetainedBytes;
 mod body;
 mod bytes;
 
-/// One admitted encoded response, from allocation through the final body/frame owner.
+/// One admitted response, from allocation until its body is sent.
 #[derive(Clone)]
 pub struct RawBodyPermit {
     _permit: Arc<OwnedSemaphorePermit>,
@@ -24,7 +24,7 @@ pub struct RawBodyPermit {
 impl RawBodyPermit {
     // Eight concurrent responses per budget: raw blocks are at most 4 MB each (32 MB in all),
     // chain JSON can be larger.
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     pub const CAPACITY: usize = 8;
 
     /// Bodies at least this large keep their permit until sent; smaller ones release it once
@@ -60,39 +60,56 @@ impl RawBodyPermit {
         })
     }
 
-    /// Retain admission (when large) through both the raw bytes and any outer encoder.
+    /// Retain admission (when large) until the bytes are sent.
     pub fn response(
         self,
         params: CacheParams,
         bytes: Bytes,
         content_headers: impl FnOnce(&mut HeaderMap),
     ) -> Response {
-        if !Self::retains(bytes.len()) {
-            return AppState::assemble_response(params, bytes, content_headers);
-        }
-        let response = AppState::assemble_response(params, self.bytes(bytes), content_headers);
-        self.attach(response)
+        let bytes = if Self::retains(bytes.len()) { self.bytes(bytes) } else { bytes };
+        AppState::assemble_response(params, bytes, content_headers)
     }
 
-    /// Retain admission (when large) through a built response's body and any outer encoder.
-    pub fn attach(self, mut response: Response) -> Response {
-        let small = response
+    /// A body already built, on a budget small bodies share with large ones. A small one needs no
+    /// permit, so clients stalling large responses can't hold it up; a large one takes one, `None`
+    /// if none is free.
+    pub fn respond_built(
+        permit: Option<Self>,
+        budget: &Arc<Semaphore>,
+        params: CacheParams,
+        bytes: Bytes,
+        content_headers: impl FnOnce(&mut HeaderMap),
+    ) -> Option<Response> {
+        if !Self::retains(bytes.len()) {
+            return Some(AppState::assemble_response(params, bytes, content_headers));
+        }
+        let permit = permit.or_else(|| Self::try_acquire(budget))?;
+        Some(permit.response(params, bytes, content_headers))
+    }
+
+    /// [`Self::respond_built`] for a response already assembled.
+    pub fn attach_built(
+        permit: Option<Self>,
+        budget: &Arc<Semaphore>,
+        response: Response,
+    ) -> Option<Response> {
+        if Self::is_small(&response) {
+            return Some(response);
+        }
+        Some(permit.or_else(|| Self::try_acquire(budget))?.attach(response))
+    }
+
+    /// Retain admission through a large response's body.
+    fn attach(self, response: Response) -> Response {
+        response.map(|body| Body::new(RetainedBody { body, permit: self }))
+    }
+
+    fn is_small(response: &Response) -> bool {
+        response
             .body()
             .size_hint()
             .exact()
-            .is_some_and(|len| !Self::retains(len as usize));
-        if !small {
-            response.extensions_mut().insert(self);
-        }
-        response
-    }
-
-    /// Called outside compression so encoder state and emitted frames retain
-    /// admission too, even after the encoder consumes its original raw input.
-    pub fn retain(mut response: Response) -> Response {
-        let Some(permit) = response.extensions_mut().remove::<Self>() else {
-            return response;
-        };
-        response.map(|body| Body::new(RetainedBody { body, permit }))
+            .is_some_and(|len| !Self::retains(len as usize))
     }
 }

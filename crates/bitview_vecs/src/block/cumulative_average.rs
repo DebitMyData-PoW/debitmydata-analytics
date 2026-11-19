@@ -4,14 +4,11 @@ use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
-use vecdb::{
-    AnyVec, ComputeVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecValue,
-    WritableVec,
-};
+use vecdb::{ComputeVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecValue};
 
 use crate::{
-    CachedSeries, CumulativeState, IndexSources, LazyPreviousDeltaVec, LazyRollingAvgsFromHeight,
-    import_cached, shapes::Windows,
+    shapes::Windows, CachedSeries, CumulativeState, IndexSources, LazyPreviousDeltaVec,
+    LazyRollingAvgsFromHeight, LazyRollingSumsFromHeight, PerBlock,
 };
 
 /// Cumulative source of truth with lazy exact per-block values and rolling averages.
@@ -22,9 +19,13 @@ where
     T: NumericValue + JsonSchema + Quantity<Sum = T>,
 {
     /// Value for the represented block.
+    #[traversable(accumulation = Flow)]
     block: LazyPreviousDeltaVec<Height, T>,
-    #[traversable(hidden)]
-    cumulative: CachedSeries<Height, T, M>,
+    /// Cumulative value through the represented block, sampled at each period's final block.
+    #[traversable(accumulation = Cumulative)]
+    cumulative: PerBlock<T, M>,
+    /// Exact total over each trailing window, from the same source as the averages.
+    sum: LazyRollingSumsFromHeight<T>,
     avg: LazyRollingAvgsFromHeight<T>,
     last: M::WriteOnly<CumulativeState<T>>,
 }
@@ -41,12 +42,25 @@ where
         window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
     ) -> Result<Self> {
         let cumulative_version = version + Version::TWO;
-        let cumulative = import_cached(db, &format!("{name}_cumulative"), cumulative_version)?;
-        let block = LazyPreviousDeltaVec::new(name, version, &cumulative);
+        let cumulative = PerBlock::import(
+            db,
+            &format!("{name}_cumulative"),
+            cumulative_version,
+            indexes,
+        )?;
+        let source = cumulative.resolutions.height_source();
+        let block = LazyPreviousDeltaVec::new(name, version, source);
+        let sum = LazyRollingSumsFromHeight::new(
+            &format!("{name}_sum"),
+            cumulative_version,
+            source,
+            window_starts,
+            indexes,
+        );
         let avg = LazyRollingAvgsFromHeight::new(
             &format!("{name}_avg"),
             cumulative_version,
-            &cumulative,
+            source,
             window_starts,
             indexes,
         );
@@ -54,6 +68,7 @@ where
         Ok(Self {
             block,
             cumulative,
+            sum,
             avg,
             last: Default::default(),
         })
@@ -61,11 +76,7 @@ where
 
     #[inline(always)]
     pub fn push_block(&mut self, value: T) {
-        let height = Height::from(self.cumulative.len());
-        let cumulative = self
-            .last
-            .add_at(height, &self.cumulative, |total| *total += value);
-        self.cumulative.push(cumulative);
+        self.last.push(&mut self.cumulative.height, value);
     }
 
     pub fn compute_from<S>(
@@ -79,18 +90,18 @@ where
         S: VecValue,
     {
         let last = &mut self.last;
-        Ok(self.cumulative.compute_transform(
+        Ok(self.cumulative.height.compute_transform(
             max_from,
             source,
             |(height, value, this)| {
                 let value = transform(height, value);
-                last.add_at(height, this, |total| *total += value)
+                last.add_at(height, this, value)
             },
             exit,
         )?)
     }
 
     pub fn cumulative_source(&self) -> &CachedSeries<Height, T> {
-        &self.cumulative
+        &self.cumulative.height
     }
 }

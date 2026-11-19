@@ -115,11 +115,116 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
+        name: "get-blindbit-block-hash",
+        method: "GET",
+        path: "/blindbit/mainnet/block-hash/{height}",
+        summary: "Block hash",
+        description: "The hash of the block at a height.",
+        path_parameters: &[
+            Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-blindbit-block-height",
+        method: "GET",
+        path: "/blindbit/mainnet/block-height",
+        summary: "Last indexed block",
+        description: "The height of the last indexed block.",
+        path_parameters: &[
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-blindbit-filter",
+        method: "GET",
+        path: "/blindbit/mainnet/filter/{kind}/{height}",
+        summary: "Block filter",
+        description: "A BIP158 Golomb-coded set (P = 19, M = 784,931, keyed by the block hash) of the block's new Taproot output keys (`new-utxos`, the x-only keys) or of its spends of Taproot outputs (`spent`, hashed as in `spent-index`). Repeated elements count once, as in BIP158 (BlindBit repeats them), which leaves every membership test's answer the same.",
+        path_parameters: &[
+            Parameter { api_name: "kind", name: "kind", required: true, value_name: "BlindbitFilterKind", repeatable: false, description: None },
+            Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-blindbit-info",
+        method: "GET",
+        path: "/blindbit/mainnet/info",
+        summary: "Server info",
+        description: "The network, the last indexed block, and which tweak modes the server serves: the full index and cut-through, both taking a dust limit.",
+        path_parameters: &[
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-blindbit-spent-index",
+        method: "GET",
+        path: "/blindbit/mainnet/spent-index/{height}",
+        summary: "Spent index",
+        description: "The block's spends of Taproot outputs, each the first 8 bytes of `sha256(txid ‖ vout ‖ block hash)` in hex (the txid and this block's hash in internal byte order, the vout little-endian): a wallet hashes its own outpoints to find which this block spends. Always an object, even when empty (BlindBit then answers `[]`, which spdk can't read).",
+        path_parameters: &[
+            Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-blindbit-tweak-index",
+        method: "GET",
+        path: "/blindbit/mainnet/tweak-index/{height}",
+        summary: "Tweak index",
+        description: "The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional and takes any value, as BlindBit takes it (0 when left out), but transactions whose Taproot outputs all hold less than 600 sats aren't held, so any limit below 600 answers as 600.",
+        path_parameters: &[
+            Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+            Parameter { api_name: "dustLimit", name: "dust-limit", required: false, value_name: "integer", repeatable: false, description: Some("Least value in sats of a Taproot output for its transaction to be listed. Optional, any\nvalue, as BlindBit takes it (0 when left out); below 600, the least value held, it answers\nas 600.") },
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-blindbit-tweaks",
+        method: "GET",
+        path: "/blindbit/mainnet/tweaks/{height}",
+        summary: "Cut-through tweaks",
+        description: "`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.",
+        path_parameters: &[
+            Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+            Parameter { api_name: "dustLimit", name: "dust-limit", required: false, value_name: "integer", repeatable: false, description: Some("Least value in sats of a Taproot output for its transaction to be listed. Optional, any\nvalue, as BlindBit takes it (0 when left out); below 600, the least value held, it answers\nas 600.") },
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-blindbit-utxos",
+        method: "GET",
+        path: "/blindbit/mainnet/utxos/{height}",
+        summary: "Taproot outputs",
+        description: "Every Taproot output of the block's eligible transactions (those `tweak-index` lists), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs). An output whose key isn't a point on the curve is left out: it can't be a payment, and spdk refuses a whole block over one.",
+        path_parameters: &[
+            Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
         name: "get-block",
         method: "GET",
         path: "/api/block/{hash}",
         summary: "Block information",
-        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*",
+        description: "Details of a block by hash: height, time, transaction count, size, weight, and difficulty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*",
         path_parameters: &[
             Parameter { api_name: "hash", name: "hash", required: true, value_name: "BlockHash", repeatable: false, description: None },
         ],
@@ -258,11 +363,23 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
+        name: "get-block-template",
+        method: "GET",
+        path: "/api/block-template",
+        summary: "Next block template",
+        description: "The next block's template (BIP 22), built by this server: projected block 0's transactions in its order, as `GET /api/mempool-blocks/0` serves them, every parent before its children. It holds `version`, `previousblockhash`, `transactions` (each with `data`, `txid`, `hash`, `depends`, `fee`, `sigops`, `weight`), `coinbasevalue` (the subsidy plus the transactions' fees), `target`, `bits`, `curtime`, `mintime` (the tip's median time past plus one), `height`, `default_witness_commitment` and the rest, the format pools and mining software read. A complete block once a miner adds a coinbase paying `coinbasevalue` and carrying `default_witness_commitment`: each is served only after the node accepts the block it describes (`getblocktemplate` proposal mode, every check but proof of work), checked apart from the pool's publication, so it trails block 0 by that check (about 0.15 s). `503` until one is accepted at the current tip.\n\n*[BIP 22](https://github.com/bitcoin/bips/blob/master/bip-0022.mediawiki)*",
+        path_parameters: &[
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
         name: "get-block-tip-hash",
         method: "GET",
         path: "/api/blocks/tip/hash",
         summary: "Block tip hash",
-        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*",
+        description: "Hash of the latest block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -274,7 +391,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/blocks/tip/height",
         summary: "Block tip height",
-        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*",
+        description: "Height of the latest block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -428,7 +545,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mining/difficulty-adjustments",
         summary: "Difficulty adjustments (all time)",
-        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*",
+        description: "Every difficulty adjustment in the chain's history.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -540,7 +657,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/server/logs",
         summary: "Logs",
-        description: "The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) and everything else it logs. To read on, send the answer's `next` back as `after`: the lines since, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted (and its answer has every kept line). Answers are cached for a second.",
+        description: "The server's last log lines, at most 1,000, oldest first: requests (status, method, path and duration; never who made them) and everything else it logs. To read on, send the answer's `next` back as `after`: the lines since, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted (and its answer has every kept line). Answers are cached for a second.",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -553,7 +670,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/mempool",
         summary: "Mempool statistics",
-        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*",
+        description: "Current mempool backlog: transaction count, total virtual size, total fees, and fee histogram.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -565,7 +682,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/mempool-blocks/{index}",
         summary: "Projected mempool block",
-        description: "A projected mempool block with its transactions in order and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection, and the only one served for now (others answer 404). The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.",
+        description: "A projected mempool block with its transactions in block order, each in esplora's light shape as `GET /api/mempool/recent` lists them (`txid`, `fee`, `vsize`, `value`: the whole body is at `GET /api/tx/{txid}`), and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, packed by Bitview as the rest are. The last one answers 404 while it holds more than a block (what's left of a busy mempool: only its stats are served), as does a block past the projection. The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.",
         path_parameters: &[
             Parameter { api_name: "index", name: "index", required: true, value_name: "MempoolBlockIndex", repeatable: false, description: None },
         ],
@@ -578,7 +695,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/mempool-blocks/{index}/diff/{since}",
         summary: "Projected mempool block changes",
-        description: "The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction object, a body to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict cached bodies. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. Returns `404` when `since` has aged out of server history: fetch `GET /api/mempool-blocks/{index}` again.",
+        description: "The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction in the same light shape as the block's, to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict what they cached for them. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. A `since` this server doesn't hold (aged out, another server's, or from before a restart) gets the whole block as new transactions and an empty `removed`: rebuild from `order` alone, and prune what was cached per transaction to the txids in the new `order`.",
         path_parameters: &[
             Parameter { api_name: "index", name: "index", required: true, value_name: "MempoolBlockIndex", repeatable: false, description: None },
             Parameter { api_name: "since", name: "since", required: true, value_name: "MempoolBlockHash", repeatable: false, description: Some("The `hash` of the client's copy, from the block or a previous diff") },
@@ -592,7 +709,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/fees/mempool-blocks",
         summary: "Projected mempool blocks",
-        description: "Projected blocks for fee estimation. Block 0 reflects the node's actual next-block selection; blocks 1+ are a fee-tier approximation.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*",
+        description: "Projected blocks for fee estimation, up to eight as mempool.space's. Every block, block 0 the next, is packed as Core's block assembler packs (whole CPFP chunks by feerate, in dependency order, within Core's default weight and sigop budgets), ranked by the node's signed modified fees (including `prioritisetransaction`), with paid fees in the statistics. The last holds whatever is left: more than a block when the mempool is busy. `GET /api/mempool-blocks/{index}` serves each with its transactions, except such a last one.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -706,7 +823,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mining/pools",
         summary: "List all mining pools",
-        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*",
+        description: "Every known mining pool.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -804,7 +921,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/series/{series}/{index}",
         summary: "Get series data",
-        description: "Rows selected by a range of positions, dates or timestamps, as JSON or CSV.",
+        description: "History of an on-chain metric, by the series id from `search_series`: rows selected by a range of positions, dates or timestamps, as JSON or CSV.",
         path_parameters: &[
             Parameter { api_name: "series", name: "series", required: true, value_name: "SeriesName", repeatable: false, description: None },
             Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: None },
@@ -870,7 +987,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/series/{series}",
         summary: "Get series info",
-        description: "Returns the optional description, supported indexes, the indexes whose values can be null, the value type, and the optional unit (what the value type measures) for the specified series. The decoded series name is limited to 1024 UTF-8 bytes.",
+        description: "Returns the optional description, supported indexes, the indexes whose values can be null, the value type, the optional unit (what the value type measures), and the accumulation (how its values combine over time) of the specified series. The decoded series name is limited to 1024 UTF-8 bytes.",
         path_parameters: &[
             Parameter { api_name: "series", name: "series", required: true, value_name: "SeriesName", repeatable: false, description: None },
         ],
@@ -883,7 +1000,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/series/{series}/{index}/latest",
         summary: "Get latest series value",
-        description: "Returns the single most recent value for a series, unwrapped (not inside a SeriesData object).",
+        description: "Current value of an on-chain metric, by the series id from `search_series`. Returns the value alone, not inside a SeriesData object.",
         path_parameters: &[
             Parameter { api_name: "series", name: "series", required: true, value_name: "SeriesName", repeatable: false, description: None },
             Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: None },
@@ -962,7 +1079,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/tx/{txid}",
         summary: "Transaction information",
-        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction)*",
+        description: "Full details of a transaction by txid: inputs, outputs, fee, size, and confirmation status.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction)*",
         path_parameters: &[
             Parameter { api_name: "txid", name: "txid", required: true, value_name: "Txid", repeatable: false, description: None },
         ],
@@ -988,7 +1105,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/tx/{txid}/merkle-proof",
         summary: "Transaction merkle proof",
-        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkle-proof)*",
+        description: "Merkle inclusion proof of a confirmed transaction in its block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkle-proof)*",
         path_parameters: &[
             Parameter { api_name: "txid", name: "txid", required: true, value_name: "Txid", repeatable: false, description: None },
         ],
@@ -1054,7 +1171,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/tx/{txid}/rbf",
         summary: "RBF replacement history",
-        description: "Returns the RBF replacement tree for a transaction, if any. Both `replacements` and `replaces` are null when the tx has no known RBF history within the mempool monitor's retention window.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-rbf-history)*",
+        description: "Returns the RBF replacement tree for a transaction, if any. Both `replacements` and `replaces` are null when the tx has no known RBF history within the mempool monitor's retention window. A history past 63 versions or 4,096 transactions comes cut to its newest part, its root marked `\"truncated\": true`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-rbf-history)*",
         path_parameters: &[
             Parameter { api_name: "txid", name: "txid", required: true, value_name: "Txid", repeatable: false, description: None },
         ],
@@ -1093,7 +1210,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/urpd/{cohort}/{point}",
         summary: "URPD at block height or date",
-        description: "URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is DMD. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.",
+        description: "URPD (UTXO realized price distribution: how much supply last moved at each price) for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is DMD. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.",
         path_parameters: &[
             Parameter { api_name: "cohort", name: "cohort", required: true, value_name: "UrpdCohort", repeatable: false, description: None },
             Parameter { api_name: "point", name: "point", required: true, value_name: "HeightOrDate", repeatable: false, description: Some("Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)") },
@@ -1109,7 +1226,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/urpd/{cohort}",
         summary: "Latest URPD",
-        description: "URPD for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.",
+        description: "URPD (UTXO realized price distribution: how much supply last moved at each price) for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.",
         path_parameters: &[
             Parameter { api_name: "cohort", name: "cohort", required: true, value_name: "UrpdCohort", repeatable: false, description: None },
         ],
@@ -1208,6 +1325,18 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
+        name: "post-blindbit-forward-tx",
+        method: "POST",
+        path: "/blindbit/mainnet/forward-tx",
+        summary: "Broadcast transaction",
+        description: "Submits a raw transaction, `{\"data\": \"<hex>\"}`, to the node, as `POST /api/tx` does. Returns its txid as a JSON string. No responses are cached.",
+        path_parameters: &[
+        ],
+        query_parameters: &[
+        ],
+        request_body: Some(RequestBody { value_name: "ForwardTx", required: true, content_type: "application/json" }),
+    },
+    Command {
         name: "post-tx",
         method: "POST",
         path: "/api/tx",
@@ -1224,7 +1353,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/series/search",
         summary: "Search series",
-        description: "Search series by name or descriptive terms. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.",
+        description: "Find on-chain metrics by plain words: MVRV, realized price, SOPR, NUPL, supply held by long-term or short-term holders, coin age, addresses by balance, hashrate, fees, volume, and thousands more. Start here for any metric question: it returns the series ids to pass to `get_series_latest` or `get_series`. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.",
         path_parameters: &[
         ],
         query_parameters: &[

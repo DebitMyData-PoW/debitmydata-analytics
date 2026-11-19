@@ -10,8 +10,15 @@ use vecdb::Pco;
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
-#[cfg_attr(feature = "schemars", schemars(example = &0, example = &840000, example = &840001, example = &1713571200))]
+#[cfg_attr(feature = "schemars", schemars(extend("examples" = [0, 840000, 840001, 1713571200])))]
 pub struct RawLockTime(u32);
+
+impl RawLockTime {
+    /// Whether it is a time, not a block height.
+    pub fn is_block_time(self) -> bool {
+        LockTime::from(self).is_block_time()
+    }
+}
 
 impl From<LockTime> for RawLockTime {
     #[inline]
@@ -24,6 +31,13 @@ impl From<RawLockTime> for LockTime {
     #[inline]
     fn from(value: RawLockTime) -> Self {
         Self::from_consensus(value.0)
+    }
+}
+
+impl From<RawLockTime> for u32 {
+    #[inline]
+    fn from(value: RawLockTime) -> Self {
+        value.0
     }
 }
 

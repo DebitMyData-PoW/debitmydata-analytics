@@ -2,18 +2,20 @@
 
 use std::{
     any::Any,
+    fs,
     net::SocketAddr,
+    num::NonZero,
+    path::Path,
     sync::{Arc, LazyLock},
+    thread,
     time::{Duration, Instant},
 };
 
 use aide::{axum::ApiRouter, openapi::OpenApi};
 use axum::{
-    Extension, Router, ServiceExt,
-    body::Body,
-    http::Request,
-    middleware::from_fn,
-    response::{IntoResponse, Redirect},
+    Extension, Router,
+    middleware::{from_fn, map_response},
+    response::{IntoResponse, Redirect, Response},
     routing::get,
     serve,
 };
@@ -22,28 +24,27 @@ use bitview_query::SharedSeries;
 use bitview_query::{AsyncQuery, Result};
 use bitview_website::router as WebsiteRouter;
 use jiff::Timestamp;
-use tokio::{net::TcpListener, sync::Semaphore};
+use tokio::{
+    net::{TcpListener, TcpSocket},
+    sync::Semaphore,
+};
 use tower_http::{
     catch_panic::CatchPanicLayer,
-    compression::{
-        CompressionLayer, CompressionLevel,
-        predicate::{NotForContentType, Predicate},
-    },
     cors::CorsLayer,
-    normalize_path::{NormalizePath, NormalizePathLayer},
+    timeout::RequestBodyTimeoutLayer,
 };
-use tower_layer::Layer;
 use tracing::info;
 
 use api::*;
 use cache::CacheParams;
-use response_size_above::ResponseSizeAbove;
+use stall_limit::StallLimitListener;
 use state::*;
 
 mod api;
-#[cfg(any(feature = "chain", feature = "urpd"))]
+#[cfg(feature = "full-api")]
 mod body_response;
 mod cache;
+mod canonical_url;
 mod config;
 mod error;
 mod etag;
@@ -52,18 +53,15 @@ mod json_error;
 mod params;
 mod port;
 mod prepared_json;
-#[cfg(any(feature = "chain", feature = "urpd"))]
+#[cfg(feature = "full-api")]
 mod raw_body;
 mod request_deadline;
 mod request_state;
-mod response_size_above;
 mod response_time;
 #[cfg(feature = "series")]
 mod series_bodies;
+mod stall_limit;
 mod state;
-#[cfg(test)]
-mod tests;
-mod unacceptable_encoding;
 
 pub use api::ApiRoutes;
 
@@ -72,20 +70,63 @@ pub use cache::CdnCacheMode;
 pub use error::Error;
 pub use port::Port;
 
-pub use config::{DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, ServerConfig};
+pub use config::{DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, PublicUrl, ServerConfig};
 
-#[cfg(feature = "chain")]
+#[cfg(feature = "full-api")]
 use raw_body::RawBodyPermit;
 
 #[cfg(feature = "series")]
 use series_bodies::SeriesBodies;
 
-/// The version the server says it runs (`/version`, `/health`'s, every ETag's prefix):
-/// built by `cargo install --git` (next's), the commit it was built from, so each build is told
-/// apart; otherwise (a crates.io release, a local build), `v` and the release.
+/// The version the server says it runs (`/version`, `/health`'s, every ETag's prefix): built
+/// from the repository, its commit, so each build is told apart (by `cargo install --git`,
+/// next's, the one it was built from; in a checkout, `cargo dev`'s, the one checked out as it
+/// starts); a crates.io release, `v` and the release.
 pub(crate) static VERSION: LazyLock<String> = LazyLock::new(|| {
-    installed_commit().unwrap_or_else(|| format!("v{}", env!("CARGO_PKG_VERSION")))
+    installed_commit()
+        .or_else(|| checkout_commit(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")))
+        .unwrap_or_else(|| format!("v{}", env!("CARGO_PKG_VERSION")))
 });
+
+/// The short commit checked out in the repository at `root` (this crate's workspace, two up
+/// from its source), read from its `.git` as the server starts: its HEAD, the branch it names
+/// (loose or packed, a worktree's in its repository's), or the commit itself. None where it's no
+/// repository (a crates.io release's source, in cargo's registry).
+fn checkout_commit(root: &Path) -> Option<String> {
+    let dot = root.join(".git");
+    let git = if dot.is_dir() {
+        dot
+    } else {
+        // (A worktree's: a file naming its own.)
+        root.join(
+            fs::read_to_string(&dot)
+                .ok()?
+                .strip_prefix("gitdir:")?
+                .trim(),
+        )
+    };
+    let head = fs::read_to_string(git.join("HEAD")).ok()?;
+    let commit = match head.trim().strip_prefix("ref:") {
+        None => head.trim().to_string(),
+        Some(name) => {
+            let name = name.trim();
+            let common = fs::read_to_string(git.join("commondir"))
+                .map_or_else(|_| git.clone(), |dir| git.join(dir.trim()));
+            match fs::read_to_string(common.join(name)) {
+                Ok(commit) => commit.trim().to_string(),
+                Err(_) => fs::read_to_string(common.join("packed-refs"))
+                    .ok()?
+                    .lines()
+                    .find_map(|line| {
+                        let (commit, packed) = line.split_once(' ')?;
+                        (packed == name).then(|| commit.to_string())
+                    })?,
+            }
+        }
+    };
+    (commit.len() >= 7 && commit.bytes().all(|byte| byte.is_ascii_hexdigit()))
+        .then(|| commit[..7].to_string())
+}
 
 /// The short commit `cargo install --git` built this binary from, as cargo recorded it: its record
 /// of installs (`.crates2.json`, in the root whose `bin/` holds the binary, its links followed)
@@ -106,50 +147,42 @@ fn installed_commit() -> Option<String> {
 /// not a commit, a record not cargo's).
 fn commit_installed(record: &[u8], name: &str) -> Option<String> {
     let record: serde_json::Value = serde_json::from_slice(record).ok()?;
-    record.get("installs")?.as_object()?.iter().find_map(|(id, install)| {
-        let bins = install.get("bins")?.as_array()?;
-        if !bins.iter().any(|bin| bin.as_str() == Some(name)) {
-            return None;
-        }
-        // (`name version (source)`, this release's, a git source's commit in hex digits.)
-        let (package, source) = id.strip_suffix(')')?.split_once(" (")?;
-        if package.split_once(' ')?.1 != env!("CARGO_PKG_VERSION") {
-            return None;
-        }
-        let (_, commit) = source.strip_prefix("git+")?.rsplit_once('#')?;
-        (commit.len() >= 7 && commit.bytes().all(|byte| byte.is_ascii_hexdigit()))
-            .then(|| commit[..7].to_string())
-    })
+    record
+        .get("installs")?
+        .as_object()?
+        .iter()
+        .find_map(|(id, install)| {
+            let bins = install.get("bins")?.as_array()?;
+            if !bins.iter().any(|bin| bin.as_str() == Some(name)) {
+                return None;
+            }
+            // (`name version (source)`, this release's, a git source's commit in hex digits.)
+            let (package, source) = id.strip_suffix(')')?.split_once(" (")?;
+            if package.split_once(' ')?.1 != env!("CARGO_PKG_VERSION") {
+                return None;
+            }
+            let (_, commit) = source.strip_prefix("git+")?.rsplit_once('#')?;
+            (commit.len() >= 7 && commit.bytes().all(|byte| byte.is_ascii_hexdigit()))
+                .then(|| commit[..7].to_string())
+        })
 }
 
 /// Per-request timeout. Hits return 504 Gateway Timeout.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
 
+/// The longest a request body may go without sending more (a transaction broadcast): a client
+/// stalling one would hold its admission permit.
+const REQUEST_BODY_TIMEOUT: Duration = Duration::from_secs(10);
+
 /// How long browsers may reuse a CORS preflight.
 const PREFLIGHT_MAX_AGE: Duration = Duration::from_secs(24 * 60 * 60);
 
-/// Avoid spending compression work on responses too small to benefit materially.
-const MIN_COMPRESSED_RESPONSE_BYTES: u64 = 1024;
-
-fn compression_layer() -> CompressionLayer<impl Predicate> {
-    CompressionLayer::new()
-        .br(true)
-        .gzip(true)
-        .zstd(true)
-        .quality(CompressionLevel::Fastest)
-        .compress_when(
-            ResponseSizeAbove(MIN_COMPRESSED_RESPONSE_BYTES)
-                .and(NotForContentType::GRPC)
-                .and(NotForContentType::IMAGES)
-                .and(NotForContentType::SSE),
-        )
-}
-
-/// The complete HTTP application as served: every route plus the response middleware.
-pub type App = NormalizePath<Router>;
+/// Connections that may wait to be accepted, past which a burst's are reset. The kernel caps it
+/// without saying (`kern.ipc.somaxconn`, `net.core.somaxconn`).
+const ACCEPT_QUEUE: u32 = 4096;
 
 pub struct Server {
-    app: App,
+    app: Router,
     listener: TcpListener,
 }
 
@@ -158,12 +191,21 @@ impl Server {
     /// caller launches the long-running server task.
     pub async fn bind(query: &AsyncQuery, config: ServerConfig) -> Result<Self> {
         let address = SocketAddr::new(config.bind, config.port.into());
-        let listener = TcpListener::bind(address).await?;
+        let socket = match address {
+            SocketAddr::V4(_) => TcpSocket::new_v4()?,
+            SocketAddr::V6(_) => TcpSocket::new_v6()?,
+        };
+        // As `TcpListener::bind`: on Windows this would let another process take the port.
+        #[cfg(not(windows))]
+        socket.set_reuseaddr(true)?;
+        socket.bind(address)?;
+        let listener = socket.listen(ACCEPT_QUEUE)?;
 
         config.website.log();
         #[cfg(feature = "series")]
-        query
-            .sync(|q| log_shared_series(q.vecs().shared_series(), q.vecs().value_type_conflicts()));
+        query.sync(|q| {
+            log_shared_series(q.registry().shared_series(), q.registry().value_type_conflicts())
+        });
 
         Ok(Self {
             app: app(query, config).await?,
@@ -175,62 +217,64 @@ impl Server {
         let Self { app, listener } = self;
         info!("Server listening on http://{}", listener.local_addr()?);
 
-        serve(
-            listener,
-            ServiceExt::<Request<Body>>::into_make_service(app),
-        )
-        .await?;
+        serve(StallLimitListener(listener), app).await?;
 
         Ok(())
     }
 }
 
-/// Builds the HTTP application for `query` without binding a socket.
-pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
+/// Builds the HTTP application for `query` without binding a socket: every route plus the
+/// response middleware.
+pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<Router> {
     #[cfg(feature = "series")]
     let series_bodies = query
         .run(|query| Ok(Arc::new(SeriesBodies::new(query))))
         .await?;
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     let mining_pools_body = Arc::new(prepared_json::PreparedJson::new(
         query.sync(|query| query.all_pools()),
     ));
 
     let shared = SharedState {
-        sync_query: Arc::new(Semaphore::new(1)),
+        chain_query: Arc::new(Semaphore::new(
+            thread::available_parallelism().map_or(4, NonZero::get),
+        )),
+        #[cfg(feature = "full-api")]
+        history_query: Arc::new(Semaphore::new(2)),
         disk_query: Arc::new(Semaphore::new(1)),
-        #[cfg(feature = "price")]
+        disk_walk: Default::default(),
+        #[cfg(feature = "full-api")]
         oracle_replays: Arc::new(Semaphore::new(1)),
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         raw_block_bodies: Arc::new(Semaphore::new(RawBodyPermit::CAPACITY)),
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         historical_price_bodies: Arc::new(Semaphore::new(2)),
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         historical_price_cache: Arc::default(),
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         mempool_txid_bodies: Arc::new(Semaphore::new(2)),
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         mempool_block_bodies: Arc::new(Semaphore::new(2)),
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         mempool_block_diff_bodies: Arc::new(Semaphore::new(2)),
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         broadcast_requests: Arc::new(Semaphore::new(api::broadcast::BroadcastPermit::CAPACITY)),
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         chain_bodies: Arc::new(Semaphore::new(RawBodyPermit::CAPACITY)),
         node: query
             .run(|query| Ok(query.client().asynchronous()?))
             .await?,
         #[cfg(feature = "series")]
         series_bodies,
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         utxo_set_query: Arc::new(Semaphore::new(2)),
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         utxo_set_bodies: Arc::new(Semaphore::new(2)),
-        #[cfg(feature = "urpd")]
+        #[cfg(feature = "full-api")]
         urpd_query: Arc::new(Semaphore::new(2)),
-        #[cfg(feature = "urpd")]
+        #[cfg(feature = "full-api")]
         urpd_bodies: Arc::new(Semaphore::new(2)),
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         mining_pools_body,
         data_path: config.data_path,
         website: config.website,
@@ -243,7 +287,9 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
     let state = AppState::new(query.clone(), shared);
 
     let website_router = WebsiteRouter(state.website.clone());
-    let mut router = ApiRouter::new().add_api_routes();
+    let mut router = ApiRouter::new()
+        .add_api_routes()
+        .route_layer(from_fn(canonical_url::refuse_respelled));
     if !state.website.is_enabled() {
         router = router.route("/", get(Redirect::temporary("/openapi.json")));
     }
@@ -251,9 +297,8 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
         .with_state(state)
         .merge(website_router)
         .layer(from_fn(request_deadline::apply))
+        .layer(RequestBodyTimeoutLayer::new(REQUEST_BODY_TIMEOUT))
         .layer(from_fn(json_error::respond))
-        .layer(compression_layer())
-        .layer(from_fn(unacceptable_encoding::reject))
         .layer(CatchPanicLayer::custom(|panic: Box<dyn Any + Send>| {
             let msg = panic
                 .downcast_ref::<String>()
@@ -265,13 +310,18 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
         // Outside the panic catcher, so its 500 reaches browsers too; preflights hold a day.
         .layer(CorsLayer::permissive().max_age(PREFLIGHT_MAX_AGE))
         .layer(from_fn(response_time::respond));
+    // Outermost: every answer names this server, errors and preflights too.
+    let router = match config.public_url {
+        Some(PublicUrl(url)) => router.layer(map_response(move |mut response: Response| {
+            response.headers_mut().insert(bitview_http::BITVIEW_ORIGIN, url.clone());
+            async { response }
+        })),
+        None => router,
+    };
 
     let (router, openapi) = finish_openapi(router);
 
-    let router = router.layer(Extension(Arc::new(OpenApiBodies::new(&openapi))));
-
-    // NormalizePath must wrap the router (not be a layer) to run before route matching
-    Ok(NormalizePathLayer::trim_trailing_slash().layer(router))
+    Ok(router.layer(Extension(Arc::new(OpenApiBodies::new(&openapi)))))
 }
 
 pub fn finish_openapi<S: Clone + Send + Sync + 'static>(

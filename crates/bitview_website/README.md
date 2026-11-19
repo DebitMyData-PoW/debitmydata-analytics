@@ -3,9 +3,30 @@
 Serves Bitview's showcases, embedded or from a directory.
 
 `/` serves `index.html` and `/<path>` the file it names, else that folder's own `index.html`;
-anything else is 404. Release builds tag each response with an ETag of its content, and with the same hash in a
+an address no file answers that is served elsewhere answers 308 to the same place under its new folder (`/address/…`
+to the explorer's), or to the page that replaced it (`/charts` to Studio's; `MOVED` in `src/handlers.rs`), each 308
+revalidated as the files are, so a redirect changed with a release reaches browsers; anything else is 404, with
+the site's `404.html` for a request whose `Accept` lists `text/html` (a browser's), a plain message otherwise, both
+`no-store` since the answer depends on `Accept`. A `Filesystem` website without a `404.html` answers browsers with the
+plain message too (behind the API server, its JSON problem document). Release builds tag each response with an ETag of its content, and with the same hash in a
 `Bitview-Version` header, which an open page reads to tell when a newer version of it is served
 (`showcases/assets/version`).
+
+The embedded site is served under one release, a hash of every file's path, content type and content: each file is
+also at `/v/<release>/<path>`, cached for good (`immutable`), while pages stay revalidated. A page as served starts
+its head with an import map sending every module it loads (static, dynamic, relative or absolute) to the release's
+address, and names the site's files it lists by path from the root (`src`, `srcset`, `url()`, a `<link>`'s `href`, a
+script's string; never an `<a href>`) at that address: a reload asks for the page alone. So pages name the site's files
+by their path from the root, and a URL computed at run time goes through `import.meta.resolve` (a classic script's:
+`new URL` from its own `src`); anything else still works, revalidated on every load. A release changes every address,
+so a returning visitor downloads the files it uses once again. An earlier release's address (an open page loading
+late) answers the current file, revalidated, as only the current release is held. Workers start at the same files'
+second address, `/w/<release>/<path>`, and import relative to it (a worker has no import map): in WebKit, a page's
+module whose address a worker has also loaded comes from the network on each reload after (Studio's
+`showcases/studio/workers.js`): the import map's `worker/` entry supplies their address. In debug builds `Default`
+transforms `./showcases` the same way, without a release, so it checks pages in development. Pages need a literal
+`<head>` and module scripts with a `src` name a site file by its absolute path. Invalid embedded pages stop router
+initialization with every bad file named. A `Filesystem` website has no release and serves its HTML unchanged.
 
 ## Behind Cloudflare
 
@@ -36,7 +57,7 @@ let app = your_api_router.merge(website_router);
 
 ## Standalone Server
 
-See the `website` example for a complete standalone server with compression, tracing, and other middleware.
+See the `website` example for a complete standalone server with tracing, and other middleware.
 
 ```sh
 cargo run -p bitview_website --example website
@@ -49,3 +70,37 @@ cargo run -p bitview_website --example website -- path/to/site
 ```
 
 Open `http://localhost:3110` (or port 3111 if 3110 is occupied) for Bitview's front page and its showcases.
+
+## Address-specific page info
+
+A folder can publish `page-info.json.gz`: a gzip-compressed UTF-8 JSON object keyed by addresses relative to that
+folder (`"/"`, `"/articles/example"`, etc.). Each entry has `title`, `description`, `canonical`, `json_ld` (a JSON value)
+and `markdown`. Only entries belonging to the `index.html` actually selected by the nearest-folder rule apply.
+The entries list every address that index answers. Any other that is a listed one written with the slash the other
+way, or under a folder that moved (`MOVED`), or both, answers 308 to it; the rest answer 404 (`no-store`), with the
+folder's own `index.html` as the page for a browser, so its app can say what is missing there, and the plain message
+otherwise. A
+folder without the file keeps the ordinary response. Invalid data or templates stop router initialization with the file's name.
+
+That index provides exactly one pair of each marker, in document order:
+
+```html
+<head>
+  <!-- page-info-head -->
+  <!-- The generic title, description, canonical, og:title/description/url and JSON-LD go here. -->
+  <!-- /page-info-head -->
+</head>
+<body>
+  <article id="page-info"><!-- page-info-body --><!-- /page-info-body --></article>
+</body>
+```
+
+The server replaces the head slot and fills the body slot. The Markdown subset supports headings, paragraphs,
+unordered lists and HTTP(S), root-relative or fragment links; raw HTML is escaped. Rendered entries load once when
+the router starts, including for filesystem websites: restart after replacing the data. Gzip keeps large generated
+catalogs small on disk and in embedded builds; requests never decompress or render Markdown.
+
+An app removes its body article when it starts, leaving that article readable when JavaScript cannot run. HTML and
+Markdown carry the same content for every user agent. An explicit `Accept: text/markdown` preference over HTML selects
+the entry's Markdown instead; both variants send `Vary: Accept`, including on 304. Release ETags hash the final response
+bytes, so addresses and representations validate independently. Negotiated responses are private and must revalidate, so shared caches that ignore `Accept` cannot mix formats.

@@ -1,6 +1,7 @@
 #![allow(clippy::type_complexity)]
 
 mod compute;
+mod counts;
 mod dependencies;
 mod distribution;
 mod features;
@@ -10,7 +11,6 @@ mod has;
 mod import;
 mod inscription;
 mod patterns;
-mod policy;
 mod resume;
 mod versions;
 mod vsize;
@@ -20,14 +20,16 @@ pub use fees::Vecs as FeesVecs;
 pub use has::HasTransactions;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
-use bitview_primitives::Count16;
+use bitview_primitives::{Count, Count16};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyPerSecondWindows, PerBlockFullFromCumulative, ValuePerBlockCumulativeRolling,
+    LazyPerSecondWindows, PerBlockCumulativeRolling, PerBlockFullFromCumulative,
+    ValuePerBlockCumulativeRolling,
 };
 use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
+use counts::{Payments, Spending, Timelocks};
 use features::Vecs as FeaturesVecs;
 use flagged::Classified;
 use inscription::Vecs as InscriptionVecs;
@@ -65,7 +67,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// replacement, or node-specific settings. Modeled rules change after height
     /// 863,500 and at heights 892,500 and 921,000; coinbase transactions are not
     /// evaluated (never nonstandard).
-    #[traversable(lead = "Nonstandard transactions: ones the node's default policy likely wouldn't relay, as far as one transaction shows.")]
+    #[traversable(
+        lead = "Nonstandard transactions: ones DebitMyData Core's default policy likely wouldn't relay, as far as one transaction shows."
+    )]
     nonstandard: Classified<M>,
     /// Counts every transaction, including coinbase, by its signed 32-bit
     /// Transaction version.
@@ -75,6 +79,20 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// economic payment volume.
     #[traversable(lead = "Transfer volume: the DMD transactions moved, change included.")]
     pub transfer_volume: ValuePerBlockCumulativeRolling<M>,
+    /// Payments estimated from outputs.
+    payments: Payments<M>,
+    /// Transactions by their timelocks.
+    timelocks: Timelocks<M>,
+    /// Non-coinbase transactions by which of their inputs spend SegWit: a witness program, native
+    /// or nested. Every such spend has a witness but pay-to-anchor's, which is empty.
+    spending: Spending<M>,
+    /// Transactions spending the single dust output of a fee-less transaction in the same block,
+    /// as Core's policy relays it since version 29.
+    #[traversable(lead = "Transactions spending ephemeral dust.")]
+    ephemeral_dust: PerBlockCumulativeRolling<Count, M>,
+    /// Transactions with an input spending an output of their own block.
+    #[traversable(lead = "Transactions spending an output of their own block.")]
+    same_block_spending: PerBlockCumulativeRolling<Count, M>,
     /// Transaction rate, including coinbase transactions.
     #[traversable(lead = "Transactions per second.")]
     per_second: LazyPerSecondWindows,

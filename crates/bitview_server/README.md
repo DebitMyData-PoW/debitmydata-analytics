@@ -2,13 +2,11 @@
 
 HTTP API server for Bitcoin on-chain analytics.
 
-Brotli, gzip and zstd compression skips small responses; a request refusing every encoding
-(identity included) gets 406 before any handler runs. The server can also serve a folder of pages (the showcases by default).
+Responses are sent uncompressed, for a CDN in front to compress. The server can also serve a folder of pages (the showcases by default).
 
-Route-family features (`chain`, `series`, `urpd`, and `price`, which `chain` and
-`urpd` imply) gate the routes; `full-api` enables all of them and is the default.
-Custom compositions can disable default features and enable only the route
-families they provide; each family pulls the plugins its endpoints read. This crate does not
+`series` serves the generic series routes and `full-api`, the default, adds every other route.
+Custom compositions can disable default features and enable `series` alone, which needs only the
+mappings plugin; `full-api` needs every plugin its endpoints read. This crate does not
 depend on the official Bitview composition.
 
 ## Usage
@@ -92,13 +90,14 @@ Errors deliberately have no ETag: a conditional request must receive the error
 status again rather than `304`. Client errors (`400`, `404`), invalid addresses
 included, use a one-second, must-revalidate policy, since a release can change
 even a permanent verdict and browsers are never purged; service-unavailable and
-server errors use `no-store`. Server errors carry a generic message; the detail goes to the log.
+server errors use `no-store`. With the website served, the 404 for an address no route or website file names is
+`no-store` too: the website answers a browser with its not-found page there, so the answer depends on `Accept`,
+which a CDN's cache key leaves out; the error layer keeps a cache policy its handler marked (`CachePolicy::mark`). Server errors carry a generic message; the detail goes to the log.
 
 `POST /api/tx` is an action: every response is `no-store`, with no validator.
 It accepts at most 8,000,000 bytes of hexadecimal text including surrounding
-whitespace, and admits at most four buffered/pending submissions. Requests wait
-asynchronously for the shared node connection within the HTTP deadline; excess
-admission returns 503. Submission is not automatically replayed after a lost
+whitespace, and admits at most four buffered/pending submissions, each sent on
+its own connection to the node; excess admission returns 503. Submission is not automatically replayed after a lost
 response. A timeout or cancellation after dispatch can leave the outcome unknown
 and cannot undo a transaction already received by the node.
 

@@ -8,79 +8,75 @@
 #![allow(clippy::type_complexity)]
 
 use brk_rpc::Client;
-use brk_types::{TxOut, Txid, Vin, Vout};
-use rustc_hash::{FxHashMap, FxHashSet};
-use tracing::warn;
+use brk_types::{Transaction, TxOut, Txid, Vin, Vout};
+use rapidhash::{RapidHashMap, RapidHashSet};
 
 use crate::{
     key::TxKey,
     state::State,
-    stores::{TxGraveyard, TxStore},
+    stores::tx_store::TxRecord,
 };
 
-/// Fill every unfilled prevout the cycle can resolve. Same-cycle
-/// in-mempool parents are filled directly. The remainder go through
-/// `resolver` in one batched call.
-pub fn fill<F>(state: &mut State, resolver: F)
+/// Fill every unfilled prevout of the pool the cycle can resolve. Same-cycle parents (pooled or
+/// retained) are filled directly. The remainder go through `resolver` in one batched call, but
+/// those whose parent is listed and not loaded yet (`unloaded`): the node's UTXO set can't have
+/// them, they fill once it loads.
+pub fn fill<F>(state: &mut State, resolver: F, unloaded: &RapidHashSet<Txid>)
 where
-    F: Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut>,
+    F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut>,
 {
-    let (in_mempool, holes) = gather(&state.txs, &state.graveyard);
-    let external = resolve_external(holes, resolver);
-    for (txid, fills) in in_mempool.into_iter().chain(external) {
+    let unresolved = state.txs.unresolved().iter().map(|key| {
+        let record = state.txs.record_by_key(key).expect("unresolved tx is pooled");
+        (*key, record)
+    });
+    let parent = |txid: &Txid| {
         state
             .txs
-            .apply_fills(&TxKey::from(&txid), fills, |prevout| {
-                state.addrs.add_input(&txid, prevout)
-            });
+            .get(txid)
+            .or_else(|| {
+                state
+                    .graveyard
+                    .get_unreplaced(txid)
+                    .map(|tomb| tomb.record.tx.as_ref())
+            })
+    };
+    let (in_mempool, holes) = gather(unresolved, parent, unloaded);
+    let external = resolve_external(holes, resolver);
+    for (key, fills) in in_mempool.into_iter().chain(external) {
+        let record = state.txs.record_by_key(&key).expect("unresolved tx is pooled");
+        state.addrs.resolve(record, fills.iter().map(|(_, prevout)| prevout));
+        state.txs.apply_fills(&key, fills);
     }
 }
 
-/// Default resolver: `getrawtransaction` once per parent txid, batched by the
-/// RPC client. Requires bitcoind with `txindex=1`.
-pub fn rpc_resolver(client: Client) -> impl Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut> {
+/// Default resolver: the node's UTXO set (`gettxout` per hole, batched), where a pending
+/// transaction's confirmed parents' outputs still are: no `-txindex` needed.
+pub fn rpc_resolver(
+    client: Client,
+) -> impl Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut> {
     move |holes: &[(Txid, Vout)]| {
         if holes.is_empty() {
-            return FxHashMap::default();
+            return RapidHashMap::default();
         }
-        let mut seen: FxHashSet<Txid> = FxHashSet::default();
-        let unique: Vec<Txid> = holes
-            .iter()
-            .filter_map(|(txid, _)| seen.insert(*txid).then_some(*txid))
-            .collect();
-        let parents = match client.get_raw_transactions(&unique) {
-            Ok(map) => map,
-            Err(error) => {
-                warn!("mempool prevout fetch failed: {error}");
-                return FxHashMap::default();
-            }
-        };
-        holes
-            .iter()
-            .filter_map(|(txid, vout)| {
-                let output = parents.get(txid)?.output.get(usize::from(*vout))?;
-                let txout = TxOut::from((output.script_pubkey.clone(), output.value.into()));
-                Some(((*txid, *vout), txout))
-            })
-            .collect()
+        client.get_tx_outs(holes)
     }
 }
 
-/// Single pass over `txs.unresolved()`: bucket each hole into a
-/// same-cycle fill (the parent is live, or a retained vanished one) or an
-/// external hole (parent is confirmed or unknown). Retained parents let the
+/// Single pass over the `unresolved` records: bucket each hole into a same-cycle fill (`parent`
+/// holds it: pooled, template-only, or a retained vanished one) or an external hole (parent is
+/// confirmed or unknown); a hole whose parent is `unloaded` waits. Retained parents let the
 /// children of a just-mined parent resolve before the chain publishes its block.
-fn gather(
-    txs: &TxStore,
-    graveyard: &TxGraveyard,
+fn gather<'a, 'p>(
+    unresolved: impl Iterator<Item = (TxKey, &'a TxRecord)>,
+    parent: impl Fn(&Txid) -> Option<&'p Transaction>,
+    unloaded: &RapidHashSet<Txid>,
 ) -> (
-    Vec<(Txid, Vec<(Vin, TxOut)>)>,
-    Vec<(Txid, Vec<(Vin, Txid, Vout)>)>,
+    Vec<(TxKey, Vec<(Vin, TxOut)>)>,
+    Vec<(TxKey, Vec<(Vin, Txid, Vout)>)>,
 ) {
-    let mut filled: Vec<(Txid, Vec<(Vin, TxOut)>)> = Vec::new();
-    let mut holes: Vec<(Txid, Vec<(Vin, Txid, Vout)>)> = Vec::new();
-    for key in txs.unresolved() {
-        let record = txs.record_by_key(key).expect("unresolved tx is pooled");
+    let mut filled: Vec<(TxKey, Vec<(Vin, TxOut)>)> = Vec::new();
+    let mut holes: Vec<(TxKey, Vec<(Vin, Txid, Vout)>)> = Vec::new();
+    for (into, record) in unresolved {
         let mut tx_fills: Vec<(Vin, TxOut)> = Vec::new();
         let mut tx_holes: Vec<(Vin, Txid, Vout)> = Vec::new();
         for (i, txin) in record.tx.input.iter().enumerate() {
@@ -88,23 +84,19 @@ fn gather(
                 continue;
             }
             let vin = Vin::from(i);
-            if let Some(parent) = txs.get(&txin.txid).or_else(|| {
-                graveyard
-                    .get_vanished(&txin.txid)
-                    .map(|tomb| tomb.record.tx.as_ref())
-            }) && let Some(out) = parent.output.get(usize::from(txin.vout))
+            if let Some(out) =
+                parent(&txin.txid).and_then(|parent| parent.output.get(usize::from(txin.vout)))
             {
                 tx_fills.push((vin, out.clone()));
-            } else {
+            } else if !unloaded.contains(&txin.txid) {
                 tx_holes.push((vin, txin.txid, txin.vout));
             }
         }
-        let txid = record.entry.txid;
         if !tx_fills.is_empty() {
-            filled.push((txid, tx_fills));
+            filled.push((into, tx_fills));
         }
         if !tx_holes.is_empty() {
-            holes.push((txid, tx_holes));
+            holes.push((into, tx_holes));
         }
     }
     (filled, holes)
@@ -114,11 +106,11 @@ fn gather(
 /// resolver once, then re-attribute resolved entries to their
 /// consumer txs.
 fn resolve_external<F>(
-    holes: Vec<(Txid, Vec<(Vin, Txid, Vout)>)>,
+    holes: Vec<(TxKey, Vec<(Vin, Txid, Vout)>)>,
     resolver: F,
-) -> Vec<(Txid, Vec<(Vin, TxOut)>)>
+) -> Vec<(TxKey, Vec<(Vin, TxOut)>)>
 where
-    F: Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut>,
+    F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut>,
 {
     let total: usize = holes.iter().map(|(_, tx_holes)| tx_holes.len()).sum();
     let mut flat: Vec<(Txid, Vout)> = Vec::with_capacity(total);
@@ -127,22 +119,22 @@ where
             flat.push((*prev_txid, *vout));
         }
     }
-    let mut resolved = resolver(&flat);
+    let resolved = resolver(&flat);
     if resolved.is_empty() {
         return Vec::new();
     }
     holes
         .into_iter()
-        .filter_map(|(txid, tx_holes)| {
+        .filter_map(|(into, tx_holes)| {
             let fills: Vec<(Vin, TxOut)> = tx_holes
                 .into_iter()
                 .filter_map(|(vin, prev_txid, vout)| {
                     resolved
-                        .remove(&(prev_txid, vout))
-                        .map(|output| (vin, output))
+                        .get(&(prev_txid, vout))
+                        .map(|output| (vin, output.clone()))
                 })
                 .collect();
-            (!fills.is_empty()).then_some((txid, fills))
+            (!fills.is_empty()).then_some((into, fills))
         })
         .collect()
 }

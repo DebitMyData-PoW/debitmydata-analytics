@@ -1,4 +1,6 @@
+mod antpool_group;
 mod compute;
+mod concentration;
 mod dependencies;
 mod has;
 mod import;
@@ -12,11 +14,13 @@ pub use pool::PoolVecs;
 use std::{collections::BTreeMap, ops::Deref};
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
-use bitview_primitives::{PoolSlug, Pools};
+use bitview_primitives::{Count, PoolSlug, Pools};
 use bitview_traversable::{AnyExportableVec, AnyStoredVec, Traversable, TreeNode};
+use bitview_vecs::CumulativeRolling;
 use brk_types::Height;
 use vecdb::{BytesVec, Database, Rw, StorageMode, Version};
 
+use concentration::Concentration;
 use pool_heights::PoolHeights;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("pools"), Version::new(13));
@@ -39,6 +43,19 @@ pub struct Vecs<M: StorageMode = Rw> {
     // Each known mining pool, plus `unknown` for unattributed blocks.
     #[traversable(flatten)]
     pub by_slug: BySlug,
+    /// What the largest pools of each day found, ranked by that day's blocks.
+    concentration: Concentration<M>,
+    /// The same, with AntPool and the pools sharing its block templates counted as one.
+    concentration_grouped: Concentration<M>,
+    /// Blocks found by AntPool and the pools sharing its block templates: Poolin, Ultimus, SECPOOL,
+    /// Sigmapool, Binance Pool, Rawpool, Luxor, CloverPool and Mining Squared, and Braiins below
+    /// height 956,057.
+    #[traversable(
+        wrap = "groups/antpool",
+        rename = "block_count",
+        lead = "Blocks found by AntPool and the pools sharing its block templates."
+    )]
+    antpool_group: CumulativeRolling<Count, M>,
 }
 
 /// Each pool's series, by its slug: their descriptions led by the pool they're of (see `Pool::lead`).
@@ -70,17 +87,19 @@ impl Traversable for BySlug {
         self.0.iter_any_stored_mut()
     }
 
-    fn collect_series_descriptions<'a>(
+    fn collect_series_metadata<'a>(
         &'a self,
-        description_fragments: &mut Vec<bitview_traversable::Fragment>,
-        descriptions: &mut BTreeMap<&'a str, Vec<bitview_traversable::Fragment>>,
+        path_fragments: &mut Vec<bitview_traversable::MetadataFragment>,
+        metadata: &mut BTreeMap<&'a str, Vec<bitview_traversable::MetadataFragment>>,
     ) {
         let pools = bitview_primitives::pools();
         for (slug, vecs) in &self.0 {
-            let lead = bitview_traversable::Fragment::Lead(pools.get(*slug).lead);
-            description_fragments.push(lead);
-            vecs.collect_series_descriptions(description_fragments, descriptions);
-            let popped = description_fragments.pop();
+            let lead = bitview_traversable::MetadataFragment::Description(
+                bitview_traversable::Fragment::Lead(pools.get(*slug).lead),
+            );
+            path_fragments.push(lead);
+            vecs.collect_series_metadata(path_fragments, metadata);
+            let popped = path_fragments.pop();
             debug_assert_eq!(popped, Some(lead));
         }
     }

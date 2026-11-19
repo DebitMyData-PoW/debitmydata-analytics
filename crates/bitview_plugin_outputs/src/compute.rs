@@ -26,6 +26,9 @@ impl ComputePlugin for Vecs {
             count,
             types,
             op_return_value,
+            unspendable_value,
+            coinbase,
+            pubkeys,
             ..
         } = self;
         let exit = context.exit();
@@ -39,12 +42,15 @@ impl ComputePlugin for Vecs {
                 // Price-independent output facts; require neither Inputs nor transaction
                 // analysis.
                 value::compute_sats(
-                    &mut op_return_value.cumulative.sats.height,
+                    value::Targets {
+                        op_return: &mut op_return_value.cumulative.sats.height,
+                        unspendable_value,
+                        values: &mut types.values,
+                        coinbase,
+                    },
                     creations,
                     usize::from(start)..outputs.first_txout_index.len(),
-                    &outputs.first_txout_index,
-                    (&outputs.output_type, &outputs.value),
-                    &indexer.vecs().blocks.blockhash,
+                    indexer,
                     exit,
                 )?;
                 db.flush();
@@ -54,7 +60,13 @@ impl ComputePlugin for Vecs {
                     || types.compute(indexer, exit),
                 );
                 fiat?;
-                counts
+                counts?;
+                for output in types.values.iter_mut() {
+                    output
+                        .value
+                        .compute_cents(start, &price.spot.cents.height, exit)?;
+                }
+                pubkeys.compute(start, &indexer.vecs().transactions.counters, exit)
             },
         );
         spent?;

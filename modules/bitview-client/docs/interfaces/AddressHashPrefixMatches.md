@@ -6,7 +6,7 @@
 
 # Interface: AddressHashPrefixMatches
 
-Defined in: modules/bitview-client/index.js:37
+Defined in: [modules/bitview-client/index.js:26](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L26)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: modules/bitview-client/index.js:37
 
 > **addresses**: `string`[]
 
-Defined in: modules/bitview-client/index.js:41
+Defined in: [modules/bitview-client/index.js:30](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L30)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: modules/bitview-client/index.js:41
 
 > **addressType**: [`AddressOutputType`](../type-aliases/AddressOutputType.md)
 
-Defined in: modules/bitview-client/index.js:38
+Defined in: [modules/bitview-client/index.js:27](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L27)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: modules/bitview-client/index.js:38
 
 > **prefix**: `string`
 
-Defined in: modules/bitview-client/index.js:39
+Defined in: [modules/bitview-client/index.js:28](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L28)
 
 The requested prefix, lowercased.
 
@@ -40,4 +40,4 @@ The requested prefix, lowercased.
 
 > **truncated**: `boolean`
 
-Defined in: modules/bitview-client/index.js:40
+Defined in: [modules/bitview-client/index.js:29](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L29)

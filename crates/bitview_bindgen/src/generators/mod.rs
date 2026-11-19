@@ -1,9 +1,12 @@
 use std::{fmt::Write, fs, io, path::Path};
 
+use sha2::{Digest, Sha256};
+
 mod cli;
 pub(crate) mod javascript;
 mod llm;
 pub(crate) mod python;
+pub(crate) mod reading_rules;
 pub(crate) mod rust;
 
 pub(crate) use cli::generate_cli;
@@ -27,6 +30,14 @@ pub(crate) fn write_description(output: &mut String, desc: &str, prefix: &str, e
     }
 }
 
+/// A description on one JSDoc tag's line, its further lines continuing the comment under
+/// `prefix` (its ` *` column): a bare line would sit outside the comment's markup.
+pub(crate) fn jsdoc_continued(desc: &str, prefix: &str) -> String {
+    desc.lines()
+        .collect::<Vec<_>>()
+        .join(&format!("\n{prefix}   "))
+}
+
 /// Replace generic types with their Any variants in return types.
 /// Used by JS and Python generators.
 pub(crate) fn normalize_return_type(return_type: &str) -> String {
@@ -35,6 +46,16 @@ pub(crate) fn normalize_return_type(return_type: &str) -> String {
         result = result.replace(type_name, &format!("Any{}", type_name));
     }
     result
+}
+
+/// The SHA-256 of `bytes`, as lowercase hex.
+pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
+    Sha256::digest(bytes)
+        .iter()
+        .fold(String::with_capacity(64), |mut hex, byte| {
+            write!(hex, "{byte:02x}").unwrap();
+            hex
+        })
 }
 
 /// Write `content` to `path`, creating its parent directories, unless the file already holds it:

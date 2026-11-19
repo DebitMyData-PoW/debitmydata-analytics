@@ -1,0 +1,1142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- Its launch from a home screen, every showcase's. -->
+    <script src="/assets/launch/launch.js" data-app="Oracle" data-color="#e86c1e"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f3f2ec" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0c0b" />
+    <title>Oracle · DebitMyData Analytics</title>
+    <meta name="description" content="The DebitMyData network on one screen: its hashrate, DMD's reference price and the difficulty, block by block and day by day, live from the chain." />
+    <!-- (Its address, wherever it's served from, and how a shared link previews: its card made by showcases/home.mjs --pictures.) -->
+    <link rel="canonical" href="https://analytics.debitmydata.io/oracle/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://analytics.debitmydata.io/oracle/" />
+    <meta property="og:site_name" content="DebitMyData Analytics" />
+    <meta property="og:title" content="Oracle · DebitMyData Analytics" />
+    <meta property="og:description" content="The DebitMyData network on one screen: its hashrate, DMD's reference price and the difficulty, block by block and day by day, live from the chain." />
+    <meta property="og:image" content="https://analytics.debitmydata.io/assets/cards/oracle.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Oracle: the DebitMyData network's hashrate, edge to edge, under its value now" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <style>
+      /* fallback fonts */
+      /* Local faces keep text visible while the web fonts load. Width fits use a general Latin sample;
+         vertical metrics come from Inter 4.1 and Lilex 2.620, divided by size-adjust.
+         Menlo needs its full/PostScript name in Chromium. Other mono faces share its calibration. */
+      @font-face {
+        font-family: "Inter Fallback";
+        src: local("ArialMT"), local("Arial"), local("Helvetica"), local("Roboto");
+        font-weight: 100 600;
+        size-adjust: 108.088066%;
+        ascent-override: 89.625991%;
+        descent-override: 22.316149%;
+        line-gap-override: 0%;
+      }
+      @font-face {
+        font-family: "Inter Fallback";
+        src: local("Arial-BoldMT"), local("Arial Bold"), local("Helvetica Bold"), local("Roboto Bold");
+        font-weight: 601 900;
+        size-adjust: 99.756055%;
+        ascent-override: 97.111900%;
+        descent-override: 24.180080%;
+        line-gap-override: 0%;
+      }
+      @font-face {
+        font-family: "Lilex Fallback";
+        src: local("Menlo"), local("Menlo-Regular"), local("SF Mono"), local("SFMono-Regular"), local("Consolas"), local("DejaVu Sans Mono"), local("Liberation Mono");
+        font-weight: 500 700;
+        size-adjust: 99.659367%;
+        ascent-override: 100.241455%;
+        descent-override: 30.202881%;
+        line-gap-override: 0%;
+      }
+      /* /fallback fonts */
+
+      @font-face {
+        font-family: Lilex;
+        src: url("/assets/fonts/Lilex.core.woff2") format("woff2");
+        unicode-range: U+0000-017F, U+0192, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0394, U+03A3, U+03C3, U+2000-206F, U+20AC, U+20BF, U+2122, U+2190-23FF, U+2500-25FF, U+2713-2715, U+FE0E-FE0F, U+FEFF, U+FFFD;
+        font-weight: 400 700;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: Lilex;
+        src: url("/assets/fonts/Lilex.rest.woff2") format("woff2");
+        unicode-range: U+018F, U+01A0-01B0, U+01CD-01FF, U+0218-021B, U+0237, U+0259, U+02C7, U+02D8-02D9, U+02DB, U+02DD, U+0300-0328, U+037E-0393, U+0395-03A1, U+03A4-03C2, U+03C4-03CE, U+0400-0475, U+0490-04F9, U+0524-0525, U+0E3F, U+1E28-1E29, U+1E80-1E85, U+1E9E-1EF9, U+2070-2089, U+20A1-20AB, U+20AD-20BD, U+2113-2116, U+2126-212E, U+2150-215E, U+2B0E-2B11, U+2B58, U+3000, U+E0A0-E0B3;
+        font-weight: 400 700;
+        font-display: swap;
+      }
+
+      /* An instrument, printed: one monospace, paper by day and near-black by night, hairlines between parts; the answer,
+         and only the answer, in the Oracle's orange. The first screen is the measure and its range; the how is below,
+         for whoever scrolls. (Bitview's Oracle, for DebitMyData's network.) */
+      :root {
+        color-scheme: light dark;
+        --app: light-dark(#f3f2ec, #0a0c0b);
+        --plate: light-dark(#f8f7f2, #0e1110);
+        --ink: light-dark(#151916, #e3e8e4);
+        --text: light-dark(#2f3631, #b9c2bc);
+        --soft: light-dark(#454d47, #a3ada6);
+        --faint: light-dark(#5f6862, #7f8984);
+        --line: light-dark(rgb(21 25 22 / 0.15), rgb(227 232 228 / 0.13));
+        --grid: light-dark(rgb(21 25 22 / 0.07), rgb(227 232 228 / 0.06));
+        --focus: light-dark(rgb(21 25 22 / 0.6), rgb(227 232 228 / 0.6));
+        --heat: var(--ink);
+        /* (Deep enough on the paper to be read as small text, 4.5:1 and more: the chapters' numbers, a pressed button.) */
+        --answer: light-dark(rgb(184 68 10), rgb(255 128 52));
+        --gain: light-dark(#0a7d3e, #6ef096);
+        --loss: light-dark(#b92924, #ff6a5c);
+        --mono: Lilex, "Lilex Fallback", ui-monospace, "SF Mono", Menlo, monospace;
+        --gutter: max(20px, env(safe-area-inset-left));
+      }
+
+      /* Increase Contrast (iOS's and macOS's, prefers-contrast: more): the greys toward the ink, each still a step
+         apart, the hairlines about twice as strong; the page's hues kept, nothing else changed. (Mixed in OKLab and
+         written out here, so every reader, the canvases' among them, gets plain colours.) */
+      @media (prefers-contrast: more) {
+        :root {
+          --text: light-dark(#222723, #ced5d0);
+          --soft: light-dark(#313732, #bcc4be);
+          --faint: light-dark(#474f4a, #99a29d);
+          --line: light-dark(rgb(21 25 22 / 0.33), rgb(227 232 228 / 0.29));
+          --grid: light-dark(rgb(21 25 22 / 0.15), rgb(227 232 228 / 0.13));
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: var(--app);
+        -webkit-text-size-adjust: 100%;
+        scroll-behavior: smooth;
+
+        @media (prefers-reduced-motion: reduce) {
+          scroll-behavior: auto;
+        }
+      }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        background: var(--app);
+        font: 450 14px/1.7 var(--mono);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: inherit;
+        text-underline-offset: 3px;
+      }
+
+      button {
+        font: inherit;
+        color: inherit;
+        cursor: pointer;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 3px;
+      }
+
+      :root[data-pointer] :focus-visible {
+        outline: none;
+      }
+
+      .shell {
+        width: min(100% - 2 * var(--gutter), 1120px);
+        margin-inline: auto;
+      }
+
+      /* ── The first screen: the bar, the price, the week filling the rest, a quiet way down ── */
+      /* The chart is the whole first screen, edge to edge; the bar, the price and the way down sit over it, the
+         data drawn below the price. */
+      .stage {
+        position: relative;
+        height: 100svh;
+        min-height: 560px;
+
+        > .bar,
+        > .hero {
+          position: relative;
+          z-index: 2;
+        }
+
+        > .hero {
+          pointer-events: none;
+        }
+      }
+
+      .bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding-top: max(18px, env(safe-area-inset-top));
+        font-size: 13px;
+
+        .brand {
+          display: inline-flex;
+          align-items: center;
+          gap: 9px;
+          color: var(--ink);
+          font-weight: 600;
+          text-decoration: none;
+
+          img {
+            width: 17px;
+            height: 17px;
+          }
+        }
+
+        .tip {
+          margin-left: auto;
+          color: var(--faint);
+          font-variant-numeric: tabular-nums;
+          white-space: nowrap;
+        }
+      }
+
+      .hero {
+        padding: clamp(20px, 5vh, 52px) 0 0;
+      }
+
+      .eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0;
+        color: var(--soft);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+
+        i {
+          flex: none;
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: var(--answer);
+          box-shadow: 0 0 0 4px color-mix(in srgb, var(--answer) 18%, transparent);
+        }
+      }
+
+      h1 {
+        margin: 12px 0 0;
+        color: var(--ink);
+        font-size: clamp(40px, min(7.5vw, 10vh), 88px);
+        font-weight: 400;
+        line-height: 0.95;
+        letter-spacing: -0.045em;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .change {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 12px;
+        margin: 12px 0 0;
+        font-size: 14px;
+        font-variant-numeric: tabular-nums;
+
+        &.gain .delta {
+          color: var(--gain);
+        }
+
+        &.loss .delta {
+          color: var(--loss);
+        }
+
+        .when {
+          /* (A step toward --soft: over the evidence's warm cells the plain --faint falls just short of 4.5:1.) */
+          color: color-mix(in srgb, var(--faint), var(--soft) 40%);
+        }
+      }
+
+      /* The week, edge to edge, as tall as the screen leaves it. */
+      .week {
+        position: absolute;
+        inset: 0;
+        margin: 0;
+      }
+
+      .chart {
+        position: absolute;
+        inset: 0;
+        /* (Its layers stack among themselves, under the words over it.) */
+        isolation: isolate;
+        touch-action: pan-y;
+        cursor: crosshair;
+
+        canvas,
+        svg {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+        }
+
+        /* The evidence settles into the page under the words at the top and the foot, the line over it untouched. */
+        &::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          z-index: 1;
+          pointer-events: none;
+          background:
+            linear-gradient(color-mix(in srgb, var(--app) 72%, transparent), transparent 34%),
+            linear-gradient(to top, color-mix(in srgb, var(--app) 80%, transparent), transparent 14%);
+        }
+
+        svg {
+          z-index: 2;
+        }
+      }
+
+      .gridline {
+        stroke: var(--grid);
+      }
+
+      .axis-text {
+        fill: var(--faint);
+        font: 11px var(--mono);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .price-line {
+        fill: none;
+        stroke: var(--ink);
+        stroke-width: 1.6;
+        stroke-linejoin: round;
+        stroke-linecap: round;
+      }
+
+      .price-glow {
+        fill: none;
+        stroke: var(--app);
+        stroke-width: 5;
+        stroke-linejoin: round;
+        opacity: 0.35;
+      }
+
+      /* The evidence as warm light, ember to orange at the crest; the answer a crisp ink line on it. */
+      :root {
+        --heat-lo: light-dark(rgb(250 230 212), rgb(54 16 4));
+        --heat-mid: light-dark(rgb(245 172 112), rgb(196 66 14));
+        --heat-hi: light-dark(rgb(232 108 30), rgb(255 152 66));
+      }
+
+      /* Now: a dot of the line, in its border. */
+      .end,
+      .cross circle {
+        fill: var(--ink);
+        stroke: var(--app);
+        stroke-width: 3.4;
+        stroke-opacity: 0.35;
+        paint-order: stroke;
+      }
+
+      /* Now: the live end breathes, slowly. */
+      .end-glow {
+        fill: var(--ink);
+        opacity: 0.22;
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: breathe 2.8s ease-in-out infinite;
+
+        @media (prefers-reduced-motion: reduce) {
+          animation: none;
+        }
+      }
+
+      @keyframes breathe {
+        0%,
+        100% {
+          scale: 0.7;
+          opacity: 0.32;
+        }
+        50% {
+          scale: 1.5;
+          opacity: 0.08;
+        }
+      }
+
+      .cross line {
+        stroke: var(--soft);
+        stroke-dasharray: 2 3;
+      }
+
+
+      .foot {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px 24px;
+        padding: 10px 0 max(16px, env(safe-area-inset-bottom));
+        color: var(--soft);
+        font-size: 12px;
+      }
+
+      .legend {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        min-width: 0;
+        margin: 0;
+
+        > span:last-child {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .swatch {
+          flex: none;
+          width: 28px;
+          height: 8px;
+          translate: 0 -1px;
+          background: linear-gradient(90deg, var(--heat-lo), var(--heat-mid), var(--heat-hi));
+        }
+      }
+
+      .more {
+        display: inline-flex;
+        flex: none;
+        align-items: center;
+        gap: 8px;
+        color: var(--soft);
+        text-decoration: none;
+        white-space: nowrap;
+
+        b {
+          font-weight: inherit;
+        }
+
+        &:hover {
+          color: var(--ink);
+        }
+
+        span {
+          /* (A step toward --ink: the arrow's nudge carries it over the brighter cells.) */
+          color: color-mix(in srgb, var(--soft), var(--ink) 25%);
+          animation: nudge 2.4s ease-in-out infinite;
+
+          @media (prefers-reduced-motion: reduce) {
+            animation: none;
+          }
+        }
+      }
+
+      @keyframes nudge {
+        0%,
+        60%,
+        100% {
+          translate: 0 0;
+        }
+        30% {
+          translate: 0 3px;
+        }
+      }
+
+      /* (A phone's foot: the key kept, its words wrapped over the way down to how it's read.) */
+      @media (max-width: 640px) {
+        .foot {
+          flex-direction: column;
+          justify-content: center;
+          gap: 10px;
+        }
+
+        .legend {
+          max-width: 44ch;
+
+          > span:last-child {
+            white-space: normal;
+          }
+        }
+      }
+
+      /* ── The chapters: a number, a title, a few lines, a figure ── */
+      .chapter {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0 48px;
+        padding: clamp(56px, 12vh, 120px) 0 0;
+        scroll-margin-top: 24px;
+
+        > header {
+          margin-bottom: 20px;
+        }
+
+        /* Wide, the title stays beside its chapter as it scrolls by. */
+        @media (min-width: 900px) {
+          grid-template-columns: 250px minmax(0, 1fr);
+
+          > header {
+            position: sticky;
+            top: 32px;
+            align-self: start;
+          }
+        }
+
+        .n {
+          display: block;
+          color: var(--answer);
+          font-size: 12px;
+          letter-spacing: 0.08em;
+        }
+
+        h2 {
+          margin: 8px 0 0;
+          color: var(--ink);
+          font-size: clamp(22px, 3.2vw, 28px);
+          font-weight: 500;
+          line-height: 1.2;
+          letter-spacing: -0.02em;
+          text-wrap: balance;
+        }
+
+        p {
+          max-width: 62ch;
+          margin: 0 0 16px;
+          text-wrap: pretty;
+        }
+
+        b {
+          color: var(--ink);
+          font-weight: 600;
+        }
+      }
+
+      /* ── DebitMyData: three measures on one screen, and how far back ── */
+      /* The measures, a switch over the chart: a press each, the one shown pressed, in the answer's orange. */
+      .measures {
+        display: inline-flex;
+        gap: 2px;
+        margin: 0 0 clamp(14px, 3vh, 22px);
+        padding: 3px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--app) 82%, transparent);
+        pointer-events: auto;
+        -webkit-backdrop-filter: blur(6px);
+        backdrop-filter: blur(6px);
+
+        button {
+          position: relative;
+          padding: 5px 14px;
+          border: 0;
+          border-radius: 999px;
+          background: none;
+          color: var(--soft);
+          font-size: 12px;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+
+          &:hover {
+            color: var(--ink);
+          }
+
+          &[aria-checked="true"] {
+            color: var(--app);
+            background: var(--answer);
+          }
+
+          /* (A finger's reach: 44px tall, unseen.) */
+          @media (pointer: coarse) {
+            &::before {
+              content: "";
+              position: absolute;
+              inset: -8px 0;
+            }
+          }
+        }
+      }
+
+      /* How far back: the foot's left, where the oracle's key was. */
+      .ranges {
+        display: flex;
+        gap: 4px;
+        margin: 0;
+
+        button {
+          position: relative;
+          padding: 3px 9px;
+          border: 1px solid transparent;
+          border-radius: 6px;
+          background: none;
+          color: var(--soft);
+          font-size: 12px;
+
+          &:hover {
+            color: var(--ink);
+          }
+
+          &[aria-pressed="true"] {
+            border-color: var(--line);
+            color: var(--ink);
+          }
+
+          @media (pointer: coarse) {
+            &::before {
+              content: "";
+              position: absolute;
+              inset: -12px 0;
+            }
+          }
+        }
+      }
+
+      /* Under the line, the measure's own light: the answer's orange, fading to the page. */
+      .area {
+        fill: url(#under);
+        stroke: none;
+      }
+
+      .under-top {
+        stop-color: var(--answer);
+        stop-opacity: 0.28;
+      }
+
+      .under-foot {
+        stop-color: var(--answer);
+        stop-opacity: 0;
+      }
+
+      /* The highest and lowest of the range, quietly at their ends. */
+      .extreme {
+        fill: var(--faint);
+        font: 11px var(--mono);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .facts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1px;
+        margin: 8px 0 24px;
+        padding: 0;
+        border: 1px solid var(--line);
+        background: var(--line);
+
+        div {
+          padding: 14px 16px;
+          background: var(--app);
+        }
+
+        dt {
+          color: var(--faint);
+          font-size: 11px;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+        }
+
+        dd {
+          margin: 4px 0 0;
+          color: var(--ink);
+          font-size: 17px;
+          font-variant-numeric: tabular-nums;
+        }
+      }
+
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      footer {
+        margin-top: clamp(64px, 12vh, 120px);
+        padding: 20px 0 calc(32px + env(safe-area-inset-bottom));
+        border-top: 1px solid var(--line);
+        color: var(--faint);
+        font-size: 12px;
+
+        p {
+          margin: 0;
+          max-width: 80ch;
+        }
+      }
+
+      @media (max-width: 640px) {
+        body {
+          font-size: 13.5px;
+        }
+
+      }
+
+      /* (A finger's reach, unseen: the brand, the way down, 44px tall whatever they're drawn at; up and down only, into the room
+         around them, never over a neighbour.) */
+      :is(a.brand, a.more) {
+        position: relative;
+
+        /* (Rows that wrap stay apart: 24px for a pointer, 44px for fingers.) */
+        &::before {
+          content: "";
+          position: absolute;
+          inset: min(0px, calc((100% - 24px) / 2)) 0;
+        }
+
+        @media (pointer: coarse) {
+          &::before {
+            inset: min(0px, calc((100% - 44px) / 2)) 0;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <header class="bar shell">
+        <a class="brand" href="/"><img src="/assets/logo/logo.png" alt="" width="26" height="26" style="width: 26px; height: 26px" />DebitMyData Analytics</a>
+        <span class="tip" id="tip"></span>
+      </header>
+
+      <section class="hero shell" id="hero" aria-labelledby="value">
+        <div class="measures" id="measures" role="radiogroup" aria-label="What the chart shows">
+          <button type="button" role="radio" data-measure="hashrate" aria-checked="true">Hashrate</button>
+          <button type="button" role="radio" data-measure="price" aria-checked="false">Price</button>
+          <button type="button" role="radio" data-measure="difficulty" aria-checked="false">Difficulty</button>
+        </div>
+        <p class="eyebrow"><i aria-hidden="true"></i><span id="kicker">Hashrate · the DebitMyData network</span></p>
+        <h1 id="value">…</h1>
+        <p class="change" id="change">&nbsp;</p>
+      </section>
+
+      <figure class="week" aria-label="The measure over time">
+        <div class="chart" id="chart" tabindex="0" aria-label="The measure over the range shown: arrows move a point (Shift: several), Home and End go to the ends">
+          <svg id="lines" aria-hidden="true"></svg>
+        </div>
+        <figcaption class="foot shell">
+          <p class="ranges" id="ranges" aria-label="How far back">
+            <button type="button" data-range="7d" aria-pressed="true">7D</button>
+            <button type="button" data-range="30d" aria-pressed="false">30D</button>
+            <button type="button" data-range="90d" aria-pressed="false">90D</button>
+            <button type="button" data-range="all" aria-pressed="false">All</button>
+          </p>
+          <a class="more" href="#how"><b id="more">How it's measured</b> <span aria-hidden="true">↓</span></a>
+        </figcaption>
+      </figure>
+    </div>
+
+    <p class="sr" id="said" aria-live="polite"></p>
+
+    <main class="shell" id="how">
+      <section class="chapter" aria-labelledby="c1" id="about-hashrate">
+        <header><span class="n">01</span><h2 id="c1">Hashrate: how hard the network works</h2></header>
+        <div>
+          <p>Hashrate is the computing power that secures the DebitMyData chain: how many SHA-256 hashes its miners try each second, all of them together. No miner reports it. It's read from the chain itself: each block's difficulty says how much work finding it took, and the time between blocks how fast that work was done.</p>
+          <p>More hashrate makes the chain harder to rewrite: to undo a payment, an attacker would need more computing power than everyone else combined.</p>
+          <dl class="facts" aria-label="The network now">
+            <div><dt>Hashrate now</dt><dd id="f-hashrate">…</dd></div>
+            <div><dt>Algorithm</dt><dd>SHA-256</dd></div>
+            <div><dt>Block target</dt><dd>150 seconds</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <section class="chapter" aria-labelledby="c2" id="about-price">
+        <header><span class="n">02</span><h2 id="c2">Price: what one DMD costs to mine</h2></header>
+        <div>
+          <p>DMD has no market price yet. Its <b>reference price</b> is the cost of the electricity it takes to mine one DMD: the chain's work over the last 4,032 blocks, at 20 J/TH and $0.06 per kWh, divided by the block reward. It never goes below DebitMyData's minimum rate of <b>$0.001</b>.</p>
+          <p>It follows the network: as hashrate grows, mining a coin costs more, and the reference price rises with it. It is not a market price, and nobody trades at it; the DebitMyData Agent Gateway charges with it.</p>
+          <dl class="facts" aria-label="The reference price now">
+            <div><dt>Reference price now</dt><dd id="f-price">…</dd></div>
+            <div><dt>Minimum</dt><dd>$0.001</dd></div>
+            <div><dt>Block reward</dt><dd id="f-reward">35 DMD</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <section class="chapter" aria-labelledby="c3" id="about-difficulty">
+        <header><span class="n">03</span><h2 id="c3">Difficulty: set again at every block</h2></header>
+        <div>
+          <p>Difficulty is how hard it is to find a block: how many hashes, on average, a miner tries before one is valid. DebitMyData sets it again at <b>every block</b>, from the last 60 blocks' times (LWMA), so blocks keep coming about every 150 seconds as miners arrive or leave.</p>
+          <p>Bitcoin adjusts its difficulty only every 2,016 blocks, about two weeks; DebitMyData follows a change in hashrate within the hour.</p>
+          <dl class="facts" aria-label="The difficulty now">
+            <div><dt>Difficulty now</dt><dd id="f-difficulty">…</dd></div>
+            <div><dt>Adjusted</dt><dd>Every block</dd></div>
+            <div><dt>Window</dt><dd>60 blocks</dd></div>
+          </dl>
+        </div>
+      </section>
+    </main>
+
+    <footer class="shell">
+      <p>Read live from this server: the chain's <a href="/api/series/hashrate">hashrate</a>, <a href="/api/price">reference price</a> and <a href="/api/series/difficulty">difficulty</a>. More in <a href="/studio/presets/mining/">Studio</a> and the <a href="https://docs.debitmydata.io/data/reference-price/">docs</a>. Its design is Bitview's Oracle.</p>
+    </footer>
+
+    <script type="module">
+      // @ts-check
+      // The DebitMyData network on one screen, as Bitview's Oracle draws its price: a big number, the line under it edge
+      // to edge, pointing at it telling that moment. Three measures (hashrate, the reference price, difficulty), each
+      // over 7, 30 or 90 days or all of the chain.
+      const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
+      addEventListener("pointerdown", () => (document.documentElement.dataset.pointer = ""), { capture: true });
+      addEventListener("keydown", (e) => {
+        if (!(e.metaKey || e.ctrlKey || e.altKey)) delete document.documentElement.dataset.pointer;
+      }, { capture: true });
+
+      // ── Words and numbers ──
+
+      const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const grouped = (/** @type {number} */ n) => new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(n);
+      const clock = (/** @type {number} */ unix) => {
+        const at = new Date(unix * 1000);
+        return `${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`;
+      };
+      const day = (/** @type {number} */ unix) => {
+        const at = new Date(unix * 1000);
+        return `${at.getDate()} ${MONTHS[at.getMonth()]} ${at.getFullYear()}`;
+      };
+      const ago = (/** @type {number} */ unix) => {
+        const minutes = Math.max(0, Math.round((Date.now() / 1000 - unix) / 60));
+        return minutes < 1 ? "just now" : minutes < 60 ? `${minutes} min ago` : `${Math.floor(minutes / 60)} h ${minutes % 60} min ago`;
+      };
+      const SI = ["", "k", "M", "G", "T", "P", "E", "Z"];
+      /** A number to three significant figures with its SI prefix: 1.23 P. */
+      const si = (/** @type {number} */ v) => {
+        if (!(v > 0)) return { figure: "0", prefix: "" };
+        const tier = Math.max(0, Math.min(SI.length - 1, Math.floor(Math.log10(v) / 3)));
+        return { figure: (v / 1000 ** tier).toPrecision(3).replace(/\.?0+$/, (m) => (m.startsWith(".") ? "" : m)), prefix: SI[tier] };
+      };
+      /** Dollars: from $1 to the cent, under it to three significant figures ($0.00123). */
+      const dollars = (/** @type {number} */ v) => (v >= 1 ? `$${v.toFixed(2)}` : `$${Number(v.toPrecision(3))}`);
+
+      /** The three measures: their series, how a value is written, and what the top says of them. */
+      const MEASURES = /** @type {const} */ ({
+        hashrate: { series: "hashrate", kicker: "Hashrate · the DebitMyData network", write: (/** @type {number} */ v) => ((s) => `${s.figure} ${s.prefix}H/s`)(si(v)), about: "about-hashrate", log: true },
+        price: { series: "price", kicker: "DMD/USD · reference price, the cost of mining one DMD", write: dollars, about: "about-price", log: true },
+        difficulty: { series: "difficulty", kicker: "Difficulty · set again at every block", write: (/** @type {number} */ v) => ((s) => `${s.figure}${s.prefix ? ` ${s.prefix}` : ""}`)(si(v)), about: "about-difficulty", log: true },
+      });
+      /** How far back: blocks (a block each 150 seconds, a few more for a fast stretch) or days. */
+      const RANGES = /** @type {const} */ ({
+        "7d": { index: "height", count: 4400, seconds: 7 * 86400, said: "past 7 days" },
+        "30d": { index: "height", count: 18_500, seconds: 30 * 86400, said: "past 30 days" },
+        "90d": { index: "day1", count: 91, seconds: 90 * 86400, said: "past 90 days" },
+        all: { index: "day1", count: 0, seconds: Infinity, said: "since the first block" },
+      });
+      /** The server's day buckets count from 1 January 2009, UTC. */
+      const DAY_ZERO = Date.UTC(2009, 0, 1) / 1000;
+      /** The DebitMyData chain's first day. */
+      const GENESIS_DAY = "2026-02-20";
+
+      const read = (/** @type {string} */ path) => fetch(path, { signal: AbortSignal.timeout(15_000) }).then((r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      });
+      const still = matchMedia("(prefers-reduced-motion: reduce)");
+
+      // ── State, kept in the address so a link opens the same view ──
+
+      const asked = new URLSearchParams(location.search);
+      let measure = /** @type {keyof typeof MEASURES} */ (asked.get("show") in MEASURES ? asked.get("show") : "hashrate");
+      let range = /** @type {keyof typeof RANGES} */ (asked.get("range") in RANGES ? asked.get("range") : "7d");
+      /** The points shown: when (unix seconds), the value, and the block (by block only). @type {{ t: number, v: number, h?: number }[]} */
+      let points = [];
+      /** The latest block: its height and time. */
+      let tip = { h: 0, t: 0 };
+      /** Now, each measure's latest value, and whether the server can't be reached. */
+      const now = /** @type {Record<keyof typeof MEASURES, number>} */ ({ hashrate: 0, price: 0, difficulty: 0 });
+      let offline = "";
+
+      function remember() {
+        const url = new URL(location.href);
+        url.searchParams.set("show", measure);
+        url.searchParams.set("range", range);
+        if (measure === "hashrate") url.searchParams.delete("show");
+        if (range === "7d") url.searchParams.delete("range");
+        history.replaceState(null, "", url);
+      }
+
+      // ── The number at the top: now, or the point pointed at ──
+
+      let shownValue = 0, rolling = 0;
+      function setValue(/** @type {number} */ next, roll = true) {
+        cancelAnimationFrame(rolling);
+        const from = shownValue || next, start = performance.now(), write = MEASURES[measure].write;
+        const step = (/** @type {number} */ at) => {
+          const t = !roll || still.matches || !shownValue ? 1 : Math.min(1, (at - start) / 200);
+          // (Rolled on a log scale: a measure spanning magnitudes moves through them evenly.)
+          const v = from > 0 && next > 0 ? from * (next / from) ** (1 - (1 - t) ** 3) : next;
+          $("value").textContent = write(v);
+          shownValue = t === 1 ? next : v;
+          if (t < 1) rolling = requestAnimationFrame(step);
+        };
+        step(start);
+      }
+      /** The value and its change over the range, at a point (null: now). */
+      function tell(/** @type {number | null} */ k) {
+        const m = MEASURES[measure], latest = now[measure] || points.at(-1)?.v || 0;
+        if (k !== null && k >= points.length) k = null;
+        if (!points.length) {
+          if (latest) setValue(latest, false);
+          $("kicker").textContent = offline || m.kicker;
+          $("change").innerHTML = "&nbsp;";
+          return;
+        }
+        const first = points[0].v, at = k === null ? latest : points[k].v, rel = at / first - 1;
+        setValue(at, k === null);
+        const up = rel > 0.00005, down = rel < -0.00005;
+        $("change").className = `change ${up ? "gain" : down ? "loss" : ""}`;
+        const delta = `${up ? "▲ " : down ? "▼ " : ""}${Math.abs(rel * 100).toFixed(2)}%`;
+        const when = k === null ? RANGES[range].said : `since ${day(points[0].t)}`;
+        $("change").replaceChildren(Object.assign(document.createElement("span"), { className: "delta", textContent: delta }), Object.assign(document.createElement("span"), { className: "when", textContent: when }));
+        const pt = k === null ? null : points[k];
+        $("kicker").textContent = !pt ? offline || m.kicker : pt.h !== undefined ? `Block ${grouped(pt.h)} · ${day(pt.t)}, ${clock(pt.t)}` : day(pt.t);
+      }
+      function showTip() {
+        if (tip.h) $("tip").textContent = `block ${grouped(tip.h)} · ${ago(tip.t)}`;
+      }
+      function showFacts() {
+        $("f-hashrate").textContent = now.hashrate ? MEASURES.hashrate.write(now.hashrate) : "…";
+        $("f-price").textContent = now.price ? dollars(now.price) : "…";
+        $("f-difficulty").textContent = now.difficulty ? MEASURES.difficulty.write(now.difficulty) : "…";
+        // (35 DMD a block, halved every 300,000 blocks; after 32 halvings, a cycle starts again at 35.)
+        if (tip.h) $("f-reward").textContent = `${+(35 / 2 ** (Math.floor(tip.h / 300_000) % 32)).toPrecision(6)} DMD`;
+      }
+
+      // ── Reading ──
+
+      /** Each measure's latest value, and the tip. */
+      async function readNow() {
+        const [hashrate, difficulty, price, times] = await Promise.all([
+          read("/api/series/hashrate/height?start=-1"),
+          read("/api/series/difficulty/height?start=-1"),
+          read("/api/price").catch(() => null),
+          read("/api/series/timestamp/height?start=-1"),
+        ]);
+        now.hashrate = Number(hashrate.data.at(-1)) || 0;
+        now.difficulty = Number(difficulty.data.at(-1)) || 0;
+        now.price = Number(price) || 0;
+        tip = { h: times.end - 1, t: Number(times.data.at(-1)) || 0 };
+      }
+      /** The range's points of the measure shown, by block or by day. */
+      async function readRange() {
+        const r = RANGES[range], series = MEASURES[measure].series;
+        if (r.index === "height") {
+          const [values, times] = await Promise.all([read(`/api/series/${series}/height?start=-${r.count}`), read(`/api/series/timestamp/height?start=-${r.count}`)]);
+          const all = values.data.map((/** @type {number} */ v, /** @type {number} */ i) => ({ h: values.start + i, v: Number(v), t: Number(times.data[values.start + i - times.start]) }));
+          const newest = all.findLast((pt) => pt.t > 0)?.t ?? 0;
+          points = all.filter((pt) => pt.v > 0 && pt.t > newest - r.seconds);
+        } else {
+          const values = await read(`/api/series/${series}/day1?start=${r.count ? `-${r.count}` : GENESIS_DAY}`);
+          points = values.data.map((/** @type {number | null} */ v, /** @type {number} */ i) => ({ t: DAY_ZERO + (values.start + i) * 86400, v: Number(v) })).filter((pt) => pt.v > 0);
+        }
+      }
+      /** Everything again: on load, a switch, and each new block. */
+      let reading = 0;
+      async function refresh() {
+        const mine = ++reading;
+        try {
+          await Promise.all([readNow(), readRange()]);
+          if (mine !== reading) return;
+          offline = "";
+        } catch {
+          if (mine !== reading) return;
+          offline = "Can't reach this server; trying again";
+        }
+        showTip();
+        showFacts();
+        draw();
+        tell(pointed);
+      }
+
+      // ── The chart, edge to edge ──
+
+      const chart = $("chart"), svg = /** @type {SVGSVGElement} */ (/** @type {unknown} */ ($("lines")));
+      /** How far the range's lowest and highest values sit, at least, from the words over the chart. */
+      const CLEAR = 28;
+      function wordsOver() {
+        const box = chart.getBoundingClientRect();
+        const top = Math.max(0, $("change").getBoundingClientRect().bottom - box.top);
+        const bottom = Math.min(box.height, /** @type {HTMLElement} */ (document.querySelector(".week .foot")).getBoundingClientRect().top - box.top);
+        return { top, bottom: Math.max(top, bottom) };
+      }
+      /** The frame: x of a point's index, y of a value (log when the range spans a factor of 4 or more). */
+      function frame() {
+        const w = chart.clientWidth, h = chart.clientHeight, n = points.length, words = wordsOver();
+        const values = points.map((pt) => pt.v), lo = Math.min(...values), hi = Math.max(...values);
+        const log = MEASURES[measure].log && hi / lo >= 4;
+        const f = (/** @type {number} */ v) => (log ? Math.log(v) : v);
+        const top = words.top + CLEAR, bottom = Math.max(top + 40, words.bottom - CLEAR);
+        // (A flat range drawn at mid-height, a hair of room either side.)
+        const [a, b] = hi > lo ? [f(lo), f(hi)] : [f(lo) - 1, f(hi) + 1];
+        // (Its last point a little in from the right edge, its dot whole.)
+        const x = (/** @type {number} */ k) => (n > 1 ? (k / (n - 1)) * (w - 16) + 1 : w / 2);
+        const y = (/** @type {number} */ v) => bottom - ((f(v) - a) / (b - a)) * (bottom - top);
+        return { w, h, n, x, y, lo, hi, top, bottom };
+      }
+
+      /** The line, its light under it, its ends: pointing tells a moment and its value; the crosshair kept where it was. */
+      let pointed = /** @type {number | null} */ (null);
+      /** @type {ReturnType<typeof frame> | null} */
+      let framed = null;
+      function draw() {
+        if (!points.length) {
+          svg.innerHTML = "";
+          framed = null;
+          return;
+        }
+        const f = (framed = frame());
+        svg.setAttribute("viewBox", `0 0 ${f.w} ${f.h}`);
+        const path = points.map((pt, k) => `${k ? "L" : "M"}${f.x(k).toFixed(1)},${f.y(pt.v).toFixed(1)}`).join("");
+        const endX = f.x(f.n - 1), endY = f.y(points[f.n - 1].v);
+        const area = `${path}L${endX.toFixed(1)},${f.h}L${f.x(0).toFixed(1)},${f.h}Z`;
+        const write = MEASURES[measure].write;
+        const hiK = points.findIndex((pt) => pt.v === f.hi), loK = points.findIndex((pt) => pt.v === f.lo);
+        const label = (/** @type {number} */ k, /** @type {number} */ dy) => {
+          const x = f.x(k), anchor = x < 80 ? "start" : x > f.w - 80 ? "end" : "middle";
+          return `<text class="extreme" x="${x.toFixed(1)}" y="${(f.y(points[k].v) + dy).toFixed(1)}" text-anchor="${anchor}">${write(points[k].v)}</text>`;
+        };
+        svg.innerHTML =
+          `<defs><linearGradient id="under" x1="0" y1="0" x2="0" y2="1"><stop class="under-top" offset="0"/><stop class="under-foot" offset="1"/></linearGradient></defs>` +
+          `<path class="area" d="${area}"/><path class="price-glow" d="${path}"/><path class="price-line" d="${path}"/>` +
+          (f.hi > f.lo ? label(hiK, -10) + label(loK, 18) : "") +
+          `<circle class="end-glow" cx="${endX}" cy="${endY}" r="9"/><circle class="end" cx="${endX}" cy="${endY}" r="4.5"/><g class="cross" id="cross" visibility="hidden"><line/><circle r="4.5"/></g>`;
+        if (pointed !== null) point(pointed);
+      }
+
+      /** The point pointed at (null: none): the crosshair on it, its value at the top. */
+      function point(/** @type {number | null} */ k) {
+        pointed = k === null || !points.length ? null : Math.max(0, Math.min(points.length - 1, k));
+        const cross = /** @type {SVGGElement | null} */ (svg.querySelector("#cross"));
+        if (cross) {
+          cross.setAttribute("visibility", pointed === null ? "hidden" : "visible");
+          if (pointed !== null) {
+            const f = framed ?? frame(), x = String(f.x(pointed)), line = /** @type {SVGLineElement} */ (cross.querySelector("line")), dot = /** @type {SVGCircleElement} */ (cross.querySelector("circle"));
+            line.setAttribute("x1", x);
+            line.setAttribute("x2", x);
+            dot.setAttribute("cx", x);
+            dot.setAttribute("cy", String(f.y(points[pointed].v)));
+          }
+        }
+        tell(pointed);
+        // (Its line clear of the words as they now read: told, they may wrap differently.)
+        if (cross && pointed !== null) {
+          const words = wordsOver(), line = /** @type {SVGLineElement} */ (cross.querySelector("line"));
+          line.setAttribute("y1", String(words.top + 12));
+          line.setAttribute("y2", String(Math.max(words.top + 12, words.bottom - 12)));
+        }
+      }
+
+      /** Pointer input across an element: a touch that starts here scrolls the page unless it moves more across than
+       * down; a mouse acts on hover. */
+      function across(/** @type {HTMLElement} */ el, /** @type {{ move: (e: PointerEvent) => void, end?: () => void, hover?: boolean }} */ on) {
+        let down = /** @type {{ x: number, y: number } | null} */ (null), active = false;
+        el.addEventListener("pointerdown", (e) => {
+          down = { x: e.clientX, y: e.clientY };
+          if (e.pointerType === "touch") return;
+          active = true;
+          el.setPointerCapture(e.pointerId);
+          on.move(e);
+        });
+        el.addEventListener("pointermove", (e) => {
+          if (!active && down && e.pointerType === "touch") {
+            if (Math.abs(e.clientX - down.x) <= Math.abs(e.clientY - down.y)) return;
+            active = true;
+            el.setPointerCapture(e.pointerId);
+          }
+          if (active || (on.hover && e.pointerType === "mouse")) on.move(e);
+        });
+        for (const type of ["pointerup", "pointercancel"])
+          el.addEventListener(type, () => {
+            if (active) on.end?.();
+            down = null;
+            active = false;
+          });
+      }
+      across(chart, {
+        hover: true,
+        move: (e) => {
+          const f = framed ?? frame(), box = chart.getBoundingClientRect();
+          point(Math.round(((e.clientX - box.left - 1) / Math.max(1, f.w - 16)) * (f.n - 1)));
+        },
+      });
+      chart.addEventListener("pointerleave", (e) => e.pointerType === "mouse" && point(null));
+      chart.addEventListener("keydown", (e) => {
+        const n = points.length, step = e.shiftKey ? Math.max(1, Math.round(n / 20)) : 1, from = pointed ?? n - 1;
+        const to = /** @type {Record<string, number>} */ ({ ArrowLeft: from - step, ArrowRight: from + step, Home: 0, End: n - 1 })[e.key];
+        if (to === undefined) return;
+        e.preventDefault();
+        point(to);
+        const pt = points[pointed ?? n - 1];
+        if (pt) $("said").textContent = `${pt.h !== undefined ? `Block ${grouped(pt.h)}, ` : ""}${day(pt.t)}: ${MEASURES[measure].write(pt.v)}`;
+      });
+      chart.addEventListener("blur", () => point(null));
+      // (A finger lifted lets go of the point, so the number at the top is now's again.)
+      chart.addEventListener("pointerup", (e) => e.pointerType === "touch" && point(null));
+
+      // ── The switches ──
+
+      function showChoices() {
+        for (const b of $("measures").querySelectorAll("button")) b.setAttribute("aria-checked", String(b.dataset.measure === measure));
+        for (const b of $("ranges").querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.range === range));
+        $("more").textContent = `How ${measure === "price" ? "the reference price is set" : measure === "difficulty" ? "the difficulty is set" : "hashrate is measured"}`;
+        /** @type {HTMLAnchorElement} */ (document.querySelector(".more")).href = `#${MEASURES[measure].about}`;
+      }
+      function choose(/** @type {Partial<{ measure: typeof measure, range: typeof range }>} */ next) {
+        if (next.measure) measure = next.measure;
+        if (next.range) range = next.range;
+        shownValue = 0;
+        pointed = null;
+        showChoices();
+        remember();
+        points = [];
+        draw();
+        tell(null);
+        refresh();
+      }
+      $("measures").addEventListener("click", (e) => {
+        const b = /** @type {HTMLElement} */ (e.target).closest("button");
+        if (b?.dataset.measure && b.dataset.measure !== measure) choose({ measure: /** @type {typeof measure} */ (b.dataset.measure) });
+      });
+      // (As a radio group: the arrows move the choice.)
+      $("measures").addEventListener("keydown", (e) => {
+        const keys = /** @type {(typeof measure)[]} */ (Object.keys(MEASURES)), i = keys.indexOf(measure);
+        const to = e.key === "ArrowRight" || e.key === "ArrowDown" ? (i + 1) % keys.length : e.key === "ArrowLeft" || e.key === "ArrowUp" ? (i + keys.length - 1) % keys.length : -1;
+        if (to < 0) return;
+        e.preventDefault();
+        choose({ measure: keys[to] });
+        /** @type {HTMLElement} */ ($("measures").querySelector(`[data-measure="${keys[to]}"]`)).focus();
+      });
+      $("ranges").addEventListener("click", (e) => {
+        const b = /** @type {HTMLElement} */ (e.target).closest("button");
+        if (b?.dataset.range && b.dataset.range !== range) choose({ range: /** @type {typeof range} */ (b.dataset.range) });
+      });
+
+      // ── Start, and each new block ──
+
+      new ResizeObserver(() => draw()).observe(chart);
+      showChoices();
+      refresh();
+      let lastTip = "";
+      setInterval(async () => {
+        if (document.hidden) return;
+        const height = await fetch("/api/blocks/tip/height", { signal: AbortSignal.timeout(10_000) }).then((r) => (r.ok ? r.text() : ""), () => "");
+        if (!height) {
+          offline = "Can't reach this server; trying again";
+          if (pointed === null) tell(null);
+        } else if (height !== lastTip) {
+          lastTip = height;
+          refresh();
+        } else showTip();
+      }, 30_000);
+    </script>
+  </body>
+</html>

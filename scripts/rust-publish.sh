@@ -48,6 +48,14 @@ wait_for_crates_io_rate_limit() {
     sleep "$wait_seconds"
 }
 
+# A resumed release publishes from its tag's commit, which quick-release checked HEAD is: on an
+# allowed branch, or detached, where cargo-release names the branch HEAD (the flag replaces the
+# configured branches, so it's passed only then).
+RESUME_ARGS=()
+if [ "${RELEASE_RESUME:-false}" = true ] && [ "$(git rev-parse --abbrev-ref HEAD)" = HEAD ]; then
+    RESUME_ARGS=(--allow-branch HEAD)
+fi
+
 publish_release_selection() {
     local label="$1"
     shift
@@ -56,7 +64,7 @@ publish_release_selection() {
     while true; do
         publish_log=$(mktemp -t brk-rust-publish)
 
-        if CARGO_TERM_COLOR=always cargo release publish "$@" --execute --no-confirm 2>&1 | tee "$publish_log"; then
+        if CARGO_TERM_COLOR=always cargo release publish "$@" ${RESUME_ARGS[@]+"${RESUME_ARGS[@]}"} --execute --no-confirm 2>&1 | tee "$publish_log"; then
             rm -f "$publish_log"
             return 0
         elif ! grep -q "uncommitted changes detected" "$publish_log" &&
@@ -73,6 +81,10 @@ publish_release_selection() {
         fi
     done
 }
+
+# Crates published a moment ago must resolve while the next one is packaged,
+# so .cargo/config.toml's minimum publish age is off for this script.
+export CARGO_RESOLVER_INCOMPATIBLE_PUBLISH_AGE=allow
 
 # bitview_website embeds ignored assets through symlinks, so Cargo requires
 # --allow-dirty even when the Git worktree itself is clean. Publish its

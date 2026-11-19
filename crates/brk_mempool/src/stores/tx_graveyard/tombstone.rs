@@ -1,4 +1,4 @@
-use std::time::Instant;
+use super::Moment;
 
 use brk_types::{FeeRate, Txid};
 
@@ -14,14 +14,14 @@ pub struct TxTombstone {
     pub record: TxRecord,
     pub chunk_rate: FeeRate,
     pub removal: TxRemoval,
-    pub removed_at: Instant,
+    pub removed_at: Moment,
 }
 
 impl TxTombstone {
     pub fn replaced_by(&self) -> Option<&Txid> {
         match &self.removal {
             TxRemoval::Replaced { by } => Some(by),
-            TxRemoval::Vanished => None,
+            TxRemoval::Mined | TxRemoval::Vanished => None,
         }
     }
 }

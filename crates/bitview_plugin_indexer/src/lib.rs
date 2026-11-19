@@ -30,12 +30,13 @@ use rollback_floor::RollbackFloor;
 use state::State;
 use stores::Stores;
 use vecs::{
-    AddrsVecs, InputsVecs, OpReturnVecs, OutputsVecs, ScriptsVecs, TransactionCounts,
-    TxFeatureFlags, TxMetadataVecs, Vecs,
+    AddrsVecs, BlockCounters, InputsVecs, OpReturnVecs, OutputsVecs, ScriptsVecs,
+    TransactionCounts, TxFeatureFlags, TxMetadataVecs, Vecs,
 };
 
 #[macro_use]
 mod macros;
+mod block_freer;
 mod confirmed;
 mod constants;
 mod has;
@@ -47,9 +48,8 @@ mod rollback_floor;
 mod safe_lengths;
 mod state;
 mod stores;
-#[cfg(test)]
-mod tests;
 mod vecs;
+mod warm;
 
 pub use confirmed::{OutputRange, OutputRanges, OutputScripts};
 pub use constants::overwritten_output;
@@ -58,7 +58,7 @@ pub use processor::transaction::analysis::policy::FIRST_V29_POLICY_HEIGHT;
 
 pub use safe_lengths::SafeLengths;
 pub use stores::UtxoKey;
-pub use vecs::{BlockCount, FeatureVecs, FlagView};
+pub use vecs::{BlockCount, BlockCounterVecs, FeatureVecs, FlagView};
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("indexer"), VERSION);
 const EXPORT_HEIGHT_INTERVAL: usize = 100;
@@ -134,16 +134,6 @@ fn holds_block(reader: &Reader, position: BlkPosition, hash: &BlockHash) -> Resu
     }
 }
 
-fn recreate_plugin_dir(path: &Path, source_xor: XORBytes) -> Result<bool> {
-    let removed = match fs::remove_dir_all(path) {
-        Ok(()) => true,
-        Err(err) if err.kind() == ErrorKind::NotFound => false,
-        Err(err) => return Err(err.into()),
-    };
-    write_xor_marker(path, source_xor)?;
-    Ok(removed)
-}
-
 impl<M: StorageMode> Indexer<M> {
     /// The published tip's hash, recorded with the published lengths: never ahead of what reads
     /// can see, though the indexer appends blocks before every plugin computes them.
@@ -199,13 +189,13 @@ where
         self.vecs.iter_any_visible()
     }
 
-    fn collect_series_descriptions<'a>(
+    fn collect_series_metadata<'a>(
         &'a self,
-        description_fragments: &mut Vec<bitview_traversable::Fragment>,
-        descriptions: &mut BTreeMap<&'a str, Vec<bitview_traversable::Fragment>>,
+        path_fragments: &mut Vec<bitview_traversable::MetadataFragment>,
+        metadata: &mut BTreeMap<&'a str, Vec<bitview_traversable::MetadataFragment>>,
     ) {
         self.vecs
-            .collect_series_descriptions(description_fragments, descriptions);
+            .collect_series_metadata(path_fragments, metadata);
     }
 }
 
@@ -218,52 +208,39 @@ impl Indexer {
     /// the import, so a reset never leaves a half-deleted directory that validation could accept.
     pub fn import(context: ImportContext<'_>, reader: &Reader) -> Result<Self> {
         reader.check_source()?;
-        Self::import_inner(context, reader, true)
+        STORAGE.import_with_recovery(
+            context,
+            || Self::import_inner(context, reader),
+            |error| {
+                let path = STORAGE.path(context);
+                warn!("Rebuilding indexer data at {} after an import failure: {error}", path.display());
+                write_xor_marker(&path, reader.xor_bytes())
+            },
+        )
     }
 
-    fn import_inner(context: ImportContext<'_>, reader: &Reader, can_retry: bool) -> Result<Self> {
+    fn import_inner(context: ImportContext<'_>, reader: &Reader) -> Result<Self> {
         let plugin_path = STORAGE.path(context);
 
-        let try_import = || -> Result<Self> {
-            let i = Instant::now();
-            let vecs = Vecs::import(&plugin_path, STORAGE.schema_version())?;
-            info!("Loaded indexer vectors in {:.2?}", i.elapsed());
+        let i = Instant::now();
+        let vecs = Vecs::import(&plugin_path, STORAGE.schema_version())?;
+        info!("Loaded indexer vectors in {:.2?}", i.elapsed());
 
-            let i = Instant::now();
-            let stores = Stores::import(&plugin_path, STORAGE.schema_version())?;
-            info!("Loaded indexer state in {:.2?}", i.elapsed());
+        let i = Instant::now();
+        let stores = Stores::import(&plugin_path, STORAGE.schema_version())?;
+        info!("Loaded indexer state in {:.2?}", i.elapsed());
 
-            Ok(Self {
-                reader: reader.clone(),
-                vecs,
-                stores,
-                buffers: BlockBuffers::default(),
-                floor: RollbackFloor::load(&plugin_path)?,
-                resume: None,
-                compute_start: Lengths::default(),
-                ingestion: None,
-                recheck_newest: true,
-                state: Arc::default(),
-            })
-        };
-
-        let mut indexer = match try_import() {
-            Ok(indexer) => indexer,
-            // Another process has the database open: never reset over a lock.
-            Err(err) if err.is_lock_error() => return Err(err),
-            Err(err) if can_retry && err.is_data_error() => {
-                // The failed attempt has returned, so all of its local database
-                // handles have been dropped before the directory is removed.
-                let removed = recreate_plugin_dir(&plugin_path, reader.xor_bytes())?;
-                if removed {
-                    warn!(
-                        "Removed invalid indexer data at {} after an import failure: {err}",
-                        plugin_path.display()
-                    );
-                }
-                return Self::import_inner(context, reader, false);
-            }
-            Err(err) => return Err(err),
+        let mut indexer = Self {
+            reader: reader.clone(),
+            vecs,
+            stores,
+            buffers: BlockBuffers::default(),
+            floor: RollbackFloor::load(&plugin_path)?,
+            resume: None,
+            compute_start: Lengths::default(),
+            ingestion: None,
+            recheck_newest: true,
+            state: Arc::default(),
         };
 
         indexer.drop_uncommitted_rows()?;
@@ -283,18 +260,7 @@ impl Indexer {
                     .finish_update(published, indexer.tip_of(&published), unspent);
                 Ok(indexer)
             }
-            ImportValidation::Reset(reason) if can_retry => {
-                drop(indexer);
-                let removed = recreate_plugin_dir(&plugin_path, reader.xor_bytes())?;
-                if removed {
-                    warn!(
-                        "Removed incompatible indexer data at {}: {reason}",
-                        plugin_path.display()
-                    );
-                }
-                Self::import_inner(context, reader, false)
-            }
-            ImportValidation::Reset(reason) => Err(Error::Internal(reason)),
+            ImportValidation::Reset(reason) => Err(Error::InvalidData(reason)),
         }
     }
 
@@ -425,8 +391,8 @@ impl Indexer {
         let hash_at = |height| blockhash.collect_one(height).expect("indexed height");
 
         // A node behind our tip (restarting, reindexing, back from a crash) would look like a
-        // reorg to its height.
-        let node_height = client.wait_for_node_at(tip)?;
+        // reorg to its height; one whose chain left ours below our tip is one.
+        let node_height = client.wait_for_node_at(tip, hash_at)?;
         // Down our own hashes, not the node's parent links: a block the node lost in a crash
         // and the network orphaned since is unknown to it.
         let mut height = tip;
@@ -595,6 +561,7 @@ impl Indexer {
                 inputs,
                 addresses,
                 outputs,
+                analyzed_outputs,
                 analyses,
                 ..
             } = &mut *buffers;
@@ -610,12 +577,20 @@ impl Indexer {
             let input_count = txins.len();
             let output_count = outputs.len();
 
-            processor.analyze_and_finalize_transactions(txs, outputs, txins, addresses, analyses);
+            processor.analyze_and_finalize_transactions(
+                txs,
+                outputs,
+                analyzed_outputs,
+                txins,
+                addresses,
+                analyses,
+            );
 
             processor
                 .lengths
                 .add_block(tx_count, input_count, output_count);
             buffers.finish_block(*block.hash());
+            block_freer::free(block);
             pending_export_height = Some(height);
             pending_blocks += 1;
             pending_records += tx_count + input_count + output_count;

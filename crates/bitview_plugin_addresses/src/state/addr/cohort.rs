@@ -1,5 +1,6 @@
 use bitview_cohort::{AmountRange, AmountRangeId};
-use bitview_primitives::{FundedAddressData, SupplyState};
+use bitview_primitives::SupplyState;
+use crate::addr::FundedAddressData;
 use brk_types::{Cents, CentsSats, Sats};
 
 use super::{super::CohortState, super::MinimalRealizedState};
@@ -75,6 +76,10 @@ enum Change {
 pub struct CohortLog(Vec<(AmountRangeId, Change)>);
 
 impl CohortLog {
+    pub fn with_capacity(changes: usize) -> Self {
+        Self(Vec::with_capacity(changes))
+    }
+
     pub fn add(&mut self, bucket: AmountRangeId, addr_data: &FundedAddressData) {
         self.0.push((
             bucket,

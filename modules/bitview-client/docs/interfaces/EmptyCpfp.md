@@ -6,12 +6,14 @@
 
 # Interface: EmptyCpfp
 
-Defined in: modules/bitview-client/index.js:568
+Defined in: [modules/bitview-client/index.js:572](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L572)
 
 ## Properties
 
 ### ancestors
 
-> **ancestors**: `any`[]
+> **ancestors**: [`CpfpEntry`](CpfpEntry.md)[]
 
-Defined in: modules/bitview-client/index.js:569
+Defined in: [modules/bitview-client/index.js:573](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L573)
+
+Always empty.

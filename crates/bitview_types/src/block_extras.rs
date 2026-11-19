@@ -11,11 +11,16 @@ pub struct BlockExtras {
     #[serde(rename = "totalFees")]
     pub total_fees: Sats,
 
-    /// Median fee rate in sat/vB
+    /// Median effective (CPFP) fee rate in sat/vB, by vsize: the rate half the block's space
+    /// paid at most (Bitcoin Core's `getblockstats` rule; mempool.space averages the middle
+    /// 0.25% of a 4M WU block instead)
     #[serde(rename = "medianFee")]
     pub median_fee: FeeRate,
 
-    /// Fee rate range: [min, 10%, 25%, 50%, 75%, 90%, max]
+    /// Effective (CPFP) fee rate range in sat/vB: [min, 10%, 25%, 50%, 75%, 90%, max], the
+    /// percentiles of block space (vsize-weighted, as `medianFee`; mempool.space ranks
+    /// transactions by count), min and max the lower/higher of the 1st/99th percentile and the
+    /// extreme rate in the block's last/first 2% of vsize
     #[serde(rename = "feeRange")]
     pub fee_range: [FeeRate; 7],
 
@@ -123,7 +128,7 @@ pub struct BlockExtras {
     #[serde(rename = "firstSeen")]
     pub first_seen: Option<Timestamp>,
 
-    /// Stale blocks at this height (always empty, not yet supported)
+    /// Stale blocks at this height the server's node knows, each server's own
     pub orphans: Vec<BlockOrphan>,
 
     /// Share of the expected block template the block matched, from mempool.space's own audits

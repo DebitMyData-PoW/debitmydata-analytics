@@ -40,20 +40,22 @@ pub struct Component<M: StorageMode = Rw> {
     block_decay_pct: M::WriteOnly<BlockDecayPercentiles>,
 }
 
-const VERSION: Version = Version::new(15);
+const VERSION: Version = Version::new(16);
 
 impl Component {
     /// `price` is the reference price's id: the bands are `<price>_rarity_<percentile>` and their
-    /// ratios, percentiles of the price's spot ratio, `<price>_ratio_rarity_<percentile>`.
+    /// ratios, percentiles of `ratio_source` (spot divided by `price_source`),
+    /// `<price>_ratio_rarity_<percentile>`.
     pub(crate) fn import(
         db: &Database,
         price: &str,
         version: Version,
         mappings: &IndexSources,
         price_source: &impl ReadableCloneableVec<Height, Cents>,
+        ratio_source: &impl ReadableCloneableVec<Height, PriceRatio>,
     ) -> Result<Self> {
         let version = version + VERSION;
-        let component_price = ComponentPrice::new(price_source);
+        let component_price = ComponentPrice::new(price_source, ratio_source);
         let ratios = RarityPercentiles::try_from_fn(|id| {
             import_cached(db, &format!("{price}_ratio_rarity_{}_ppm", id.suffix()), version)
         })?;
@@ -82,30 +84,30 @@ impl Component {
         })
     }
 
-    pub(crate) fn compute(
-        &mut self,
-        starting_lengths: &Lengths,
-        ratio_source: &impl ReadableVec<Height, PriceRatio>,
-        exit: &Exit,
-    ) -> Result<()> {
+    pub(crate) fn compute(&mut self, starting_lengths: &Lengths, exit: &Exit) -> Result<()> {
+        let Self {
+            ratios,
+            block_decay_pct,
+            price,
+            ..
+        } = self;
+        let ratio_source = &price.ratio;
         let source_end = ratio_source.len();
         let start = prepare_computed(
-            self.ratios.iter_any_stored_mut().collect::<Vec<_>>(),
+            ratios.iter_any_stored_mut().collect::<Vec<_>>(),
             ratio_source.version(),
             usize::from(starting_lengths.height).min(source_end),
             exit,
         )?;
-        let Self {
-            ratios,
-            block_decay_pct,
-            ..
-        } = self;
         let expected_len = start.saturating_sub(START_HEIGHT);
         if block_decay_pct.len() != expected_len {
             block_decay_pct.reset();
             if start > START_HEIGHT {
-                let historical = ratio_source.collect_range_at(START_HEIGHT, start);
-                block_decay_pct.add_bulk(START_HEIGHT, &historical);
+                let mut height = START_HEIGHT;
+                ratio_source.for_each_range_at(START_HEIGHT, start, |ratio| {
+                    block_decay_pct.add(height, f64::from(ratio));
+                    height += 1;
+                });
             }
         }
         let mut out = [0.0; RARITY_PERCENTILES_LEN];
@@ -132,11 +134,8 @@ impl Component {
         Ok(())
     }
 
-    pub fn needs_compute(
-        &self,
-        starting_height: Height,
-        ratio_source: &impl ReadableVec<Height, PriceRatio>,
-    ) -> bool {
+    pub fn needs_compute(&self, starting_height: Height) -> bool {
+        let ratio_source = &self.price.ratio;
         self.ratios.iter().any(|v| {
             v.len() != ratio_source.len()
                 || v.version() != v.header().vec_version() + ratio_source.version()

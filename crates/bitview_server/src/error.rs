@@ -5,15 +5,25 @@ use axum::{
     http::{HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
 };
-use bitview_query::Error as QueryError;
+use bitview_http::CachePolicy;
+use bitview_query::{Error as QueryError, SeriesNotFound};
 use bitview_types::{ErrorBody, ErrorCode, ErrorType};
-use brk_error::Error as BrkError;
+use brk_error::{Error as BrkError, Updating};
 use serde_json::to_vec;
 use tracing::error;
 
-use crate::cache::{CacheParams, ErrorCachePolicy};
-
 const DOC_URL: &str = "/api";
+/// The website's page of what each release renamed or removed (series, endpoints, indexes, parameters).
+const CHANGES_URL: &str = "/changes/";
+
+/// What an answer to a request written for an earlier release adds, after its own sentence: an id's own answer on the
+/// changes page, else the page.
+pub(crate) fn changes_hint(id: Option<&str>) -> String {
+    match id {
+        Some(id) => format!("What became of it: {CHANGES_URL}?id={id}"),
+        None => format!("Written for an earlier release? What it renamed or removed: {CHANGES_URL}"),
+    }
+}
 
 pub type Result<T> = StdResult<T, Error>;
 
@@ -40,6 +50,7 @@ fn error_details(error: &QueryError) -> (StatusCode, ErrorCode) {
         }
         QueryError::WeightExceeded { .. } => (StatusCode::BAD_REQUEST, ErrorCode::WeightExceeded),
         QueryError::TooManyUtxos { .. } => (StatusCode::BAD_REQUEST, ErrorCode::TooManyUtxos),
+        QueryError::LimitExceeded(_) => (StatusCode::BAD_REQUEST, ErrorCode::LimitExceeded),
         QueryError::UnknownAfterTxid => (
             StatusCode::UNPROCESSABLE_ENTITY,
             ErrorCode::UnknownAfterTxid,
@@ -56,7 +67,7 @@ fn error_details(error: &QueryError) -> (StatusCode, ErrorCode) {
             StatusCode::SERVICE_UNAVAILABLE,
             ErrorCode::MempoolNotAvailable,
         ),
-        QueryError::StateUpdating => (StatusCode::SERVICE_UNAVAILABLE, ErrorCode::StateUpdating),
+        QueryError::StateUpdating(_) => (StatusCode::SERVICE_UNAVAILABLE, ErrorCode::StateUpdating),
         QueryError::ReadTimeout => (StatusCode::GATEWAY_TIMEOUT, ErrorCode::Timeout),
         QueryError::Internal(_) | QueryError::Lower(_) => {
             (StatusCode::INTERNAL_SERVER_ERROR, ErrorCode::InternalError)
@@ -69,6 +80,9 @@ pub struct Error {
     status: StatusCode,
     code: ErrorCode,
     message: String,
+    /// The guard that found the state updating, for the request log (`response_time`): a
+    /// response extension, never sent.
+    updating: Option<Updating>,
 }
 
 impl Error {
@@ -77,6 +91,7 @@ impl Error {
             status,
             code,
             message: msg.into(),
+            updating: None,
         }
     }
 
@@ -108,15 +123,15 @@ impl Error {
         )
     }
 
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     pub fn overloaded(msg: impl Into<String>) -> Self {
         Self::new(StatusCode::SERVICE_UNAVAILABLE, ErrorCode::Overloaded, msg)
     }
 
-    fn cache_policy(&self) -> ErrorCachePolicy {
+    fn cache_policy(&self) -> CachePolicy {
         match self.status {
-            StatusCode::BAD_REQUEST | StatusCode::NOT_FOUND => ErrorCachePolicy::Revalidate,
-            _ => ErrorCachePolicy::NoStore,
+            StatusCode::BAD_REQUEST | StatusCode::NOT_FOUND => CachePolicy::Revalidate,
+            _ => CachePolicy::NoStore,
         }
     }
 }
@@ -124,12 +139,33 @@ impl Error {
 impl From<QueryError> for Error {
     fn from(error: QueryError) -> Self {
         let (status, code) = error_details(&error);
+        let message = match &error {
+            QueryError::SeriesNotFound(not_found) => series_not_found(not_found),
+            error => error.to_string(),
+        };
+        let updating = match error {
+            QueryError::StateUpdating(at) => Some(at),
+            _ => None,
+        };
         Self {
             status,
             code,
-            message: error.to_string(),
+            message,
+            updating,
         }
     }
+}
+
+/// A missing series' message and where its change is said: for a name written as an id, its own answer (one written
+/// otherwise, or cut short for display, was never an id).
+fn series_not_found(not_found: &SeriesNotFound) -> String {
+    let series = not_found.series();
+    let id = (!series.is_empty()
+        && series
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_'))
+    .then_some(series);
+    format!("{not_found} {}", changes_hint(id))
 }
 
 /// Errors from below the query (node calls, IO) take the query's translation, except a
@@ -176,7 +212,10 @@ impl IntoResponse for Error {
                 .headers_mut()
                 .insert(header::RETRY_AFTER, HeaderValue::from_static("1"));
         }
-        CacheParams::apply_error_cache_control(response.headers_mut(), policy);
+        policy.apply(response.headers_mut());
+        if let Some(at) = self.updating {
+            response.extensions_mut().insert(at);
+        }
         response
     }
 }

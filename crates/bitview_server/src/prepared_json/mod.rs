@@ -1,5 +1,5 @@
 use axum::{body::Bytes, http::HeaderMap, response::Response};
-use bitview_query::RepresentationId;
+use brk_types::tag_hash;
 
 use crate::{CacheParams, extended::ResponseExtended};
 
@@ -10,13 +10,13 @@ pub struct PreparedJson {
 }
 
 impl PreparedJson {
-    #[cfg(any(feature = "series", feature = "chain"))]
+    #[cfg(feature = "series")]
     pub fn new(value: impl serde::Serialize) -> Self {
         Self::from_bytes(Bytes::from(serde_json::to_vec(&value).unwrap()))
     }
 
     pub fn from_bytes(bytes: Bytes) -> Self {
-        let hash = RepresentationId::content_hash(&bytes);
+        let hash = tag_hash(&bytes);
         let params = CacheParams::revalidate(format!("c{hash:x}"));
         Self { bytes, params }
     }

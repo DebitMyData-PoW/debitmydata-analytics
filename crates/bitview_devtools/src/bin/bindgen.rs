@@ -7,9 +7,9 @@ use std::{
 };
 
 use aide::axum::ApiRouter;
-use bitview_bindgen::{ClientOutputPaths, generate_clients};
+use bitview_bindgen::{ClientOutputPaths, fill_site_pages, generate_clients};
 use bitview_devtools::import;
-use bitview_query::Vecs;
+use bitview_query::SeriesRegistry;
 use bitview_server::{ApiRoutes, finish_openapi};
 use serde_json::{json, to_string, to_string_pretty};
 
@@ -20,17 +20,24 @@ use std::process::exit;
 
 /// The JavaScript package manifest: hand-written, only its version is generated.
 const PACKAGE_JSON: &str = "modules/bitview-client/package.json";
+/// Hand-written site pages with blocks bindgen fills.
+const SITE_PAGES: &[&str] = &[];
 
 /// Every generated file, relative to the workspace root (and to the check's output root).
 const GENERATED_OUTPUTS: &[&str] = &[
     "crates/bitview_mcp/server.json",
     "crates/bitview_client/src/generated.rs",
     "crates/bitview_cli/src/generated.rs",
+    "modules/bitview-client/core.js",
     "modules/bitview-client/index.js",
     PACKAGE_JSON,
     "packages/bitview_client/bitview_client/__init__.py",
     "showcases/llms.txt",
     "showcases/llms-full.txt",
+    "showcases/.well-known/agent-skills/index.json",
+    "showcases/.well-known/agent-skills/debitmydata-analytics/SKILL.md",
+    "showcases/.well-known/agent-skills/debitmydata-analytics/references/endpoints.md",
+    "showcases/.well-known/agent-skills/debitmydata-analytics/references/series.md",
     "crates/bitview_mcp/generated/manifest.json",
 ];
 
@@ -90,7 +97,7 @@ fn run() -> Result<()> {
 
 fn generate(check: bool, scope: OutputScope) -> Result<()> {
     let imported = import()?;
-    let vecs = Vecs::build(&imported.plugins);
+    let registry = SeriesRegistry::build(&imported.plugins);
 
     let (_, openapi) = finish_openapi(ApiRouter::new().add_api_routes());
 
@@ -102,18 +109,21 @@ fn generate(check: bool, scope: OutputScope) -> Result<()> {
 
     let output_root = if check {
         let root = imported.dir.path().join("generated");
-        // Generation only bumps the manifest's version, so the check starts from the committed one.
-        let package_json = root.join(PACKAGE_JSON);
-        fs::create_dir_all(package_json.parent().unwrap())?;
-        fs::copy(workspace_root.join(PACKAGE_JSON), package_json)?;
+        // Generation only updates these committed files, so the check starts from them.
+        for path in [PACKAGE_JSON].iter().chain(SITE_PAGES) {
+            let copy = root.join(path);
+            fs::create_dir_all(copy.parent().unwrap())?;
+            fs::copy(workspace_root.join(path), copy)?;
+        }
         root
     } else {
         workspace_root.clone()
     };
     let output_paths = output_paths(&output_root, scope);
 
-    generate_clients(vecs.catalog(), &to_string(&openapi)?, &output_paths)?;
+    generate_clients(registry.catalog(), &to_string(&openapi)?, &output_paths)?;
     if matches!(scope, OutputScope::All) {
+        fill_site_pages(&SITE_PAGES.iter().map(|path| output_root.join(path)).collect::<Vec<_>>())?;
         generate_registry_manifest(&output_root)?;
     }
 

@@ -3,10 +3,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-use bitview_primitives::{
-    AddressState, ByAddrType, DecodedAddrState, EmptyAddressData, ExtendedEmptyAddressIndex,
-    FundedAddressData, FundedAddressIndex, TypeIndex,
-};
+use bitview_primitives::{ByAddrType, TypeIndex};
+use crate::addr::{AddressState, DecodedAddrState, EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressData, FundedAddressIndex};
 use bitview_traversable::{IndexMap, Traversable, TreeNode};
 use brk_error::{Error, OptionData, Result};
 use brk_types::{Height, OutputType, Version};
@@ -30,8 +28,10 @@ use updates::{AddrUpdates, SidecarPushes};
 
 use crate::SAVED_CHECKPOINTS;
 const FUNDED_DATA_VERSION: Version = Version::new(3);
-/// Longest a reader waits for the state's lock: a publication holds it a few milliseconds.
-const STABLE_READ_WAIT: Duration = Duration::from_millis(10);
+/// Longest a reader waits for the state's lock: a publication holds it a few milliseconds, so a
+/// reader arriving as a block publishes always gets in (with room for a loaded machine); a
+/// catch-up's or a rollback's write holds it longer.
+const STABLE_READ_WAIT: Duration = Duration::from_millis(1_000);
 
 macro_rules! addr_state_vecs {
     ($(($variant:ident, $field:ident, $length:ident, $index:path, $bytes:path)),+ $(,)?) => {
@@ -210,12 +210,15 @@ impl AddrStateVecs {
             mut primaries,
             funded_updates,
             funded_pushes,
-            funded_deletes,
+            mut funded_deletes,
             extended_updates,
             extended_pushes,
-            extended_deletes,
+            mut extended_deletes,
         } = AddrUpdates::stage(cache, changed);
 
+        // In index order, not the cache's: each delete reads its record and marks a hole.
+        funded_deletes.sort_unstable();
+        extended_deletes.sort_unstable();
         self.funded.delete_many(funded_deletes);
         self.extended_empty.delete_many(extended_deletes);
 
@@ -348,6 +351,16 @@ impl<M: StorageMode> AddrStateRead<'_, M> {
         {
             return Ok(changed.clone());
         }
+        self.stored_addr_data(addr_type, type_index)
+    }
+
+    /// An address's data and whether it is funded, as stored: without the publication's
+    /// changes, which [`Self::addr_data`] adds.
+    pub(crate) fn stored_addr_data(
+        &self,
+        addr_type: OutputType,
+        type_index: TypeIndex,
+    ) -> Result<(FundedAddressData, bool)> {
         let vecs = self.vecs;
         Ok(match vecs.primary(addr_type, type_index)?.decode() {
             DecodedAddrState::Funded(index) => (vecs.funded.collect_one(index).data()?, true),

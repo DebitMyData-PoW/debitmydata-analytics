@@ -1,26 +1,26 @@
 use std::{thread::sleep, time::Duration};
 
 use bitcoin::{
-    BlockHash as BitcoinBlockHash, Network, Transaction, Txid as BitcoinTxid, consensus::encode,
+    BlockHash as BitcoinBlockHash, Network, ScriptBuf, Transaction, Txid as BitcoinTxid,
+    consensus::encode,
 };
 use brk_error::{Error, Result};
-use brk_types::{BlockHash, FeeRate, Height, MempoolEntryInfo, Txid};
+use brk_types::{Bitcoin, BlockHash, FeeRate, Height, MempoolEntryInfo, Sats, TxOut, Txid, Vout};
 use corepc_jsonrpc::error::Error as JsonRpcError;
-use rustc_hash::FxHashMap;
+use rapidhash::RapidHashMap;
 use serde_json::{from_str, json, value::RawValue};
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 use super::{
-    Client, ClientInner,
+    BlockSpends, Client,
     mempool_entry::MempoolEntry,
-    mempool_state::MempoolState,
+    mempool_state::{MempoolObservation, MempoolState},
     responses::{
-        GetBlockCount, GetBlockHeaderVerbose, GetBlockTemplate, GetBlockchainInfo, GetMempoolInfo,
+        GetBlockCount, GetBlockHeaderVerbose, GetBlockchainInfo, GetChainTip, GetMempoolInfo,
     },
     rpc_call::RpcCall,
     txid_array_parser::TxidArrayParser,
 };
-use crate::BlockTemplateTx;
 
 /// Bitcoin Core's `-5` (`RPC_INVALID_ADDRESS_OR_KEY`): a block hash the node
 /// doesn't know, or a confirmed transaction queried without `-txindex`. The
@@ -29,7 +29,7 @@ const RPC_NOT_FOUND: i32 = -5;
 const NO_ARGS: [(); 0] = [];
 
 /// Per-batch request count for `get_block_hashes_range`,
-/// `fetch_new_pool_data`, and `get_raw_transactions`. Sized so the JSON
+/// `fetch_new_pool_data`, and `get_tx_outs`. Sized so the JSON
 /// request body stays well under a megabyte and bitcoind doesn't spend
 /// too long on a single batch before yielding results. For the mixed
 /// `getmempoolentry`+`getrawtransaction` batch this is the *txid* count:
@@ -56,6 +56,15 @@ impl Client {
         Ok(FeeRate::from_milli(sat_per_kvb as u64))
     }
 
+    /// Core's verdict on a block extending its tip (`getblocktemplate` in proposal mode: every
+    /// check but proof of work), the block as hex: `None` when valid, else Core's reason.
+    pub fn propose_block(&self, block_hex: &str) -> Result<Option<String>> {
+        self.0.call_with_retry(
+            "getblocktemplate",
+            &(json!({ "mode": "proposal", "data": block_hex }),),
+        )
+    }
+
     /// The best chain's tip height.
     pub fn get_last_height(&self) -> Result<Height> {
         let r: GetBlockCount = self.0.call_with_retry("getblockcount", &NO_ARGS)?;
@@ -68,9 +77,15 @@ impl Client {
         let hash: &BitcoinBlockHash = hash.into();
         self.0.call_with_retry("getblockheader", &(hash,))
     }
+
+    /// The tip of every branch the node knows, the best chain's included.
+    pub fn get_chain_tips(&self) -> Result<Vec<GetChainTip>> {
+        self.0.call_with_retry("getchaintips", &NO_ARGS)
+    }
+
     /// The canonical block hashes of the inclusive height range `start..=end`, in height order,
-    /// in sequential batches of `BATCH_CHUNK` (2,000) requests. A failed batch returns its error
-    /// at once: batches are not retried like single calls.
+    /// in sequential batches of `BATCH_CHUNK` (2,000) requests, each retried as single calls are
+    /// (lost connections, the node warming up).
     pub fn get_block_hashes_range<H1, H2>(&self, start: H1, end: H2) -> Result<Vec<BlockHash>>
     where
         H1: Into<u64>,
@@ -95,68 +110,145 @@ impl Client {
         Ok(hashes)
     }
 
-    /// Batched `getrawtransaction`, chunked at `BATCH_CHUNK` requests, keyed by txid. A failed
-    /// item is dropped so one bad entry doesn't kill the batch: NOT_FOUND (a tx evicted since the
-    /// listing) silently, others with a debug log. Transport failures propagate.
-    pub fn get_raw_transactions(&self, txids: &[Txid]) -> Result<FxHashMap<Txid, Transaction>> {
-        let mut out: FxHashMap<Txid, Transaction> =
-            FxHashMap::with_capacity_and_hasher(txids.len(), Default::default());
+    /// The chain tip (`getbestblockhash`), the live mempool txids (`getrawmempool false`),
+    /// `mempoolminfee` (`getmempoolinfo`) and the modified fees of prioritised transactions
+    /// (`getprioritisedtransactions`), in one batched round trip. A failed priority read retains
+    /// `previous` with a warning; membership still updates.
+    pub fn fetch_mempool_state(
+        &self,
+        previous: &[(Txid, i64)],
+    ) -> Result<MempoolObservation> {
+        let calls = [
+            RpcCall::new("getbestblockhash", &NO_ARGS)?,
+            // Before the listing (Core runs a batch in order): a load reported finished was
+            // finished when the listing was taken.
+            RpcCall::new("getmempoolinfo", &NO_ARGS)?,
+            RpcCall::new("getrawmempool", &(false,))?,
+            RpcCall::new("getprioritisedtransactions", &NO_ARGS)?,
+        ];
+        // The batch answers every request, a missing response as an item error.
+        let [tip_raw, info_raw, txids_raw, priorities_raw] =
+            <[_; 4]>::try_from(self.0.call_mixed_batch(&calls)?).expect("one result per call");
+        let tip: String = from_str(tip_raw?.get())?;
+        let info: GetMempoolInfo = from_str(info_raw?.get())?;
 
-        for chunk in txids.chunks(BATCH_CHUNK) {
-            let args = chunk.iter().map(|t| {
-                let txid: &BitcoinTxid = t.into();
-                (txid, false)
+        Ok(MempoolObservation {
+            state: MempoolState {
+                live_txids: TxidArrayParser::parse(txids_raw?.get())?,
+                min_fee: Self::build_min_fee(info.mempool_min_fee)?,
+                tip_hash: Self::parse_block_hash(&tip, "getbestblockhash")?,
+                loaded: info.loaded,
+            },
+            modified_fees: Self::modified_fees(priorities_raw, previous),
+        })
+    }
+
+    fn modified_fees(raw: Result<Box<RawValue>>, previous: &[(Txid, i64)]) -> Box<[(Txid, i64)]> {
+        Self::build_modified_fees(raw).unwrap_or_else(|error| {
+            warn!(%error, "getprioritisedtransactions: stale ranking metadata, retaining previous modified fees");
+            previous.into()
+        })
+    }
+
+    /// Unsupported (-32601) alone permits base-fee compatibility. An empty successful map,
+    /// a transient RPC error and malformed metadata are different observations.
+    fn build_modified_fees(raw: Result<Box<RawValue>>) -> Result<Box<[(Txid, i64)]>> {
+        #[derive(serde::Deserialize)]
+        struct Prioritised {
+            in_mempool: bool,
+            modified_fee: Option<i64>,
+        }
+        let raw = match raw {
+            Ok(raw) => raw,
+            Err(Error::CorepcRPC(JsonRpcError::Rpc(rpc))) if rpc.code == -32601 => {
+                debug!("getprioritisedtransactions unsupported: local projection uses base fees");
+                return Ok(Box::default());
+            }
+            Err(error) => return Err(error),
+        };
+        let map: RapidHashMap<Txid, Prioritised> = from_str(raw.get())?;
+        let mut modified = Vec::new();
+        for (txid, priority) in map {
+            if !priority.in_mempool {
+                continue;
+            }
+            let fee = priority.modified_fee.ok_or_else(|| Error::Parse("live priority entry lacks modified_fee".into()))?;
+            modified.push((txid, fee));
+        }
+        modified.sort_unstable_by_key(|(txid, _)| **txid);
+        Ok(modified.into())
+    }
+
+    /// The outputs at `outpoints` from the node's UTXO set (`gettxout`, the mempool's spends not
+    /// counted): what a pending transaction's confirmed parents left it, with no `-txindex`
+    /// needed. One the set doesn't hold (unknown, or spent in a block) is left out, and so is a
+    /// batch that fails: the others' answers stand.
+    pub fn get_tx_outs(&self, outpoints: &[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut> {
+        #[derive(serde::Deserialize)]
+        struct Unspent {
+            value: Bitcoin,
+            #[serde(rename = "scriptPubKey")]
+            script: Script,
+        }
+        #[derive(serde::Deserialize)]
+        struct Script {
+            hex: String,
+        }
+        let mut out = RapidHashMap::with_capacity_and_hasher(outpoints.len(), Default::default());
+        for chunk in outpoints.chunks(BATCH_CHUNK) {
+            let args = chunk.iter().map(|(txid, vout)| {
+                let txid: &BitcoinTxid = txid.into();
+                (txid, u32::from(*vout), false)
             });
-            let results = self.0.call_batch_raw("getrawtransaction", args)?;
-
-            for (txid, res) in chunk.iter().zip(results) {
-                match res.and_then(|raw| Self::decode_raw_tx(&raw)) {
-                    Ok(tx) => {
-                        out.insert(*txid, tx);
-                    }
-                    Err(Error::CorepcRPC(JsonRpcError::Rpc(rpc))) if rpc.code == RPC_NOT_FOUND => {}
-                    Err(e) => {
-                        debug!(txid = %txid, error = %e, "getrawtransaction batch: item failed")
-                    }
+            let results = match self.0.call_batch_raw("gettxout", args) {
+                Ok(results) => results,
+                Err(error) => {
+                    warn!(%error, outpoints = chunk.len(), "gettxout batch failed");
+                    continue;
+                }
+            };
+            for (outpoint, result) in chunk.iter().zip(results) {
+                let unspent = result.and_then(|raw| Ok(from_str::<Option<Unspent>>(raw.get())?));
+                match unspent {
+                    Ok(Some(unspent)) => match ScriptBuf::from_hex(&unspent.script.hex) {
+                        Ok(script) => {
+                            out.insert(*outpoint, TxOut::from((script, Sats::from(unspent.value))));
+                        }
+                        Err(error) => debug!(%error, "gettxout: an unreadable script"),
+                    },
+                    Ok(None) => {}
+                    Err(error) => debug!(%error, "gettxout batch: item failed"),
                 }
             }
         }
-
-        Ok(out)
+        out
     }
 
-    /// Core's projected next block (`getblocktemplate`), the live mempool txids
-    /// (`getrawmempool false`) and `mempoolminfee` (`getmempoolinfo`), in one
-    /// batched round trip. GBT carries each tx's full body and stats, so block 0
-    /// is exact even when a tx vanishes from the mempool listing between the GBT
-    /// and `getrawmempool` calls; no follow-up entry fetch can race it.
-    pub fn fetch_mempool_state(&self) -> Result<(MempoolState, Vec<BlockTemplateTx>)> {
-        let template_args = (json!({ "rules": ["segwit"] }),);
-        let calls = [
-            RpcCall::new("getblocktemplate", &template_args)?,
-            RpcCall::new("getrawmempool", &(false,))?,
-            RpcCall::new("getmempoolinfo", &NO_ARGS)?,
-        ];
-        // The batch answers every request, a missing response as an item error.
-        let [template_raw, txids_raw, info_raw] =
-            <[_; 3]>::try_from(self.0.call_mixed_batch(&calls)?).expect("one result per call");
-        let (template_raw, txids_raw, info_raw) = (template_raw?, txids_raw?, info_raw?);
-
-        let live_txids = TxidArrayParser::parse(txids_raw.get())?;
-        let template: GetBlockTemplate = from_str(template_raw.get())?;
-        let tip_hash = Self::parse_block_hash(&template.previous_block_hash, "previousblockhash")?;
-        let block_template = ClientInner::build_gbt(template.transactions)?;
-        let info: GetMempoolInfo = from_str(info_raw.get())?;
-        let min_fee = Self::build_min_fee(info.mempool_min_fee)?;
-
-        Ok((
-            MempoolState {
-                live_txids,
-                min_fee,
-                tip_hash,
-            },
-            block_template,
-        ))
+    /// Block `hash`'s transactions and what their inputs spend (`getblock` raw, decoded once).
+    pub fn get_block_spends(&self, hash: &BlockHash) -> Result<BlockSpends> {
+        let bitcoin_hash: &BitcoinBlockHash = hash.into();
+        let hex: String = self.0.call_with_retry("getblock", &(bitcoin_hash, 0))?;
+        let block: bitcoin::Block = encode::deserialize_hex(&hex)?;
+        let mut spends = Vec::new();
+        let txids = block
+            .txdata
+            .iter()
+            .map(|tx| {
+                let txid = Txid::from(tx.compute_txid());
+                if !tx.is_coinbase() {
+                    spends.extend(tx.input.iter().map(|input| {
+                        let outpoint = &input.previous_output;
+                        ((Txid::from(outpoint.txid), Vout::from(outpoint.vout)), txid)
+                    }));
+                }
+                txid
+            })
+            .collect();
+        Ok(BlockSpends {
+            prev: BlockHash::from(block.header.prev_blockhash),
+            txids,
+            spends,
+        })
     }
 
     /// `getmempoolentry` for every txid of `entries_only` and `full`, plus `getrawtransaction`
@@ -168,15 +260,15 @@ impl Client {
         &self,
         entries_only: &[Txid],
         full: &[Txid],
-    ) -> Result<(Vec<MempoolEntryInfo>, FxHashMap<Txid, Transaction>)> {
+    ) -> Result<(Vec<MempoolEntryInfo>, RapidHashMap<Txid, Transaction>)> {
         let requests: Vec<(Txid, bool)> = entries_only
             .iter()
             .map(|txid| (*txid, false))
             .chain(full.iter().map(|txid| (*txid, true)))
             .collect();
         let mut entries: Vec<MempoolEntryInfo> = Vec::with_capacity(requests.len());
-        let mut txs: FxHashMap<Txid, Transaction> =
-            FxHashMap::with_capacity_and_hasher(full.len(), Default::default());
+        let mut txs: RapidHashMap<Txid, Transaction> =
+            RapidHashMap::with_capacity_and_hasher(full.len(), Default::default());
 
         for chunk in requests.chunks(BATCH_CHUNK) {
             let mut calls = Vec::with_capacity(chunk.len() * 2);
@@ -244,29 +336,54 @@ impl Client {
     }
 
     pub fn wait_for_synced_node(&self) -> Result<()> {
-        self.wait_for_node_at(Height::ZERO).map(|_| ())
+        self.wait_until(|info| Ok(info.headers == info.blocks))
+            .map(|_| ())
     }
 
-    /// Waits until the node has validated every header it knows and its chain reaches `height`,
-    /// returning the lowest height it reported meanwhile: a node back from a crash comes back
-    /// below the blocks it lost. `headers == blocks` alone passes such a node: until its peers
-    /// return them, it knows of no header left to validate.
-    pub fn wait_for_node_at(&self, height: Height) -> Result<Height> {
-        let is_synced = |info: &GetBlockchainInfo| {
-            info.headers == info.blocks && info.blocks >= i64::from(*height)
-        };
+    /// Waits until the node has validated every header it knows and either its chain reaches
+    /// `height` or it left `ours` (our block at a height), returning the lowest height it reported
+    /// meanwhile. A node below `height` with no header left to validate is behind (back from a
+    /// crash, it comes back below the blocks it lost; until its peers return them it knows of no
+    /// header left to validate) while our block at its height is in its best chain; once it isn't,
+    /// its chain left ours, shorter (heavier): a reorg to find, not a node to wait for. Free while the
+    /// node is at `height` or above. Left as is: a node back from a crash on the branch it had just
+    /// left (ours lost with it) is followed there, then back once it recovers ours: the index always
+    /// matches the node, the blocks between reindexed twice.
+    pub fn wait_for_node_at(
+        &self,
+        height: Height,
+        ours: impl Fn(Height) -> BlockHash,
+    ) -> Result<Height> {
+        self.wait_until(|info| {
+            if info.headers != info.blocks {
+                return Ok(false);
+            }
+            if info.blocks >= i64::from(*height) {
+                return Ok(true);
+            }
+            let tip = Height::from(info.blocks as u64);
+            Ok(!self.is_in_best_chain(&ours(tip))?)
+        })
+    }
 
+    /// Polls the node every second until `done`, returning the lowest height it reported.
+    fn wait_until(
+        &self,
+        mut done: impl FnMut(&GetBlockchainInfo) -> Result<bool>,
+    ) -> Result<Height> {
         let mut info = self.get_blockchain_info()?;
         let mut lowest = info.blocks;
-        if !is_synced(&info) {
+        if !done(&info)? {
             info!("Waiting for node to sync...");
+            loop {
+                sleep(Duration::from_secs(1));
+                info = self.get_blockchain_info()?;
+                lowest = lowest.min(info.blocks);
+                if done(&info)? {
+                    break;
+                }
+            }
         }
-        while !is_synced(&info) {
-            sleep(Duration::from_secs(1));
-            info = self.get_blockchain_info()?;
-            lowest = lowest.min(info.blocks);
-        }
-
         Ok(Height::from(lowest as u64))
     }
 
@@ -280,5 +397,37 @@ impl Client {
         s.parse::<BitcoinBlockHash>()
             .map(BlockHash::from)
             .map_err(|e| Error::Parse(format!("{label}: {e}")))
+    }
+}
+
+#[cfg(test)]
+mod priority_tests {
+    use super::*;
+
+    fn rpc_error(code: i32) -> Error {
+        Error::CorepcRPC(JsonRpcError::Rpc(serde_json::from_value(json!({"code": code, "message": "fixture"})).unwrap()))
+    }
+
+    #[test]
+    fn priority_metadata_distinguishes_unsupported_empty_and_failed() {
+        assert!(Client::build_modified_fees(Err(rpc_error(-32601))).unwrap().is_empty());
+        assert!(Client::build_modified_fees(Ok(RawValue::from_string("{}".into()).unwrap())).unwrap().is_empty());
+        assert!(Client::build_modified_fees(Err(rpc_error(-28))).is_err());
+        let previous = [("00".repeat(32).parse::<Txid>().unwrap(), i64::MIN)];
+        assert_eq!(&*Client::modified_fees(Err(rpc_error(-1)), &previous), &previous);
+        assert_eq!(&*Client::modified_fees(Err(Error::Parse("fixture".into())), &previous), &previous);
+        assert!(Client::modified_fees(Err(rpc_error(-32601)), &previous).is_empty());
+        assert!(Client::modified_fees(Ok(RawValue::from_string("{}".into()).unwrap()), &previous).is_empty());
+        assert!(Client::build_modified_fees(Err(Error::Parse("fixture".into()))).is_err());
+        let txid = "00".repeat(32);
+        for (delta, modified) in [(i64::MAX, i64::MIN), (0, 4_200_000_000_000_000)] {
+            let raw = RawValue::from_string(format!(r#"{{"{txid}":{{"fee_delta":{delta},"in_mempool":true,"modified_fee":{modified}}}}}"#)).unwrap();
+            let fees = Client::build_modified_fees(Ok(raw)).unwrap();
+            assert_eq!(fees[0].1, modified); // Authoritative amount, never base+delta.
+        }
+        let raw = RawValue::from_string(format!(r#"{{"{txid}":{{"fee_delta":1,"in_mempool":true}}}}"#)).unwrap();
+        assert!(Client::build_modified_fees(Ok(raw)).is_err());
+        let raw = RawValue::from_string(format!(r#"{{"{txid}":{{"fee_delta":1,"in_mempool":false}}}}"#)).unwrap();
+        assert!(Client::build_modified_fees(Ok(raw)).unwrap().is_empty());
     }
 }

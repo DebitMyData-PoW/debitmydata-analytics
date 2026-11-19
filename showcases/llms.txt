@@ -1,6 +1,6 @@
 # DebitMyData Analytics
 
-> Free, open-source analytics API for the DebitMyData (DMD) chain, built on Bitview. 15032 on-chain time-series and 95 API operations. US dollar values use DMD's reference price (the cost of mining one DMD, at least $0.001), not a market price.
+> DebitMyData Analytics is a free, open-source data server for the DebitMyData (DMD) chain, built on Bitview: on-chain metrics, blocks, mempool and mining data, with charts and an API. US dollar values use DMD's reference price (the cost of mining one DMD, at least $0.001), not a market price. 17239 on-chain time-series and 105 API operations.
 
 ## API
 
@@ -18,14 +18,17 @@ Build tools from the full OpenAPI document; the compact summary is a smaller cus
 
 ## Series workflow
 
-Never invent a series identifier.
+1. `GET /api/series/search?q=<q>`: search by meaning with plain words; it returns series ids.
+2. `GET /api/series/{series}`: read a returned id's description, supported indexes, value type, unit (what the value type measures), accumulation (how its values combine over time), and the indexes whose values can be null (missing or undefined).
+3. `GET /api/series/{series}/{index}`, `GET /api/series/{series}/{index}/latest`, `GET /api/series/bulk?series=<series>&index=<index>`: pick one of those indexes and fetch its values (`start` inclusive, `end` exclusive), the latest value alone, or several comma-separated series at once.
 
-1. Search by meaning: `GET /api/series/search?q=<plain-language concept>`.
-2. Inspect a returned identifier: `GET /api/series/<series>` returns its description, supported indexes, value type, unit (what the value type measures), and the indexes whose values can be null (missing or undefined).
-3. Fetch data: `GET /api/series/<series>/<index>?start=<inclusive>&end=<exclusive>`.
-4. Fetch one current value with `GET /api/series/<series>/<index>/latest`. For several series, use `GET /api/series/bulk?series=<comma-separated names>&index=<index>`.
+Never invent a series id: only ids the API returned exist.
 
-## Source
+## Agent Skill
+
+- [SKILL.md](https://analytics.debitmydata.io/.well-known/agent-skills/debitmydata-analytics/SKILL.md), listed in the [skill index](https://analytics.debitmydata.io/.well-known/agent-skills/index.json)
+
+## Source and license
 
 - [GitHub](https://github.com/DebitMyData-PoW/debitmydata-analytics), a fork of [Bitview](https://github.com/bitcoinresearchkit/mono)
-- MIT licensed
+- Code: MIT.

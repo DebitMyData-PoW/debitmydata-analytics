@@ -16,8 +16,9 @@ brk_oracle = { workspace = true }
 brk_rpc = { workspace = true }
 brk_types = { workspace = true }
 derive_more = { workspace = true }
-indexmap = { workspace = true }
 tracing = { workspace = true }
+lz4_flex = { workspace = true, features = ["checked-decode"] }
+rapidhash = { workspace = true }
 rustc-hash = { workspace = true }
 smallvec = { workspace = true }
 serde = { workspace = true }

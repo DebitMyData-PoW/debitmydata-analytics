@@ -19,17 +19,24 @@ Options:
 Events (one JSON object per line), from each published pool against the previous one:
   Per-tx (one event per change):
     {"kind":"enter","t":..,"txid":..,"vsize":..,"fee":..,"rate":..,"first_seen":..}
-    {"kind":"leave","t":..,"txid":..,"reason":"vanished"}
+    {"kind":"leave","t":..,"txid":..,"reason":"mined"}
     {"kind":"leave","t":..,"txid":..,"reason":"replaced","by":..}
+    {"kind":"leave","t":..,"txid":..,"reason":"vanished"}   (expired, evicted, or not told apart)
 
-  State (on the first cycle, then whenever the value changes):
+  State (on the first cycle, then whenever the value changes; block and fees at the tip's pool):
     {"kind":"tip","t":..,"hash":..,"height":..}        (chain tip)
     {"kind":"block","t":..,"hash":..,"count":..,"vsize":..,"fee":..}
-                                                       (next-block template)
+                                                       (next-block template; vsize its weight / 4)
     {"kind":"fees","t":..,"fastest":..,"half_hour":..,"hour":..,"economy":..,"minimum":..}
 
+  A transaction's and the pool's vsize (enter, cycle) is Core's policy vsize, sigop-adjusted: what fee
+  rates divide by. A new tip comes before the leaves its block mined.
+
   Per-cycle heartbeat (every successful cycle):
-    {"kind":"cycle","t":..,"added":N,"removed":N,"count":N,"vsize":N,"fee":N,"took_ms":N}
+    {"kind":"cycle","t":..,"added":N,"removed":N,"count":N,"vsize":N,"fee":N,"tick_ms":N}
+  A cycle that published nothing instead (the node unreachable, an RPC error, a block arriving
+  mid-cycle, the node reloading its mempool); failures retry with backoff up to 4 s:
+    {"kind":"stall","t":..,"reason":..}
 
 Examples:
   mmpl | jq -c 'select(.kind=="enter" and .rate>=50)'

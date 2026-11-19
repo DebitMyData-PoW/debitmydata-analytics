@@ -2,46 +2,52 @@
 //! discovery, topo-sort, and loading into a [`brk_cpfp::Cluster`] (shared
 //! with bitview_query's confirmed CPFP and the transactions plugin).
 
-use std::collections::VecDeque;
+use std::{cmp::Reverse, collections::BinaryHeap};
 
 use brk_cpfp::Cluster;
-use brk_types::CpfpClusterTxIndex;
-use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
+use brk_types::{CpfpClusterTxIndex, FeeRate, Sats, Weight};
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::{SnapTx, TxIndex};
 
-/// Matches Bitcoin Core 31's `MAX_CLUSTER_COUNT_LIMIT`.
-const MAX_CLUSTER: usize = 64;
-
-/// Capped DFS over the undirected dependency graph (`parents ∪
-/// children`) starting from `seed`. Returns the connected component
-/// truncated to `MAX_CLUSTER`, with `seed` at index 0.
+/// The whole connected component holding `seed` over `parents ∪ children`, in txid order: one
+/// order whichever member a walk starts from and however the pool's slots fall, so every
+/// linearization of it (the snapshot's rates, each CPFP answer, a cached one) is the same. Never
+/// cut short: Core keeps a cluster to 64 transactions; an older or other node's can be larger,
+/// linearized whole.
 pub fn walk(txs: &[SnapTx], seed: TxIndex) -> Vec<TxIndex> {
+    walk_within(txs, seed, |_| true)
+}
+
+/// [`walk`] over the members `keep` accepts alone (`seed` among them): the piece of the
+/// component that stays connected without the rest.
+pub fn walk_within(txs: &[SnapTx], seed: TxIndex, keep: impl Fn(TxIndex) -> bool) -> Vec<TxIndex> {
     debug_assert!(seed.as_usize() < txs.len());
-    let mut visited: FxHashSet<TxIndex> =
-        FxHashSet::with_capacity_and_hasher(MAX_CLUSTER, FxBuildHasher);
+    let mut visited: FxHashSet<TxIndex> = FxHashSet::default();
     visited.insert(seed);
-    let mut out: Vec<TxIndex> = Vec::with_capacity(MAX_CLUSTER);
-    out.push(seed);
-    let mut stack: Vec<TxIndex> = vec![seed];
+    let mut out = vec![seed];
+    let mut stack = vec![seed];
     while let Some(idx) = stack.pop() {
         let t = &txs[idx.as_usize()];
         for &n in t.parents.iter().chain(t.children.iter()) {
-            if out.len() >= MAX_CLUSTER {
-                return out;
-            }
-            if visited.insert(n) {
+            if keep(n) && visited.insert(n) {
                 out.push(n);
                 stack.push(n);
             }
         }
     }
+    out.sort_unstable_by(|&a, &b| txs[a.as_usize()].txid.cmp(&txs[b.as_usize()].txid));
     out
 }
 
 /// Load the connected component into `graph` in topological order, parent
 /// edges remapped to local indices, and return the members: `graph`'s
 /// local index `i` is `members[i]`.
+///
+/// `graph` checks its members' weights only in debug builds: they are bounded
+/// where the node's data enters, a mempool entry's weight and sigop-adjusted
+/// size in `MempoolEntry`'s conversion, a body's sigops by
+/// `TxRecord::policy_sigops`. A new source of `SnapTx`s bounds its own.
 pub fn load(txs: &[SnapTx], component: &[TxIndex], graph: &mut Cluster) -> Vec<TxIndex> {
     let position: FxHashMap<TxIndex, usize> = component
         .iter()
@@ -53,12 +59,25 @@ pub fn load(txs: &[SnapTx], component: &[TxIndex], graph: &mut Cluster) -> Vec<T
     for (i, &p) in order.iter().enumerate() {
         local[p] = i as u32;
     }
+    // Core's fallback order settles equal feerates: by txid.
+    let mut by_txid: Vec<usize> = (0..component.len()).collect();
+    by_txid.sort_unstable_by(|&a, &b| {
+        txs[component[a].as_usize()]
+            .txid
+            .cmp(&txs[component[b].as_usize()].txid)
+    });
+    let mut fallback = vec![0u32; component.len()];
+    for (place, &p) in by_txid.iter().enumerate() {
+        fallback[p] = place as u32;
+    }
     graph.clear();
     for &p in &order {
         let t = &txs[component[p].as_usize()];
-        graph.push(
+        graph.push_ranked(
             t.fee,
-            t.vsize,
+            t.modified,
+            t.sigops.adjust_weight(t.weight),
+            fallback[p],
             t.parents
                 .iter()
                 .filter_map(|parent| position.get(parent))
@@ -70,7 +89,8 @@ pub fn load(txs: &[SnapTx], component: &[TxIndex], graph: &mut Cluster) -> Vec<T
 
 /// Kahn's topological sort over the connected component, restricted to
 /// in-cluster parent edges. Returns component positions in an order where
-/// every tx follows all its in-cluster parents.
+/// every tx follows all its in-cluster parents, the earliest ready position first: the order
+/// depends on the component's own order alone.
 fn topo_sort(
     txs: &[SnapTx],
     component: &[TxIndex],
@@ -92,16 +112,30 @@ fn topo_sort(
             }
         }
     }
-    let mut queue: VecDeque<usize> = (0..n).filter(|&i| indeg[i] == 0).collect();
+    let mut ready: BinaryHeap<Reverse<usize>> =
+        (0..n).filter(|&i| indeg[i] == 0).map(Reverse).collect();
     let mut out: Vec<usize> = Vec::with_capacity(n);
-    while let Some(i) = queue.pop_front() {
+    while let Some(Reverse(i)) = ready.pop() {
         out.push(i);
         for &c in &children[i] {
             indeg[c] -= 1;
             if indeg[c] == 0 {
-                queue.push_back(c);
+                ready.push(Reverse(c));
             }
         }
     }
     out
+}
+
+/// A chunk's feerate by what its members pay (base fees) over their policy weight: what is shown.
+/// Linearization and packing rank by modified fees instead; without an operator's delta the two
+/// agree.
+pub fn paid_rate(txs: &[SnapTx], members: impl IntoIterator<Item = TxIndex>) -> FeeRate {
+    let (fee, weight) = members
+        .into_iter()
+        .map(|m| &txs[m.as_usize()])
+        .fold((Sats::ZERO, Weight::default()), |(fee, weight), t| {
+            (fee + t.fee, weight + t.sigops.adjust_weight(t.weight))
+        });
+    FeeRate::from((fee, weight))
 }

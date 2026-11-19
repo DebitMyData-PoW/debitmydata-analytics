@@ -2,7 +2,8 @@ mod compute;
 mod import;
 mod vecs;
 
-pub use vecs::{Scripts, Signatures, Vecs};
+pub(crate) use compute::FEATURES;
+pub use vecs::{Scripts, Shapes, Signatures, Vecs};
 
 /// The features with a flag, by group, passed to `$callback`: each name is also its indexer
 /// feature's, and its count id is `<name>_tx_count`.
@@ -35,4 +36,4 @@ macro_rules! with_flagged_features {
         )
     };
 }
-use with_flagged_features;
+pub(crate) use with_flagged_features;

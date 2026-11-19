@@ -1,5 +1,3 @@
-use std::convert::Infallible;
-
 use rangeindex::RangeMap;
 
 use vecdb::{ReadableVec, VecIndex, VecValue};
@@ -11,6 +9,16 @@ use vecdb::{ReadableVec, VecIndex, VecValue};
 ///
 /// `Sparse` (the last value, or none) is the built-in one.
 pub trait AggFold<O: VecValue, S1I: VecIndex, S1T: VecValue>: 'static {
+    /// The output's length: one value per mapped range. A strategy that answers every range from
+    /// the source's rows (not missing past them) stops at the ranges the source reaches.
+    #[inline]
+    fn len<MI: VecIndex, S: ReadableVec<S1I, S1T> + ?Sized>(
+        _source: &S,
+        mapping: &RangeMap<S1I, MI>,
+    ) -> usize {
+        mapping.len()
+    }
+
     fn try_fold<
         MI: VecIndex,
         S: ReadableVec<S1I, S1T> + ?Sized,
@@ -35,7 +43,7 @@ pub trait AggFold<O: VecValue, S1I: VecIndex, S1T: VecValue>: 'static {
         mut f: F,
     ) -> B {
         let Ok(b) = Self::try_fold(source, mapping, from, to, init, |b, o| {
-            Ok::<_, Infallible>(f(b, o))
+            Ok::<_, !>(f(b, o))
         });
         b
     }

@@ -10,7 +10,8 @@ use std::{
     os::unix::fs::FileExt,
     path::{Path, PathBuf},
 };
-const MAGIC: &[u8; 8] = b"STAPAGE4";
+/// The index of snapshots packed at `snapshot::PACKED_LEVEL`.
+const MAGIC: &[u8; 8] = b"STAPAGE5";
 const INDEX_HEADER: usize = 9;
 const ROW: usize = 12;
 const TIP: &str = "tip";
@@ -36,19 +37,17 @@ impl Tip {
         };
         let mut header = [0; HEADER];
         dir.read_exact_at(&mut header, 0)?;
-        // Tips of older formats are rebuilt: restores use retained snapshots meanwhile. A writer
-        // removes page files no tip refers to: a reader racing it reads without that tip.
-        let pages = if &header[..8] == PAGED {
-            let pages = OpenOptions::new()
-                .read(true)
-                .write(writable)
-                .open(pages_path(path, snapshot::generation(&header)));
-            match pages {
-                Err(error) if error.kind() == ErrorKind::NotFound => None,
-                pages => Some(pages?),
-            }
-        } else {
-            None
+        if &header[..8] != PAGED {
+            return Err(invalid("unsupported snapshot tip layout; rebuild the state"));
+        }
+        // A writer removes page files no tip refers to: a reader racing it reads without that tip.
+        let pages = OpenOptions::new()
+            .read(true)
+            .write(writable)
+            .open(pages_path(path, snapshot::generation(&header)));
+        let pages = match pages {
+            Err(error) if error.kind() == ErrorKind::NotFound => None,
+            pages => Some(pages?),
         };
         let Some(pages) = pages else {
             if writable {
@@ -117,8 +116,11 @@ impl Snapshots {
             ErrorKind::NotFound if writable => Ok(Vec::new()),
             _ => Err(error),
         })?;
-        if bytes.is_empty() && writable {
-            if data.metadata()?.len() != 0 {
+        // Snapshots packed at PCO level 3 are dropped like a new store's: the length check below
+        // truncates `data`, and the next advance lays them out again at the current level.
+        let level_3 = bytes.starts_with(b"STAPAGE4");
+        if writable && (bytes.is_empty() || level_3) {
+            if !level_3 && data.metadata()?.len() != 0 {
                 return Err(invalid("missing snapshot page index"));
             }
             bytes = [MAGIC.as_slice(), &[0]].concat();
@@ -133,9 +135,9 @@ impl Snapshots {
         if &bytes[..8] != MAGIC {
             return Err(invalid("unsupported snapshot page index"));
         }
-        let retained_last = bytes[8];
-        if retained_last > 1 || bytes.len() == INDEX_HEADER && retained_last != 0 {
-            return Err(invalid("invalid snapshot retention"));
+        // Whether any snapshot is retained; older layouts also kept the tip in `data`, so fail.
+        if bytes[8] != u8::from(bytes.len() > INDEX_HEADER) {
+            return Err(invalid("unsupported snapshot page index layout; rebuild the state"));
         }
         let mut entries: Vec<(usize, u64, u64)> =
             Vec::with_capacity((bytes.len() - INDEX_HEADER) / ROW);
@@ -152,12 +154,6 @@ impl Snapshots {
             }
             entries.push((h, end, next - end));
             end = next;
-        }
-        // Older layouts kept the replaceable tip as the last entry of `data`: drop it.
-        if retained_last == 0
-            && let Some((_, at, _)) = entries.pop()
-        {
-            end = at;
         }
         // A reader may see snapshots appended after its index, or a rewind's truncation of
         // entries its index still lists (rewinds shorten the index first); a writer drops both.
@@ -270,7 +266,7 @@ impl Snapshots {
         after: usize,
         end: usize,
         versions: (u64, u64),
-    ) -> impl Iterator<Item = Result<Option<Snapshot>>> + '_ {
+    ) -> impl DoubleEndedIterator<Item = Result<Option<Snapshot>>> + '_ {
         debug_assert!(after <= end);
         let to = self.entries.partition_point(|&(h, _, _)| h <= end);
         let from = self.entries.partition_point(|&(h, _, _)| h <= after);
@@ -278,6 +274,20 @@ impl Snapshots {
             .iter()
             .rev()
             .map(move |&e| self.read(e, versions))
+    }
+    /// Where the retained snapshots through `len` stop being one at each multiple of `interval`:
+    /// `len` when none is missing, else the last of the run from the first.
+    pub fn laid_out_through(&self, interval: usize, len: usize) -> usize {
+        let through = self.entries.partition_point(|&(h, _, _)| h <= len);
+        let laid = (self.entries[..through].iter())
+            .zip(1..)
+            .take_while(|&(&(h, _, _), k)| h == k * interval)
+            .count();
+        if laid == len / interval { len } else { laid * interval }
+    }
+    #[cfg(test)]
+    pub(crate) fn heights(&self) -> Vec<usize> {
+        self.entries.iter().map(|&(h, _, _)| h).collect()
     }
     /// Drops every snapshot past `start`: after a rewind they describe a replaced chain.
     pub fn truncate(&mut self, start: usize) -> Result<()> {

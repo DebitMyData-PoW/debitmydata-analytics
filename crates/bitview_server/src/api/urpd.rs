@@ -5,7 +5,6 @@ use axum::{
     response::Response,
 };
 use bitview_types::{HeightOrDate, Urpd, UrpdCohort};
-use serde_json::to_vec;
 
 use super::AppState;
 use crate::{
@@ -46,7 +45,7 @@ async fn serve_urpd(
                     .stable_if(resolved.is_settled(), cdn_cache_mode);
                 Ok((resolved, params))
             },
-            |q, resolved| Ok(to_vec(&q.urpd_resolved(resolved)?)?.into()),
+            |q, resolved| Ok(q.urpd_resolved(resolved)?.into()),
         )
         .await?)
 }
@@ -89,7 +88,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     .tag(tags::URPD)
                     .summary("Latest URPD")
                     .description(
-                        "URPD for the latest published block; `date` echoes the date served. \
+                        "URPD (UTXO realized price distribution: how much supply last moved at each price) for the latest published block; `date` echoes the date served. \
                         Fields, units, price-grid rounding and weighting as in \
                         `GET /api/urpd/{cohort}/{point}`.",
                     )
@@ -114,7 +113,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     .tag(tags::URPD)
                     .summary("URPD at block height or date")
                     .description(
-                        "URPD for a cohort at a block height or the last block of a UTC day. Returns \
+                        "URPD (UTXO realized price distribution: how much supply last moved at each price) for a cohort at a block height or the last block of a UTC day. Returns \
                         `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where \
                         `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry \
                         per bucket in ascending price: the same block header and columnar layout as \

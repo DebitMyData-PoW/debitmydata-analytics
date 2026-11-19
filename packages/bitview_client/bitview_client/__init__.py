@@ -7,6 +7,7 @@ from functools import cached_property
 from typing import TypeVar, Generic, Any, Callable, Dict, Optional, List, Iterator, Literal, TypedDict, Union, Protocol, Tuple, TYPE_CHECKING
 from http.client import HTTPException, HTTPSConnection, HTTPConnection
 from urllib.parse import quote, urlencode, urlparse
+from time import monotonic
 from datetime import date, datetime, timedelta, timezone
 import json
 import re
@@ -21,6 +22,8 @@ T = TypeVar('T')
 Year10 = int
 # Index of a year.
 Year1 = int
+# Proof of work, in the hashes expected to find it.
+Work = float
 # A mean weight in weight units.
 WeightFract = float
 # Weight in weight units (WU): non-witness bytes count four and witness bytes one. A block holds
@@ -92,10 +95,17 @@ TxOutIndex = int
 TxIndex = int
 # Index of a transaction input.
 TxInIndex = int
+# A BIP352 silent payments tweak, `input_hash·A`: the compressed point a wallet multiplies by
+# its scan key for the secret it shares with the transaction.
+Tweak = str
 # A Unix timestamp, in seconds.
 Timestamp = int
 # Lookback window for mining statistics.
 TimePeriod = Literal["24h", "3d", "1w", "1m", "3m", "6m", "1y", "2y", "3y", "4y", "all"]
+# A spend of a Taproot output as BlindBit's light clients test for it: the first 8 bytes of
+# `sha256(txid ‖ vout ‖ block hash)`, the txid and the spending block's hash in internal
+# byte order, the vout little-endian.
+SpentOutputHash = str
 # BIP-141 signature-operation cost: legacy and P2SH-redeem sigops count four and witness sigops
 # one. Sums over many transactions or blocks use the full 64 bits.
 SigOps = int
@@ -106,8 +116,8 @@ ServerVersion = str
 SeriesName = str
 # Comma-separated list of series names
 #
-# Deserialization permits at most 32 normalized names and 2,048 decoded input
-# string bytes. For arrays, the byte budget is shared by their string values.
+# Deserialization permits at most 32 names, each exact, and 2,048 decoded input
+# string bytes. Array members must all be strings and share the byte budget.
 SeriesList = str
 # A mean duration in seconds.
 SecondsFract = float
@@ -120,6 +130,14 @@ Sats = int
 # Consecutive transactions kept from the prior block, `[start, count]`: its positions
 # `start..start + count`, in order.
 RetainedRun = List[int]
+# One stretch of the new block in a `MempoolBlockDiff`.
+#
+# Untagged on the wire so JSON type disambiguates the variants:
+# - `Retained(run)` serializes as `[start, count]`: the prior block's transactions
+#   `start..start + count` (which the client cached at `since`), kept in order.
+# - `New(tx)` serializes as a transaction in its light shape: one that was new or changed since
+#   the prior block and takes this position.
+MempoolBlockDiffEntry = Union[RetainedRun, "MempoolTxSummary"]
 # Transaction locktime. Values below 500,000,000 are interpreted as block heights; values at or above are Unix timestamps.
 RawLockTime = int
 # A dimensionless ratio: a quotient or share, read as a plain number.
@@ -127,7 +145,7 @@ Ratio = float
 # A positional index, YYYY-MM-DD date, or ISO 8601 timestamp.
 RangeIndex = Union[int, str, str]
 # A mining pool's identifier, as written in URLs.
-PoolSlug = Literal["unknown", "blockfills", "ultimuspool", "terrapool", "luxor", "1thash", "btccom", "bitfarms", "huobipool", "wayicn", "canoepool", "btctop", "bitcoincom", "175btc", "gbminers", "axbt", "asicminer", "bitminter", "bitcoinrussia", "btcserv", "simplecoinus", "btcguild", "eligius", "ozcoin", "eclipsemc", "maxbtc", "triplemining", "coinlab", "50btc", "ghashio", "stminingcorp", "bitparking", "mmpool", "polmine", "kncminer", "bitalo", "f2pool", "hhtt", "megabigpower", "mtred", "nmcbit", "yourbtcnet", "givemecoins", "braiinspool", "antpool", "multicoinco", "bcpoolio", "cointerra", "kanopool", "solock", "ckpool", "nicehash", "bitclub", "bitcoinaffiliatenetwork", "btcc", "bwpool", "exxbw", "bitsolo", "bitfury", "21inc", "digitalbtc", "8baochi", "mybtccoinpool", "tbdice", "hashpool", "nexious", "bravomining", "hotpool", "okexpool", "bcmonster", "1hash", "bixin", "tatmaspool", "viabtc", "connectbtc", "batpool", "waterhole", "dcexploration", "dcex", "btpool", "58coin", "bitcoinindia", "shawnp0wers", "phashio", "rigpool", "haozhuzhu", "7pool", "miningkings", "hashbx", "dpool", "rawpool", "haominer", "helix", "bitcoinukraine", "poolin", "secretsuperstar", "tigerpoolnet", "sigmapoolcom", "okpooltop", "hummerpool", "tangpool", "bytepool", "spiderpool", "novablock", "miningcity", "binancepool", "minerium", "lubiancom", "okkong", "aaopool", "emcdpool", "foundryusa", "sbicrypto", "arkpool", "purebtccom", "marapool", "kucoinpool", "entrustcharitypool", "okminer", "titan", "pegapool", "btcnuggets", "cloudhashing", "digitalxmintsy", "telco214", "btcpoolparty", "multipool", "transactioncoinmining", "btcdig", "trickysbtcpool", "btcmp", "eobot", "unomp", "patels", "gogreenlight", "bitcoinindiapool", "ekanembtc", "canoe", "tiger", "1m1x", "zulupool", "secpool", "ocean", "whitepool", "wiz", "wk057", "futurebitapollosolo", "carbonnegative", "portlandhodl", "phoenix", "neopool", "maxipool", "bitfufupool", "gdpool", "miningdutch", "publicpool", "miningsquared", "innopolistech", "btclab", "parasite", "redrockpool", "est3lar", "braiinssolo", "solopoolcom", "noderunners", "dmnd", "debitmydata"]
+PoolSlug = Literal["unknown", "blockfills", "ultimuspool", "terrapool", "luxor", "1thash", "cloverpool", "bitfarms", "huobipool", "wayicn", "canoepool", "btctop", "bitcoincom", "175btc", "gbminers", "axbt", "asicminer", "bitminter", "bitcoinrussia", "btcserv", "simplecoinus", "btcguild", "eligius", "ozcoin", "eclipsemc", "maxbtc", "triplemining", "coinlab", "50btc", "ghashio", "stminingcorp", "bitparking", "mmpool", "polmine", "kncminer", "bitalo", "f2pool", "hhtt", "megabigpower", "mtred", "nmcbit", "yourbtcnet", "givemecoins", "braiinspool", "antpool", "multicoinco", "bcpoolio", "cointerra", "kanopool", "solock", "ckpool", "nicehash", "bitclub", "bitcoinaffiliatenetwork", "btcc", "bwpool", "exxbw", "bitsolo", "bitfury", "21inc", "digitalbtc", "8baochi", "mybtccoinpool", "tbdice", "hashpool", "nexious", "bravomining", "hotpool", "okexpool", "bcmonster", "1hash", "bixin", "tatmaspool", "viabtc", "connectbtc", "batpool", "waterhole", "dcexploration", "dcex", "btpool", "58coin", "bitcoinindia", "shawnp0wers", "phashio", "rigpool", "haozhuzhu", "7pool", "miningkings", "hashbx", "dpool", "rawpool", "haominer", "helix", "bitcoinukraine", "poolin", "secretsuperstar", "tigerpoolnet", "sigmapoolcom", "okpooltop", "hummerpool", "tangpool", "bytepool", "spiderpool", "novablock", "miningcity", "binancepool", "minerium", "lubiancom", "okkong", "aaopool", "emcdpool", "foundryusa", "sbicrypto", "arkpool", "purebtccom", "marapool", "kucoinpool", "entrustcharitypool", "okminer", "titan", "pegapool", "btcnuggets", "cloudhashing", "digitalxmintsy", "telco214", "btcpoolparty", "multipool", "transactioncoinmining", "btcdig", "trickysbtcpool", "btcmp", "eobot", "unomp", "patels", "gogreenlight", "bitcoinindiapool", "ekanembtc", "canoe", "tiger", "1m1x", "zulupool", "secpool", "ocean", "whitepool", "wiz", "wk057", "futurebitapollosolo", "carbonnegative", "portlandhodl", "phoenix", "neopool", "maxipool", "bitfufupool", "gdpool", "miningdutch", "publicpool", "miningsquared", "innopolistech", "btclab", "parasite", "redrockpool", "est3lar", "braiinssolo", "solopoolcom", "noderunners", "dmnd", "trustpool", "debitmydata"]
 # A percentage: a ratio times 100.
 Percent = float
 # Events per second.
@@ -155,7 +173,7 @@ OutputTypeNormalized = Literal["p2pk", "p2pkh", "multisig", "p2sh", "op_return",
 # An output's script type (P2PKH, P2WPKH, P2SH, P2TR…).
 OutputType = Literal["p2pk65", "p2pk33", "p2pkh", "p2ms", "p2sh", "op_return", "p2wpkh", "p2wsh", "p2tr", "p2a", "empty_script", "unknown_script"]
 # Protocol or format detected in an OP_RETURN output.
-OpReturnKind = Literal["runes", "witness_commitment", "veriblock", "omni", "stacks", "blockstack", "colu", "open_assets", "komodo", "coinspark", "poet", "docproof", "factom", "eternity_wall", "memo", "bitproof", "ascribe", "stampery", "bare_hash", "text", "empty", "unknown"]
+OpReturnKind = Literal["runes", "witness_commitment", "veriblock", "omni", "stacks", "blockstack", "colu", "open_assets", "komodo", "coinspark", "poet", "docproof", "factom", "eternity_wall", "memo", "bitproof", "ascribe", "stampery", "bip47", "bare_hash", "text", "empty", "unknown"]
 # A multiple: one value over another of its kind, 1 at parity (MVRV, SOPR, a price over its
 # average).
 Multiple = float
@@ -172,7 +190,7 @@ Minute10 = int
 # A merkle tree node: a double-SHA256 hash, hex-encoded in the usual display byte order.
 MerkleNode = str
 # A projected mempool block's position, as `/api/v1/fees/mempool-blocks` lists them: 0 is the
-# next block, Bitcoin Core's `getblocktemplate` selection.
+# next block.
 MempoolBlockIndex = int
 # Content hash of a projected mempool block, including its statistics and complete
 # transaction bodies. Opaque token, distinct from HTTP ETag formatting: pass back to
@@ -186,7 +204,6 @@ Limit = int
 JsonType = Literal["null", "boolean", "integer", "number", "string", "array", "object"]
 # Aggregation dimension for querying series. Includes time-based (date, week, month, year), block-based (height, tx_index), and address/output type indexes.
 Index = Literal["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving_epoch", "difficulty_epoch", "height", "tx_index", "txin_index", "txout_index", "empty_script_output_index", "op_return_output_index", "p2a_address_index", "p2ms_output_index", "p2pk33_address_index", "p2pk65_address_index", "p2pkh_address_index", "p2sh_address_index", "p2tr_address_index", "p2wpkh_address_index", "p2wsh_address_index", "unknown_script_output_index"]
-TreeNode = Union[dict[str, "TreeNode"], "SeriesLeafWithSchema"]
 # Index of a 4-hour period.
 Hour4 = int
 # Index of a 12-hour period.
@@ -214,13 +231,15 @@ Format = Literal["json", "csv"]
 Float = float
 # Fee rate stored in milli-sat/vB and exposed as sat/vB.
 FeeRate = float
+# A number of things expected from chance: a sum of probabilities.
+ExpectedCount = float
 # Always empty: prices are quoted in USD only.
 ExchangeRates = dict
 # Error category, following the HTTP status: `invalid_request` (4xx other than 404),
 # `not_found` (404), `unavailable` (503; `Retry-After` when transient), `timeout` (504), `internal`
 # (other 5xx).
 ErrorType = Literal["invalid_request", "not_found", "unavailable", "timeout", "internal"]
-ErrorCode = Literal["not_found", "invalid_address", "invalid_network", "unsupported_type", "no_series", "series_unsupported_index", "weight_exceeded", "too_many_utxos", "unknown_after_txid", "unknown_address", "unknown_txid", "unknown_pool", "out_of_range", "unindexable_date", "no_data", "series_not_found", "mempool_not_available", "state_updating", "internal_error", "bad_request", "overloaded", "timeout", "method_not_allowed"]
+ErrorCode = Literal["not_found", "invalid_address", "invalid_network", "unsupported_type", "no_series", "series_unsupported_index", "weight_exceeded", "too_many_utxos", "limit_exceeded", "unknown_after_txid", "unknown_address", "unknown_txid", "unknown_pool", "out_of_range", "unindexable_date", "no_data", "series_not_found", "mempool_not_available", "state_updating", "internal_error", "bad_request", "overloaded", "timeout", "method_not_allowed"]
 # An amount in US dollars.
 Dollars = float
 # Open, high, low and close prices in US dollars: [open, high, low, close].
@@ -258,6 +277,8 @@ Cpfp = Union["CpfpInfo", "ConfirmedCpfp", "EmptyCpfp"]
 CountSigned = int
 # A mean number of things.
 CountFract = float
+# A number of things that fits 32 bits, such as outputs per block.
+Count32 = int
 # A number of things.
 Count = int
 # Up to the first 100 bytes of a coinbase transaction's first-input
@@ -285,77 +306,23 @@ Boolean = bool
 # Position of a transaction within a single block (0 = coinbase).
 # Distinct from `TxIndex`, which is the chain-wide global tx index.
 BlockTxIndex = int
-# How far the node validated a fork tip (bitcoind's `getchaintips` statuses other than
-# `active`).
-BlockOrphanStatus = Union[Literal["invalid"], Literal["headers-only"], Literal["valid-headers"], Literal["valid-fork"]]
+# How far the node validated a fork (bitcoind's `getchaintips` statuses for the forks it holds
+# as valid).
+BlockOrphanStatus = Union[Literal["valid-headers"], Literal["valid-fork"]]
 # Double-SHA256 block-header hash, serialized in Bitcoin's conventional
 # hexadecimal byte order.
 BlockHash = str
+# Which of a block's two filters.
+BlindbitFilterKind = Union[Literal["new-utxos"], Literal["spent"]]
 # An amount in DMD, as a decimal number (1 DMD = 100,000,000 satoshis).
 Bitcoin = float
 # The output type of an address: any output type but `p2ms`, `op_return`, `empty_script` and `unknown_script`.
 AddressOutputType = Literal["p2pk65", "p2pk33", "p2pkh", "p2sh", "p2wpkh", "p2wsh", "p2tr", "p2a"]
 # DebitMyData address (`D…`, `dm1…`), or the hex public key of a P2PK output.
 Address = str
-# One stretch of the new block in a `MempoolBlockDiff`.
-#
-# Untagged on the wire so JSON type disambiguates the variants:
-# - `Retained(run)` serializes as `[start, count]`: the prior block's transactions
-#   `start..start + count` (which the client cached at `since`), kept in order.
-# - `New(tx)` serializes as a transaction object: a body that was new or changed since the
-#   prior block and takes this position.
-MempoolBlockDiffEntry = Union[RetainedRun, "Transaction"]
-class ValidateAddressParam(TypedDict):
-    """
-    Attributes:
-        address: DebitMyData address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130); anything else answers 400, as mempool.space does
-    """
-    address: str
-
-class UrpdCohortParam(TypedDict):
-    cohort: UrpdCohort
-
-class UrpdQuery(TypedDict, total=False):
-    """
-    Attributes:
-        agg: Aggregation strategy. Default: raw (no aggregation).
-        weight: Supply weighting. Default: none (unweighted).
-    """
-    agg: UrpdAggregation
-    weight: UrpdWeight
-
-# Transaction IDs as repeated `txId[]` query parameters.
-TxidsParam = TypedDict("TxidsParam", {"txId[]": List[Txid]})
-
-class TxidVout(TypedDict):
-    """
-    Attributes:
-        vout: Output index
-    """
-    txid: Txid
-    vout: Vout
-
-class TxidParam(TypedDict):
-    txid: Txid
-
-class AddressTxsQuery(TypedDict, total=False):
-    """
-    A page of an address's transactions, mempool ones first.
-
-    Attributes:
-        after_txid: Continue after this transaction, a mempool or a confirmed one: the older ones (a confirmed cursor skips the mempool). One that is neither answers 422.
-        max_txs: Transactions to return, at most 50 (the default); larger values return 50.
-    """
-    after_txid: Union[Txid, None]
-    max_txs: Optional[int]
-
-class TxIndexParam(TypedDict):
-    """
-    Attributes:
-        index: Global transaction index across the chain
-    """
-    index: TxIndex
-
+# How a series' values combine over time.
+Accumulation = Union[Literal["flow"], Literal["level"], Literal["cumulative"]]
+TreeNode = Union[dict[str, "TreeNode"], "SeriesLeafWithSchema"]
 class OutPoint(TypedDict):
     """
     The output a transaction input spends: its transaction index and output position, written as
@@ -363,9 +330,6 @@ class OutPoint(TypedDict):
     """
     tx_index: TxIndex
     vout: Vout
-
-class TimestampParam(TypedDict):
-    timestamp: Timestamp
 
 class PoolHashrateEntry(TypedDict):
     """
@@ -387,16 +351,6 @@ class HashrateEntry(TypedDict):
     """
     timestamp: Timestamp
     avgHashrate: int
-
-class TimePeriodParam(TypedDict):
-    """
-    Attributes:
-        time_period: Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-    """
-    time_period: TimePeriod
-
-class SeriesParam(TypedDict):
-    series: SeriesName
 
 class PaginatedSeries(TypedDict):
     """
@@ -442,20 +396,10 @@ class DetailedSeriesCount(TypedDict):
     stored: int
     by_db: dict[str, SeriesCount]
 
-class _SearchQueryRequired(TypedDict):
-    q: str
-
-class SearchQuery(_SearchQueryRequired, total=False):
+class MempoolTxSummary(TypedDict):
     """
-    Attributes:
-        q: Words to find in series names and descriptions (`realized price`, `mvrv`), in any order
-        limit: Maximum number of results, 1 to 1,000 (default: 100)
-    """
-    limit: int
-
-class MempoolRecentTx(TypedDict):
-    """
-    Simplified mempool transaction for the `/api/mempool/recent` endpoint.
+    An unconfirmed transaction in esplora's light shape, as `/api/mempool/recent` and the projected
+    mempool blocks list them: the whole body is at `GET /api/tx/{txid}`.
 
     Attributes:
         fee: Transaction fee (sats)
@@ -473,7 +417,7 @@ class MempoolInfo(TypedDict):
 
     Attributes:
         count: Number of transactions in the mempool
-        vsize: Total virtual size of all transactions in the mempool (vbytes)
+        vsize: Total virtual size of all transactions in the mempool (vbytes), sigop-adjusted as Bitcoin Core's `getmempoolinfo` `bytes` and every fee rate measure it
         total_fee: Total fees of all transactions in the mempool (satoshis)
         fee_histogram: Fee histogram as Esplora bins it: `[[fee_rate, vsize], ...]` by descending fee rate, each entry the vsize of the transactions paying from its fee rate up to the previous entry's, a bin closing at the first fee rate change past 50,000 vB
     """
@@ -489,6 +433,34 @@ class CpfpEntry(TypedDict):
     txid: Txid
     weight: Weight
     fee: Sats
+
+class EmptyCpfp(TypedDict):
+    """
+    CPFP of a transaction without known relatives: `{"ancestors":[]}`.
+
+    Attributes:
+        ancestors: Always empty.
+    """
+    ancestors: List[CpfpEntry]
+
+class BlockTemplateTransaction(TypedDict):
+    """
+    One transaction of a [`BlockTemplate`].
+
+    Attributes:
+        data: The transaction serialized with its witness, as hex.
+        hash: The witness transaction id.
+        depends: The 1-based positions in `transactions` of the ones it spends.
+        fee: Its fee (sats).
+        sigops: Its signature-operation cost.
+    """
+    data: str
+    txid: Txid
+    hash: str
+    depends: List[int]
+    fee: Sats
+    sigops: SigOps
+    weight: Weight
 
 class AddressMempoolStats(TypedDict):
     """
@@ -570,9 +542,6 @@ class PoolsSummary(TypedDict):
     lastEstimatedHashrate3d: int
     lastEstimatedHashrate1w: int
 
-class PoolSlugParam(TypedDict):
-    slug: PoolSlug
-
 class PoolInfo(TypedDict):
     """
     Attributes:
@@ -605,37 +574,6 @@ PoolBlockShares = TypedDict("PoolBlockShares", {"all": float, "24h": float, "1w"
 # Block counts for different time periods
 PoolBlockCounts = TypedDict("PoolBlockCounts", {"all": int, "24h": int, "1w": int})
 
-class Pagination(TypedDict, total=False):
-    """
-    Attributes:
-        page: Zero-based page number (default: 0)
-        per_page: Results per page, 1 to 1,000 (default: 1000)
-    """
-    page: int
-    per_page: int
-
-class MempoolBlockParam(TypedDict):
-    index: MempoolBlockIndex
-
-class MempoolBlockDiffParam(TypedDict):
-    """
-    The block and the content token a client holds for it.
-
-    Attributes:
-        since: The `hash` of the client's copy, from the block or a previous diff
-    """
-    index: MempoolBlockIndex
-    since: MempoolBlockHash
-
-class LogsQuery(TypedDict, total=False):
-    """
-    Where a reader of the log left off.
-
-    Attributes:
-        after: The last answer's `next`: only the lines since. From a process that's since restarted, or none, every kept line.
-    """
-    after: Optional[str]
-
 class LogLine(TypedDict):
     """
     One line of the server's log.
@@ -643,7 +581,7 @@ class LogLine(TypedDict):
     Attributes:
         seq: Its place in this process's log, from 0 with no gaps.
         unix_ms: When it was logged, in Unix milliseconds.
-        text: What the log files show after the level: a request's status, path and duration, or a message and its fields.
+        text: What the log files show after the level: a request's status, method, path and duration, or a message and its fields.
     """
     seq: int
     unix_ms: int
@@ -661,45 +599,6 @@ class Logs(TypedDict):
     started_unix_ms: int
     lines: List[LogLine]
     next: str
-
-class SeriesNameWithIndex(TypedDict):
-    series: SeriesName
-    index: Index
-
-class _SeriesLeafWithSchemaRequired(TypedDict):
-    name: SeriesName
-    kind: str
-    indexes: List[Index]
-    nullable: List[Index]
-    type: JsonType
-
-class SeriesLeafWithSchema(_SeriesLeafWithSchemaRequired, total=False):
-    """
-    Series leaf with JSON Schema for client generation.
-
-    Attributes:
-        kind: The value type, by its schema's name (e.g., "Sats", "Ratio").
-        nullable: Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN).
-        description: Human-readable metric definition, when documented.
-        type: What the values are on the wire.
-    """
-    description: Optional[str]
-
-class _SeriesInfoRequired(TypedDict):
-    indexes: List[Index]
-    nullable: List[Index]
-    type: str
-
-class SeriesInfo(_SeriesInfoRequired, total=False):
-    """
-    Attributes:
-        description: Human-readable metric definition, when documented
-        nullable: Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN)
-        type: Value type (e.g. "Ratio", "Sats", "Cents")
-        unit: What the value type measures, when documented (e.g. "A duration in days.")
-    """
-    description: Optional[str]
-    unit: Optional[str]
 
 class SyncStatus(TypedDict):
     """
@@ -735,10 +634,6 @@ class RewardStats(TypedDict):
     totalFee: str
     totalTx: str
 
-class PoolSlugAndHeightParam(TypedDict):
-    slug: PoolSlug
-    height: Height
-
 class MerkleProof(TypedDict):
     """
     Merkle inclusion proof for a transaction
@@ -750,9 +645,6 @@ class MerkleProof(TypedDict):
     block_height: Height
     merkle: List[MerkleNode]
     pos: int
-
-class HeightParam(TypedDict):
-    height: Height
 
 class DifficultyEntry(TypedDict):
     """
@@ -862,6 +754,31 @@ class BlockFeeRatesEntry(TypedDict):
     avgFee_90: int
     avgFee_100: int
 
+class BlindbitInfo(TypedDict):
+    """
+    What the server serves.
+
+    Attributes:
+        network: The node's chain name: `main`.
+        height: The last indexed block.
+        tweaks_only: Whether only tweaks are served: `false`, filters and UTXOs are too.
+        tweaks_full_basic: Whether the full tweak index is served without dust limits: `false`, transactions whose Taproot outputs all hold less than 600 sats aren't held.
+        tweaks_full_with_dust_filter: Whether the full tweak index takes a dust limit: `true`.
+        tweaks_cut_through_with_dust_filter: Whether cut-through tweaks (of transactions with an unspent Taproot output) take a dust limit: `true`.
+    """
+    network: str
+    height: Height
+    tweaks_only: bool
+    tweaks_full_basic: bool
+    tweaks_full_with_dust_filter: bool
+    tweaks_cut_through_with_dust_filter: bool
+
+class BlindbitBlockHeight(TypedDict):
+    """
+    The last indexed block's height.
+    """
+    block_height: Height
+
 class Health(TypedDict):
     """
     Attributes:
@@ -888,33 +805,14 @@ class Health(TypedDict):
     last_indexed_at: str
     last_indexed_at_unix: Timestamp
 
-class _SeriesSelectionRequired(TypedDict):
-    series: SeriesList
-    index: Index
+class ForwardTx(TypedDict):
+    """
+    BlindBit's transaction submission body.
 
-class SeriesSelection(_SeriesSelectionRequired, total=False):
-    """
     Attributes:
-        start: Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-        end: Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-        limit: Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
+        data: The raw transaction, hexadecimal.
     """
-    start: Union[RangeIndex, None]
-    end: Union[RangeIndex, None]
-    limit: Union[Limit, None]
-    format: Format
-
-class DataRangeFormat(TypedDict, total=False):
-    """
-    Attributes:
-        start: Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-        end: Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-        limit: Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
-    """
-    start: Union[RangeIndex, None]
-    end: Union[RangeIndex, None]
-    limit: Union[Limit, None]
-    format: Format
+    data: str
 
 class _RbfTxRequired(TypedDict):
     txid: Txid
@@ -934,9 +832,11 @@ class RbfTx(_RbfTxRequired, total=False):
     Attributes:
         value: Sum of output amounts.
         rbf: BIP-125 signaling: at least one input has sequence < 0xffffffff-1.
-        fullRbf: Only populated on the root `tx` of an RBF response. `true` iff this tx displaced at least one non-signaling predecessor.
+        fullRbf: On a transaction that replaced others: whether one it directly replaced didn't signal (mempool.space's `tx.fullRbf`). Absent on one that replaced none.
+        mined: `true` when this transaction is confirmed; absent otherwise.
     """
     fullRbf: Optional[bool]
+    mined: Optional[bool]
 
 class _ReplacementNodeRequired(TypedDict):
     tx: RbfTx
@@ -953,10 +853,12 @@ class ReplacementNode(_ReplacementNodeRequired, total=False):
         time: First-seen timestamp, duplicated here to match mempool.space's on-the-wire shape.
         fullRbf: Any predecessor in this subtree was non-signaling.
         interval: Seconds between this node's `time` and the successor that replaced it. Omitted on the root of an RBF response.
-        mined: `Some(true)` iff this node's tx is currently confirmed. Absent on serialization otherwise.
+        mined: On a tree's root: `true` when a transaction anywhere in the tree is confirmed (mempool.space's tree `mined`; the confirmed one is marked in its `tx`); absent otherwise.
+        truncated: On a tree's root: `true` when the tree was cut to its bounds (the newest 63 versions, at most 4,096 transactions; its `fullRbf` flags then describe what it holds); absent otherwise. mempool.space serves trees whole.
     """
     interval: Optional[int]
     mined: Optional[bool]
+    truncated: Optional[bool]
 
 class RbfResponse(TypedDict, total=False):
     """
@@ -990,7 +892,7 @@ class MempoolBlock(TypedDict):
 
     Attributes:
         blockSize: Sum of the transactions' serialized sizes in bytes (witness + non-witness), without header or coinbase.
-        blockVSize: Sum of the transactions' virtual sizes in vbytes
+        blockVSize: The transactions' weight over 4, unrounded (mempool.space's): the block's virtual size
         nTx: Number of transactions in the projected block
         totalFees: Total fees in satoshis
         medianFee: Median fee rate in sat/vB
@@ -1002,6 +904,41 @@ class MempoolBlock(TypedDict):
     totalFees: Sats
     medianFee: FeeRate
     feeRange: List[FeeRate]
+
+class MempoolBlockDiff(TypedDict):
+    """
+    A projected mempool block's changes since a prior copy identified by `since`. Returned by
+    `GET /api/mempool-blocks/{index}/diff/{since}`.
+    
+    `removed` lists txids no longer present. A changed transaction can be emitted as `New` without
+    removing its txid; absence from every retained run alone does not imply removal.
+
+    Attributes:
+        hash: The block's current hash. Use as `since` on the next diff call.
+        since: Echoed prior hash the diff was computed against.
+        stats: Stats of the new block; they can change while every transaction is retained.
+        order: The new block in order. Each entry is either a run of the prior copy's transactions, `[start, count]`, or a transaction in its light shape.
+        removed: Txids that left the projected block since `since` (confirmed, evicted, replaced, or moved to another block).
+    """
+    hash: MempoolBlockHash
+    since: MempoolBlockHash
+    stats: MempoolBlock
+    order: List[MempoolBlockDiffEntry]
+    removed: List[Txid]
+
+class MempoolBlockContent(TypedDict):
+    """
+    A projected mempool block with its transactions in block order: every block, block 0 the next,
+    packed as Core's block assembler packs, ranked by signed modified fees within Core's default
+    budgets, with paid-fee statistics. Returned by `GET /api/mempool-blocks/{index}`.
+
+    Attributes:
+        hash: Pass as `since` to `GET /api/mempool-blocks/{index}/diff/{since}` to follow changes.
+        transactions: The transactions in block order, each in its light shape: the whole body is at `GET /api/tx/{txid}`.
+    """
+    hash: MempoolBlockHash
+    stats: MempoolBlock
+    transactions: List[MempoolTxSummary]
 
 class BlockFeeRatesPreciseEntry(TypedDict):
     """
@@ -1047,12 +984,6 @@ class ErrorBody(TypedDict):
     The JSON body of every API error (`application/problem+json`).
     """
     error: ErrorDetail
-
-class EmptyCpfp(TypedDict):
-    """
-    CPFP of a transaction without known relatives: `{"ancestors":[]}`.
-    """
-    ancestors: List[Any]
 
 class PricePoint(TypedDict):
     """
@@ -1145,34 +1076,6 @@ class DiskUsage(TypedDict):
     bitcoin_bytes: int
     ratio: float
 
-class UrpdParams(TypedDict):
-    """
-    A URPD cohort and the confirmed point to read it at.
-
-    Attributes:
-        point: Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
-    """
-    cohort: UrpdCohort
-    point: HeightOrDate
-
-class HeightOrDateParam(TypedDict):
-    """
-    Attributes:
-        point: Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
-    """
-    point: HeightOrDate
-
-class HistoricalPriceParam(TypedDict, total=False):
-    """
-    Historical price query parameters, as mempool.space's
-
-    Attributes:
-        timestamp: UNIX timestamp: the latest close at or before it
-        currency: Quote currency: USD, the only one served
-    """
-    timestamp: Union[Timestamp, None]
-    currency: Union[Currency, None]
-
 class CpfpClusterTx(TypedDict):
     """
     Attributes:
@@ -1221,7 +1124,7 @@ class CpfpInfo(_CpfpInfoRequired, total=False):
     Attributes:
         bestDescendant: Best (highest fee rate) descendant, if any.
         effectiveFeePerVsize: Effective fee rate considering CPFP relationships (sat/vB). This is the seed's chunk feerate after lift-merging, i.e. the rate Core/mempool.space would surface for this tx.
-        sigops: BIP-141 sigop cost for the seed tx (witness sigops count as 1, legacy and P2SH-redeem sigops count as 4).
+        sigops: BIP-141 sigop cost for the seed tx (witness sigops count as 1, legacy and P2SH-redeem sigops count as 4), counted from its body: at most a block's sigop budget.
         fee: Transaction fee (sats).
         vsize: Virtual size of the seed tx (vbytes).
         adjustedVsize: Policy-adjusted virtual size: `max(vsize, sigops * 5)`.
@@ -1294,6 +1197,49 @@ class BlockTimestamp(TypedDict):
     hash: BlockHash
     timestamp: str
 
+class BlockTemplate(TypedDict):
+    """
+    The next block's template in BIP 22/23 form, as Bitcoin Core's `getblocktemplate` answers
+    (`rules: ["segwit"]`): what pools and mining software read. Complete once a miner adds a
+    coinbase paying `coinbasevalue` and carrying `default_witness_commitment`. Returned by
+    `GET /api/block-template`.
+
+    Attributes:
+        version: The block version: BIP 9 version bits, no deployment signaled.
+        rules: The rules the template follows: `!` marks one a client must understand.
+        vbavailable: BIP 9 deployments the client may signal: none.
+        vbrequired: Version bits the client must set: none.
+        transactions: The transactions, every parent before its children.
+        coinbaseaux: Data to put in the coinbase's script: none.
+        coinbasevalue: What the coinbase may pay: the subsidy at `height` plus every transaction's fee (sats).
+        target: The proof-of-work target, as 64 hex digits.
+        mintime: The earliest valid `curtime`: the median time past plus one second.
+        mutable: What the client may change: the time, the transactions, the previous block.
+        sigoplimit: Consensus limits for the whole block, coinbase included.
+        curtime: The block time to use: now, or `mintime` if later.
+        bits: The compact target, as 8 hex digits.
+        default_witness_commitment: The coinbase output committing to the transactions' witnesses (BIP 141), as script hex.
+    """
+    version: int
+    rules: List[str]
+    vbavailable: dict[str, int]
+    vbrequired: int
+    previousblockhash: BlockHash
+    transactions: List[BlockTemplateTransaction]
+    coinbaseaux: dict[str, str]
+    coinbasevalue: Sats
+    target: str
+    mintime: Timestamp
+    mutable: List[str]
+    noncerange: str
+    sigoplimit: int
+    sizelimit: int
+    weightlimit: int
+    curtime: Timestamp
+    bits: str
+    height: Height
+    default_witness_commitment: str
+
 class _BlockStatusRequired(TypedDict):
     in_best_chain: bool
 
@@ -1308,7 +1254,7 @@ class BlockStatus(_BlockStatusRequired, total=False):
 
 class BlockOrphan(TypedDict):
     """
-    A stale block at a height of the best chain: a fork tip the node knows (bitcoind's
+    A stale block at a height of the best chain: a block of a fork the node knows (bitcoind's
     `getchaintips`), as mempool.space lists it.
 
     Attributes:
@@ -1350,31 +1296,49 @@ class BlockInfo(_BlockInfoRequired, total=False):
     """
     previousblockhash: Union[BlockHash, None]
 
-class BlockHashTxIndex(TypedDict):
+class BlindbitUtxo(TypedDict):
     """
-    Attributes:
-        index: Transaction index within the block (0-based)
-    """
-    hash: BlockHash
-    index: BlockTxIndex
+    A Taproot output of an eligible transaction.
 
-class BlockHashStartIndex(TypedDict):
-    """
     Attributes:
-        start_index: Starting transaction index within the block (0-based)
+        scriptpubkey: Its script, `OP_1` and a 32-byte push of the output key.
+        timestamp: The block's header time.
+        spent: Whether a published block spends it.
     """
-    hash: BlockHash
-    start_index: BlockTxIndex
+    txid: Txid
+    vout: Vout
+    value: Sats
+    scriptpubkey: Hex
+    block_height: Height
+    block_hash: BlockHash
+    timestamp: Timestamp
+    spent: bool
 
-class BlockHashParam(TypedDict):
-    hash: BlockHash
-
-class BlockCountParam(TypedDict):
+class BlindbitSpentIndex(TypedDict):
     """
+    A block's spends of Taproot outputs.
+    """
+    block_hash: BlockHash
+    data: List[SpentOutputHash]
+
+class BlindbitFilter(TypedDict):
+    """
+    A BIP158 Golomb-coded set (the basic filters' parameters, keyed by the block hash).
+
     Attributes:
-        block_count: Number of recent blocks to include
+        data: The filter: the element count, then the coded deltas.
+        filter_type: Always 4, BlindBit's Taproot-only filters.
     """
-    block_count: int
+    block_hash: BlockHash
+    block_height: Height
+    data: Hex
+    filter_type: int
+
+class BlindbitBlockHash(TypedDict):
+    """
+    A block's hash.
+    """
+    block_hash: BlockHash
 
 class UtxoOrigins(TypedDict):
     """
@@ -1481,32 +1445,6 @@ class Urpd(TypedDict):
     supply: Bitcoin
     buckets: UrpdBuckets
 
-class AddressHashPrefixParam(TypedDict):
-    """
-    Attributes:
-        prefix: First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw address payload bytes.
-    """
-    address_type: AddressOutputType
-    prefix: str
-
-class AddressMempoolTxsQuery(TypedDict, total=False):
-    """
-    A page of an address's mempool transactions.
-
-    Attributes:
-        max_txs: Transactions to return, at most 50 (the default); larger values return 50.
-    """
-    max_txs: Optional[int]
-
-class AddressChainTxsQuery(TypedDict, total=False):
-    """
-    A page of an address's confirmed transactions.
-
-    Attributes:
-        max_txs: Transactions to return, at most 25 (the default); larger values return 25.
-    """
-    max_txs: Optional[int]
-
 class _TxOutRequired(TypedDict):
     scriptpubkey: Hex
     scriptpubkey_asm: str
@@ -1575,40 +1513,6 @@ class Transaction(_TransactionRequired, total=False):
         fee: Transaction fee in satoshis
     """
     index: Union[TxIndex, None]
-
-class MempoolBlockDiff(TypedDict):
-    """
-    A projected mempool block's changes since a prior copy identified by `since`. Returned by
-    `GET /api/mempool-blocks/{index}/diff/{since}`.
-    
-    `removed` lists txids no longer present. A changed body can be emitted as `New` without
-    removing its txid; absence from every retained run alone does not imply removal.
-
-    Attributes:
-        hash: The block's current hash. Use as `since` on the next diff call.
-        since: Echoed prior hash the diff was computed against.
-        stats: Stats of the new block; they can change while every transaction is retained.
-        order: The new block in order. Each entry is either a run of the prior copy's transactions, `[start, count]`, or a full transaction body.
-        removed: Txids that left the projected next block since `since` (confirmed, evicted, replaced, or pushed past block 0).
-    """
-    hash: MempoolBlockHash
-    since: MempoolBlockHash
-    stats: MempoolBlock
-    order: List[MempoolBlockDiffEntry]
-    removed: List[Txid]
-
-class MempoolBlockContent(TypedDict):
-    """
-    A projected mempool block with its transactions: block 0 is Bitcoin Core's
-    `getblocktemplate` selection. Returned by `GET /api/mempool-blocks/{index}`.
-
-    Attributes:
-        hash: Pass as `since` to `GET /api/mempool-blocks/{index}/diff/{since}` to follow changes.
-        transactions: Full transaction bodies in `getblocktemplate` order.
-    """
-    hash: MempoolBlockHash
-    stats: MempoolBlock
-    transactions: List[Transaction]
 
 class PoolDetailInfo(TypedDict):
     """
@@ -1681,8 +1585,8 @@ class BlockExtras(_BlockExtrasRequired, total=False):
 
     Attributes:
         totalFees: Total fees in satoshis
-        medianFee: Median fee rate in sat/vB
-        feeRange: Fee rate range: [min, 10%, 25%, 50%, 75%, 90%, max]
+        medianFee: Median effective (CPFP) fee rate in sat/vB, by vsize: the rate half the block's space paid at most (Bitcoin Core's `getblockstats` rule; mempool.space averages the middle 0.25% of a 4M WU block instead)
+        feeRange: Effective (CPFP) fee rate range in sat/vB: [min, 10%, 25%, 50%, 75%, 90%, max], the percentiles of block space (vsize-weighted, as `medianFee`; mempool.space ranks transactions by count), min and max the lower/higher of the 1st/99th percentile and the extreme rate in the block's last/first 2% of vsize
         reward: Total block reward (subsidy + fees) in satoshis
         avgFee: Mean fee per non-coinbase transaction in satoshis, rounded down (0 without any)
         avgFeeRate: Average fee rate in sat/vB
@@ -1704,7 +1608,7 @@ class BlockExtras(_BlockExtrasRequired, total=False):
         virtualSize: Virtual size in vbytes: weight / 4, unrounded
         coinbaseBip54: Whether the coinbase follows BIP54 (its lock time is the height minus one and its input's sequence isn't final), from timestamp 1,771,507,776 on; null before
         firstSeen: Timestamp when the block was first seen (always null, not yet supported)
-        orphans: Stale blocks at this height (always empty, not yet supported)
+        orphans: Stale blocks at this height the server's node knows, each server's own
         matchRate: Share of the expected block template the block matched, from mempool.space's own audits (always null: it needs the mempool as it was)
         expectedFees: Fees of the expected block template (always null: it needs the mempool as it was)
         expectedWeight: Weight of the expected block template (always null: it needs the mempool as it was)
@@ -1758,9 +1662,9 @@ class AddressValidation(_AddressValidationRequired, total=False):
         address: The validated address
         scriptPubKey: The scriptPubKey in hex
         isscript: Whether the address is P2SH, P2WSH or P2TR
-        witness_version: Witness version (0 for P2WPKH/P2WSH, 1 for P2TR and P2A)
+        witness_version: Witness version (0 for P2WPKH/P2WSH, 1 for P2TR, 2 to 16 for future versions; none for P2A)
         witness_program: Witness program in hex
-        error_locations: Error locations: an empty array for invalid addresses, omitted for valid ones
+        error_locations: Positions of the characters at fault in an invalid address (as the node finds them), possibly none; omitted for valid ones
         error: Error message for invalid addresses
     """
     address: Union[Address, None]
@@ -1789,9 +1693,6 @@ class AddressStats(TypedDict):
     mempool_stats: AddressMempoolStats
     balance: Sats
 
-class AddressParam(TypedDict):
-    address: Address
-
 class AddressHashPrefixMatches(TypedDict):
     """
     Attributes:
@@ -1802,13 +1703,44 @@ class AddressHashPrefixMatches(TypedDict):
     truncated: bool
     addresses: List[Address]
 
-class AddressAfterTxidParam(TypedDict):
+class _SeriesLeafWithSchemaRequired(TypedDict):
+    name: SeriesName
+    kind: str
+    indexes: List[Index]
+    nullable: List[Index]
+    accumulation: Accumulation
+    type: JsonType
+
+class SeriesLeafWithSchema(_SeriesLeafWithSchemaRequired, total=False):
+    """
+    Series leaf with JSON Schema for client generation.
+
+    Attributes:
+        kind: The value type, by its schema's name (e.g., "Sats", "Ratio").
+        nullable: Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN).
+        description: Human-readable metric definition, when documented.
+        accumulation: How its values combine over time: summed over a window, read at a point, or differenced across one.
+        type: What the values are on the wire.
+    """
+    description: Optional[str]
+
+class _SeriesInfoRequired(TypedDict):
+    indexes: List[Index]
+    nullable: List[Index]
+    type: str
+    accumulation: Accumulation
+
+class SeriesInfo(_SeriesInfoRequired, total=False):
     """
     Attributes:
-        after_txid: Last txid from the previous page (return transactions strictly older than this)
+        description: Human-readable metric definition, when documented
+        nullable: Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN)
+        type: Value type (e.g. "Ratio", "Sats", "Cents")
+        unit: What the value type measures, when documented (e.g. "A duration in days.")
+        accumulation: How values combine over time: a `flow` sums over a window, a `level` is read at a point, and a `cumulative` series is already a running total, its flow the difference.
     """
-    address: Address
-    after_txid: Txid
+    description: Optional[str]
+    unit: Optional[str]
 
 
 # Each date-based index's buckets as (unit, size, phase): bucket i starts i * size - phase units
@@ -1873,38 +1805,91 @@ def _segment(value: Any) -> str:
     return quote(str(value), safe='')
 
 
+# How long a server that failed is passed over: a misconfigured `bitview-origin` costs at most one
+# retried request per period, and a restarted server is taken back after it.
+_REFUSE_SECONDS = 600.0
+
+
 class BitviewClientBase:
+    """When several servers answer one URL, each names itself in `bitview-origin` and the requests
+    after go to it, so what one server minted (a diff's `since`) stays with it. A pinned server
+    that fails (network, timeout, 5xx) is passed over, and the request goes through the configured
+    URL again."""
+
     def __init__(self, base_url: str, timeout: float = 30.0):
-        parsed = urlparse(base_url)
-        self._host = parsed.netloc
-        self._prefix = parsed.path.rstrip('/')
-        self._secure = parsed.scheme == 'https'
+        self._base = base_url.rstrip('/')
         self._timeout = timeout
+        self._pinned: Optional[str] = None
+        self._refused: Dict[str, float] = {}
         self._conn: Optional[Union[HTTPSConnection, HTTPConnection]] = None
+        self._conn_server: Optional[str] = None
 
-    def _connect(self) -> Union[HTTPSConnection, HTTPConnection]:
-        """Get or create HTTP connection."""
-        if self._conn is None:
-            if self._secure:
-                self._conn = HTTPSConnection(self._host, timeout=self._timeout)
-            else:
-                self._conn = HTTPConnection(self._host, timeout=self._timeout)
-        return self._conn
+    def _exchange(
+        self,
+        server: str,
+        method: str,
+        path: str,
+        body: Optional[str],
+        content_type: Optional[str],
+    ) -> Tuple[int, bytes, Optional[str]]:
+        """One request to `server`, on its kept connection. A failed exchange closes the
+        connection, which `http.client` would otherwise leave mid-request for every later call.
+        A kept connection the server has since closed fails without the server being down, so
+        that failure (the peer's reset or close) is retried once on a fresh connection."""
+        parsed = urlparse(server)
+        headers = {"Content-Type": content_type} if content_type else {}
+        while True:
+            reused = self._conn is not None and self._conn_server == server
+            try:
+                if not reused:
+                    self.close()
+                    kind = HTTPSConnection if parsed.scheme == 'https' else HTTPConnection
+                    self._conn = kind(parsed.netloc, timeout=self._timeout)
+                    self._conn_server = server
+                self._conn.request(method, parsed.path + path, body=body, headers=headers)
+                res = self._conn.getresponse()
+                return res.status, res.read(), res.getheader("bitview-origin")
+            except (HTTPException, OSError) as e:
+                self.close()
+                if not (reused and isinstance(e, (ConnectionResetError, BrokenPipeError))):
+                    raise BitviewError(str(e)) from e
 
-    def _request(self, method: str, path: str, body: Optional[str] = None) -> bytes:
-        """A failed exchange closes the connection, which `http.client` would otherwise leave
-        mid-request for every later call."""
-        try:
-            conn = self._connect()
-            conn.request(method, self._prefix + path, body=body)
-            res = conn.getresponse()
-            data = res.read()
-        except (HTTPException, OSError) as e:
-            self.close()
-            raise BitviewError(str(e))
-        if res.status >= 400:
-            raise _response_error(res.status, data)
+    def _request(
+        self,
+        method: str,
+        path: str,
+        body: Optional[str] = None,
+        content_type: Optional[str] = None,
+    ) -> bytes:
+        """`path` from the pinned server, else the configured URL."""
+        answer = None
+        pinned = self._pinned
+        if pinned:
+            try:
+                answer = self._exchange(pinned, method, path, body, content_type)
+            except BitviewError:
+                pass
+            if answer is None or answer[0] >= 500:
+                answer = None
+                self._refused[pinned] = monotonic() + _REFUSE_SECONDS
+                self._pinned = None
+        if answer is None:
+            answer = self._exchange(self._base, method, path, body, content_type)
+        status, data, origin = answer
+        self._follow(origin)
+        if status >= 400:
+            raise _response_error(status, data)
         return data
+
+    def _follow(self, origin: Optional[str]) -> None:
+        """Pin the server an answer names, unless it's the configured URL or refused."""
+        origin = origin.rstrip('/') if origin else None
+        if not origin or not origin.startswith(("https://", "http://")):
+            return
+        if origin == self._base:
+            self._pinned = None
+        elif self._refused.get(origin, 0.0) <= monotonic():
+            self._pinned = origin
 
     def get(self, path: str) -> bytes:
         return self._request("GET", path)
@@ -1915,19 +1900,20 @@ class BitviewClientBase:
     def get_text(self, path: str) -> str:
         return self.get(path).decode()
 
-    def post(self, path: str, body: str) -> bytes:
-        return self._request("POST", path, body)
+    def post(self, path: str, body: str = "", content_type: Optional[str] = None) -> bytes:
+        return self._request("POST", path, body, content_type)
 
-    def post_json(self, path: str, body: str) -> Any:
-        return json.loads(self.post(path, body))
+    def post_json(self, path: str, body: str = "", content_type: Optional[str] = None) -> Any:
+        return json.loads(self.post(path, body, content_type))
 
-    def post_text(self, path: str, body: str) -> str:
-        return self.post(path, body).decode()
+    def post_text(self, path: str, body: str = "", content_type: Optional[str] = None) -> str:
+        return self.post(path, body, content_type).decode()
 
     def close(self) -> None:
         if self._conn:
             self._conn.close()
             self._conn = None
+            self._conn_server = None
 
     def __enter__(self) -> BitviewClientBase:
         return self
@@ -2373,40 +2359,41 @@ class SeriesPattern(Protocol[T]):
 
 
 _i1 = ('minute10', 'minute30', 'hour1', 'hour4', 'hour12', 'day1', 'day3', 'week1', 'month1', 'month3', 'month6', 'year1', 'year10', 'halving_epoch', 'difficulty_epoch', 'height')
-_i2 = ('minute10', 'minute30', 'hour1', 'hour4', 'hour12', 'day1', 'day3', 'week1', 'month1', 'month3', 'month6', 'year1', 'year10', 'halving_epoch', 'difficulty_epoch')
-_i3 = ('minute10',)
-_i4 = ('minute30',)
-_i5 = ('hour1',)
-_i6 = ('hour4',)
-_i7 = ('hour12',)
-_i8 = ('day1',)
-_i9 = ('day3',)
-_i10 = ('week1',)
-_i11 = ('month1',)
-_i12 = ('month3',)
-_i13 = ('month6',)
-_i14 = ('year1',)
-_i15 = ('year10',)
-_i16 = ('halving_epoch',)
-_i17 = ('difficulty_epoch',)
-_i18 = ('height',)
-_i19 = ('tx_index',)
-_i20 = ('txin_index',)
+_i2 = ('minute10', 'minute30', 'hour1', 'hour4', 'hour12', 'day1', 'day3', 'week1', 'month1', 'month3', 'month6', 'year1', 'year10', 'halving_epoch', 'difficulty_epoch', 'height')
+_i3 = ('minute10', 'minute30', 'hour1', 'hour4', 'hour12', 'day1', 'day3', 'week1', 'month1', 'month3', 'month6', 'year1', 'year10', 'halving_epoch', 'difficulty_epoch')
+_i4 = ('minute10',)
+_i5 = ('minute30',)
+_i6 = ('hour1',)
+_i7 = ('hour4',)
+_i8 = ('hour12',)
+_i9 = ('day1',)
+_i10 = ('day3',)
+_i11 = ('week1',)
+_i12 = ('month1',)
+_i13 = ('month3',)
+_i14 = ('month6',)
+_i15 = ('year1',)
+_i16 = ('year10',)
+_i17 = ('halving_epoch',)
+_i18 = ('difficulty_epoch',)
+_i19 = ('height',)
+_i20 = ('tx_index',)
 _i21 = ('txin_index',)
-_i22 = ('txout_index',)
+_i22 = ('txin_index',)
 _i23 = ('txout_index',)
-_i24 = ('empty_script_output_index',)
-_i25 = ('op_return_output_index',)
-_i26 = ('p2a_address_index',)
-_i27 = ('p2ms_output_index',)
-_i28 = ('p2pk33_address_index',)
-_i29 = ('p2pk65_address_index',)
-_i30 = ('p2pkh_address_index',)
-_i31 = ('p2sh_address_index',)
-_i32 = ('p2tr_address_index',)
-_i33 = ('p2wpkh_address_index',)
-_i34 = ('p2wsh_address_index',)
-_i35 = ('unknown_script_output_index',)
+_i24 = ('txout_index',)
+_i25 = ('empty_script_output_index',)
+_i26 = ('op_return_output_index',)
+_i27 = ('p2a_address_index',)
+_i28 = ('p2ms_output_index',)
+_i29 = ('p2pk33_address_index',)
+_i30 = ('p2pk65_address_index',)
+_i31 = ('p2pkh_address_index',)
+_i32 = ('p2sh_address_index',)
+_i33 = ('p2tr_address_index',)
+_i34 = ('p2wpkh_address_index',)
+_i35 = ('p2wsh_address_index',)
+_i36 = ('unknown_script_output_index',)
 
 def _endpoint(c: BitviewClient, n: str, i: Index) -> Union[SeriesEndpoint[Any], DateSeriesEndpoint[Any]]:
     """The endpoint for any index: with date helpers for a date-based one."""
@@ -2441,6 +2428,33 @@ class SeriesPattern1(Generic[T]):
 
 class _SeriesPattern2By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
+    def minute10(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'minute10')
+    def minute30(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'minute30')
+    def hour1(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'hour1')
+    def hour4(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'hour4')
+    def hour12(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'hour12')
+    def day1(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'day1')
+    def day3(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'day3')
+    def week1(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'week1')
+    def month1(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'month1')
+    def month3(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'month3')
+    def month6(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'month6')
+    def year1(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'year1')
+    def year10(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'year10')
+    def halving_epoch(self) -> SeriesEndpoint[Optional[T]]: return SeriesEndpoint(self._c, self._n, 'halving_epoch')
+    def difficulty_epoch(self) -> SeriesEndpoint[Optional[T]]: return SeriesEndpoint(self._c, self._n, 'difficulty_epoch')
+    def height(self) -> SeriesEndpoint[Optional[T]]: return SeriesEndpoint(self._c, self._n, 'height')
+
+class SeriesPattern2(Generic[T]):
+    by: _SeriesPattern2By[T]
+    def __init__(self, c: BitviewClient, n: str): self._n, self.by = n, _SeriesPattern2By(c, n)
+    @property
+    def name(self) -> str: return self._n
+    def indexes(self) -> List[str]: return list(_i2)
+    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[Optional[T]], DateSeriesEndpoint[Optional[T]]]]: return _endpoint(self.by._c, self._n, index) if index in _i2 else None
+
+class _SeriesPattern3By(Generic[T]):
+    def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
     def minute10(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'minute10')
     def minute30(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'minute30')
     def hour1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'hour1')
@@ -2456,18 +2470,6 @@ class _SeriesPattern2By(Generic[T]):
     def year10(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'year10')
     def halving_epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'halving_epoch')
     def difficulty_epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'difficulty_epoch')
-
-class SeriesPattern2(Generic[T]):
-    by: _SeriesPattern2By[T]
-    def __init__(self, c: BitviewClient, n: str): self._n, self.by = n, _SeriesPattern2By(c, n)
-    @property
-    def name(self) -> str: return self._n
-    def indexes(self) -> List[str]: return list(_i2)
-    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i2 else None
-
-class _SeriesPattern3By(Generic[T]):
-    def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def minute10(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'minute10')
 
 class SeriesPattern3(Generic[T]):
     by: _SeriesPattern3By[T]
@@ -2479,7 +2481,7 @@ class SeriesPattern3(Generic[T]):
 
 class _SeriesPattern4By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def minute30(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'minute30')
+    def minute10(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'minute10')
 
 class SeriesPattern4(Generic[T]):
     by: _SeriesPattern4By[T]
@@ -2491,7 +2493,7 @@ class SeriesPattern4(Generic[T]):
 
 class _SeriesPattern5By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def hour1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'hour1')
+    def minute30(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'minute30')
 
 class SeriesPattern5(Generic[T]):
     by: _SeriesPattern5By[T]
@@ -2503,7 +2505,7 @@ class SeriesPattern5(Generic[T]):
 
 class _SeriesPattern6By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def hour4(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'hour4')
+    def hour1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'hour1')
 
 class SeriesPattern6(Generic[T]):
     by: _SeriesPattern6By[T]
@@ -2515,7 +2517,7 @@ class SeriesPattern6(Generic[T]):
 
 class _SeriesPattern7By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def hour12(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'hour12')
+    def hour4(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'hour4')
 
 class SeriesPattern7(Generic[T]):
     by: _SeriesPattern7By[T]
@@ -2527,7 +2529,7 @@ class SeriesPattern7(Generic[T]):
 
 class _SeriesPattern8By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def day1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'day1')
+    def hour12(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'hour12')
 
 class SeriesPattern8(Generic[T]):
     by: _SeriesPattern8By[T]
@@ -2539,7 +2541,7 @@ class SeriesPattern8(Generic[T]):
 
 class _SeriesPattern9By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def day3(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'day3')
+    def day1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'day1')
 
 class SeriesPattern9(Generic[T]):
     by: _SeriesPattern9By[T]
@@ -2551,7 +2553,7 @@ class SeriesPattern9(Generic[T]):
 
 class _SeriesPattern10By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def week1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'week1')
+    def day3(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'day3')
 
 class SeriesPattern10(Generic[T]):
     by: _SeriesPattern10By[T]
@@ -2563,7 +2565,7 @@ class SeriesPattern10(Generic[T]):
 
 class _SeriesPattern11By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def month1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'month1')
+    def week1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'week1')
 
 class SeriesPattern11(Generic[T]):
     by: _SeriesPattern11By[T]
@@ -2575,7 +2577,7 @@ class SeriesPattern11(Generic[T]):
 
 class _SeriesPattern12By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def month3(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'month3')
+    def month1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'month1')
 
 class SeriesPattern12(Generic[T]):
     by: _SeriesPattern12By[T]
@@ -2587,7 +2589,7 @@ class SeriesPattern12(Generic[T]):
 
 class _SeriesPattern13By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def month6(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'month6')
+    def month3(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'month3')
 
 class SeriesPattern13(Generic[T]):
     by: _SeriesPattern13By[T]
@@ -2599,7 +2601,7 @@ class SeriesPattern13(Generic[T]):
 
 class _SeriesPattern14By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def year1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'year1')
+    def month6(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'month6')
 
 class SeriesPattern14(Generic[T]):
     by: _SeriesPattern14By[T]
@@ -2611,7 +2613,7 @@ class SeriesPattern14(Generic[T]):
 
 class _SeriesPattern15By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def year10(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'year10')
+    def year1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'year1')
 
 class SeriesPattern15(Generic[T]):
     by: _SeriesPattern15By[T]
@@ -2623,7 +2625,7 @@ class SeriesPattern15(Generic[T]):
 
 class _SeriesPattern16By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def halving_epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'halving_epoch')
+    def year10(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'year10')
 
 class SeriesPattern16(Generic[T]):
     by: _SeriesPattern16By[T]
@@ -2635,7 +2637,7 @@ class SeriesPattern16(Generic[T]):
 
 class _SeriesPattern17By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def difficulty_epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'difficulty_epoch')
+    def halving_epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'halving_epoch')
 
 class SeriesPattern17(Generic[T]):
     by: _SeriesPattern17By[T]
@@ -2647,7 +2649,7 @@ class SeriesPattern17(Generic[T]):
 
 class _SeriesPattern18By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def height(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'height')
+    def difficulty_epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'difficulty_epoch')
 
 class SeriesPattern18(Generic[T]):
     by: _SeriesPattern18By[T]
@@ -2659,7 +2661,7 @@ class SeriesPattern18(Generic[T]):
 
 class _SeriesPattern19By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def tx_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'tx_index')
+    def height(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'height')
 
 class SeriesPattern19(Generic[T]):
     by: _SeriesPattern19By[T]
@@ -2671,7 +2673,7 @@ class SeriesPattern19(Generic[T]):
 
 class _SeriesPattern20By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def txin_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'txin_index')
+    def tx_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'tx_index')
 
 class SeriesPattern20(Generic[T]):
     by: _SeriesPattern20By[T]
@@ -2683,7 +2685,7 @@ class SeriesPattern20(Generic[T]):
 
 class _SeriesPattern21By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def txin_index(self) -> SeriesEndpoint[Optional[T]]: return SeriesEndpoint(self._c, self._n, 'txin_index')
+    def txin_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'txin_index')
 
 class SeriesPattern21(Generic[T]):
     by: _SeriesPattern21By[T]
@@ -2691,11 +2693,11 @@ class SeriesPattern21(Generic[T]):
     @property
     def name(self) -> str: return self._n
     def indexes(self) -> List[str]: return list(_i21)
-    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[Optional[T]], DateSeriesEndpoint[Optional[T]]]]: return _endpoint(self.by._c, self._n, index) if index in _i21 else None
+    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i21 else None
 
 class _SeriesPattern22By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def txout_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'txout_index')
+    def txin_index(self) -> SeriesEndpoint[Optional[T]]: return SeriesEndpoint(self._c, self._n, 'txin_index')
 
 class SeriesPattern22(Generic[T]):
     by: _SeriesPattern22By[T]
@@ -2703,11 +2705,11 @@ class SeriesPattern22(Generic[T]):
     @property
     def name(self) -> str: return self._n
     def indexes(self) -> List[str]: return list(_i22)
-    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i22 else None
+    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[Optional[T]], DateSeriesEndpoint[Optional[T]]]]: return _endpoint(self.by._c, self._n, index) if index in _i22 else None
 
 class _SeriesPattern23By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def txout_index(self) -> SeriesEndpoint[Optional[T]]: return SeriesEndpoint(self._c, self._n, 'txout_index')
+    def txout_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'txout_index')
 
 class SeriesPattern23(Generic[T]):
     by: _SeriesPattern23By[T]
@@ -2715,11 +2717,11 @@ class SeriesPattern23(Generic[T]):
     @property
     def name(self) -> str: return self._n
     def indexes(self) -> List[str]: return list(_i23)
-    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[Optional[T]], DateSeriesEndpoint[Optional[T]]]]: return _endpoint(self.by._c, self._n, index) if index in _i23 else None
+    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i23 else None
 
 class _SeriesPattern24By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def empty_script_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'empty_script_output_index')
+    def txout_index(self) -> SeriesEndpoint[Optional[T]]: return SeriesEndpoint(self._c, self._n, 'txout_index')
 
 class SeriesPattern24(Generic[T]):
     by: _SeriesPattern24By[T]
@@ -2727,11 +2729,11 @@ class SeriesPattern24(Generic[T]):
     @property
     def name(self) -> str: return self._n
     def indexes(self) -> List[str]: return list(_i24)
-    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i24 else None
+    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[Optional[T]], DateSeriesEndpoint[Optional[T]]]]: return _endpoint(self.by._c, self._n, index) if index in _i24 else None
 
 class _SeriesPattern25By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def op_return_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'op_return_output_index')
+    def empty_script_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'empty_script_output_index')
 
 class SeriesPattern25(Generic[T]):
     by: _SeriesPattern25By[T]
@@ -2743,7 +2745,7 @@ class SeriesPattern25(Generic[T]):
 
 class _SeriesPattern26By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2a_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2a_address_index')
+    def op_return_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'op_return_output_index')
 
 class SeriesPattern26(Generic[T]):
     by: _SeriesPattern26By[T]
@@ -2755,7 +2757,7 @@ class SeriesPattern26(Generic[T]):
 
 class _SeriesPattern27By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2ms_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2ms_output_index')
+    def p2a_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2a_address_index')
 
 class SeriesPattern27(Generic[T]):
     by: _SeriesPattern27By[T]
@@ -2767,7 +2769,7 @@ class SeriesPattern27(Generic[T]):
 
 class _SeriesPattern28By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2pk33_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2pk33_address_index')
+    def p2ms_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2ms_output_index')
 
 class SeriesPattern28(Generic[T]):
     by: _SeriesPattern28By[T]
@@ -2779,7 +2781,7 @@ class SeriesPattern28(Generic[T]):
 
 class _SeriesPattern29By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2pk65_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2pk65_address_index')
+    def p2pk33_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2pk33_address_index')
 
 class SeriesPattern29(Generic[T]):
     by: _SeriesPattern29By[T]
@@ -2791,7 +2793,7 @@ class SeriesPattern29(Generic[T]):
 
 class _SeriesPattern30By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2pkh_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2pkh_address_index')
+    def p2pk65_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2pk65_address_index')
 
 class SeriesPattern30(Generic[T]):
     by: _SeriesPattern30By[T]
@@ -2803,7 +2805,7 @@ class SeriesPattern30(Generic[T]):
 
 class _SeriesPattern31By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2sh_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2sh_address_index')
+    def p2pkh_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2pkh_address_index')
 
 class SeriesPattern31(Generic[T]):
     by: _SeriesPattern31By[T]
@@ -2815,7 +2817,7 @@ class SeriesPattern31(Generic[T]):
 
 class _SeriesPattern32By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2tr_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2tr_address_index')
+    def p2sh_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2sh_address_index')
 
 class SeriesPattern32(Generic[T]):
     by: _SeriesPattern32By[T]
@@ -2827,7 +2829,7 @@ class SeriesPattern32(Generic[T]):
 
 class _SeriesPattern33By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2wpkh_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2wpkh_address_index')
+    def p2tr_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2tr_address_index')
 
 class SeriesPattern33(Generic[T]):
     by: _SeriesPattern33By[T]
@@ -2839,7 +2841,7 @@ class SeriesPattern33(Generic[T]):
 
 class _SeriesPattern34By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2wsh_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2wsh_address_index')
+    def p2wpkh_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2wpkh_address_index')
 
 class SeriesPattern34(Generic[T]):
     by: _SeriesPattern34By[T]
@@ -2851,7 +2853,7 @@ class SeriesPattern34(Generic[T]):
 
 class _SeriesPattern35By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def unknown_script_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'unknown_script_output_index')
+    def p2wsh_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2wsh_address_index')
 
 class SeriesPattern35(Generic[T]):
     by: _SeriesPattern35By[T]
@@ -2860,6 +2862,18 @@ class SeriesPattern35(Generic[T]):
     def name(self) -> str: return self._n
     def indexes(self) -> List[str]: return list(_i35)
     def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i35 else None
+
+class _SeriesPattern36By(Generic[T]):
+    def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
+    def unknown_script_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'unknown_script_output_index')
+
+class SeriesPattern36(Generic[T]):
+    by: _SeriesPattern36By[T]
+    def __init__(self, c: BitviewClient, n: str): self._n, self.by = n, _SeriesPattern36By(c, n)
+    @property
+    def name(self) -> str: return self._n
+    def indexes(self) -> List[str]: return list(_i36)
+    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i36 else None
 
 class _Child:
     """A series-tree child, materialized on first access. Its series name (a leaf) or base (a node)
@@ -2951,7 +2965,7 @@ class MobileCapital(_Node):
     realized_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_realized_cap')
 
 
-class InLoss(_Node):
+class MobileSupplyInLoss(_Node):
     share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*')
 
 
@@ -3021,9 +3035,24 @@ class Part(_Node):
     share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_share')
 
 
-class SpotValue(_Node):
+class AllSupplyInLoss(_Node):
+    btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*_supply_in_loss')
+    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_supply_in_loss_usd')
+    market_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_market_cap_in_loss')
+    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_supply_in_loss_share')
+
+
+class SupplyInProfit(_Node):
+    btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*_supply_in_profit')
+    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_supply_in_profit_usd')
+    market_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_market_cap_in_profit')
+    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_supply_in_profit_share')
+
+
+class HoldersSpotValue(_Node):
     btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*')
-    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'market_cap')
+    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_usd')
+    market_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'market_cap')
 
 
 class FundedTotal(_Node):
@@ -3037,14 +3066,15 @@ class RespentCount(_Node):
 
 
 class PredicateSupply(_Node):
-    btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*')
-    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_usd')
-    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_share')
+    btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*_supply')
+    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_supply_usd')
+    market_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_market_cap')
+    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_supply_share')
 
 
 class Exposed(_Node):
     count: FundedTotal = _at(FundedTotal, '*')
-    supply: PredicateSupply = _at(PredicateSupply, '*_exposed_address_supply')
+    supply: PredicateSupply = _at(PredicateSupply, '*_exposed_address')
 
 
 class ReusedCount(_Node):
@@ -3067,11 +3097,96 @@ class CreationUnrealized(_Node):
     net_pnl: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_net_unrealized_pnl')
 
 
+class InLoss(_Node):
+    btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*_supply_in_loss')
+    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_supply_in_loss_usd')
+    market_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_market_cap_in_loss')
+
+
+class InProfit(_Node):
+    btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*_supply_in_profit')
+    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_supply_in_profit_usd')
+    market_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_market_cap_in_profit')
+
+
 class AddressesWindows(_Node):
     _24h: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_24h_percent')
     _1w: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_1w_percent')
     _1m: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_1m_percent')
     _1y: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_1y_percent')
+
+
+class SpotValue(_Node):
+    btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*_supply')
+    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_supply_usd')
+    market_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_market_cap')
+
+
+class CointimeSupply(_Node):
+    vaulted: SpotValue = _at(SpotValue, '*')
+    hodled_or_lost: SpotValue = _at(SpotValue, 'hodled_or_lost')
+    active: SpotValue = _at(SpotValue, 'active')
+
+
+class MobileSupply(_Node):
+    total: SpotValue = _at(SpotValue, '*')
+    in_loss: MobileSupplyInLoss = _at(MobileSupplyInLoss, '*_supply_in_loss_share')
+
+
+class Side(_Node):
+    supply: SpotValue = _at(SpotValue, '*')
+
+
+class Range(_Node):
+    spending_rate: SeriesPattern1[Optional[PerDay]] = _at(SeriesPattern1, '*_spending_rate')
+    spending_exposure: SeriesPattern1[Optional[Float]] = _at(SeriesPattern1, '*_spending_exposure')
+    mobility: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_mobility')
+    mobile: Side = _at(Side, '*_mobile')
+    immobile: Side = _at(Side, '*_immobile')
+
+
+class BandSupply(_Node):
+    total: SpotValue = _at(SpotValue, '*')
+    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_supply_share')
+
+
+class Band(_Node):
+    supply: BandSupply = _at(BandSupply, '*')
+    capital: BandCapital = _at(BandCapital, '*')
+
+
+class ProfitabilityRange(_Node):
+    profit_over_1000_percent: Band = _at(Band, '*_profit_over_1000_percent')
+    profit_500_to_1000_percent: Band = _at(Band, '*_profit_500_to_1000_percent')
+    profit_300_to_500_percent: Band = _at(Band, '*_profit_300_to_500_percent')
+    profit_200_to_300_percent: Band = _at(Band, '*_profit_200_to_300_percent')
+    profit_100_to_200_percent: Band = _at(Band, '*_profit_100_to_200_percent')
+    profit_90_to_100_percent: Band = _at(Band, '*_profit_90_to_100_percent')
+    profit_80_to_90_percent: Band = _at(Band, '*_profit_80_to_90_percent')
+    profit_70_to_80_percent: Band = _at(Band, '*_profit_70_to_80_percent')
+    profit_60_to_70_percent: Band = _at(Band, '*_profit_60_to_70_percent')
+    profit_50_to_60_percent: Band = _at(Band, '*_profit_50_to_60_percent')
+    profit_40_to_50_percent: Band = _at(Band, '*_profit_40_to_50_percent')
+    profit_30_to_40_percent: Band = _at(Band, '*_profit_30_to_40_percent')
+    profit_20_to_30_percent: Band = _at(Band, '*_profit_20_to_30_percent')
+    profit_10_to_20_percent: Band = _at(Band, '*_profit_10_to_20_percent')
+    profit_0_to_10_percent: Band = _at(Band, '*_profit_0_to_10_percent')
+    loss_0_to_10_percent: Band = _at(Band, '*_loss_0_to_10_percent')
+    loss_10_to_20_percent: Band = _at(Band, '*_loss_10_to_20_percent')
+    loss_20_to_30_percent: Band = _at(Band, '*_loss_20_to_30_percent')
+    loss_30_to_40_percent: Band = _at(Band, '*_loss_30_to_40_percent')
+    loss_40_to_50_percent: Band = _at(Band, '*_loss_40_to_50_percent')
+    loss_50_to_60_percent: Band = _at(Band, '*_loss_50_to_60_percent')
+    loss_60_to_70_percent: Band = _at(Band, '*_loss_60_to_70_percent')
+    loss_70_to_80_percent: Band = _at(Band, '*_loss_70_to_80_percent')
+    loss_80_to_90_percent: Band = _at(Band, '*_loss_80_to_90_percent')
+    loss_90_to_100_percent: Band = _at(Band, '*_loss_90_to_100_percent')
+
+
+class Profitability(_Node):
+    all: ProfitabilityRange = _at(ProfitabilityRange, '')
+    sth: ProfitabilityRange = _at(ProfitabilityRange, '*')
+    lth: ProfitabilityRange = _at(ProfitabilityRange, 'lth')
 
 
 class MarketPriceWithRatio(_Node):
@@ -3115,6 +3230,32 @@ class CostBasis(_Node):
     by_dollar: CostBasisByDollar = _at(CostBasisByDollar, '*')
     supply_density: Density = _at(Density, '*_supply_density')
     capital_density: Density = _at(Density, '*_capital_density')
+
+
+class Awake(_Node):
+    supply: MobileSupply = _at(MobileSupply, '*')
+    capital: MobileCapital = _at(MobileCapital, '*')
+    cost_basis: CostBasis = _at(CostBasis, '*')
+
+
+class CoinflowCohort(_Node):
+    mobile: Awake = _at(Awake, '*_mobile')
+    immobile: Side = _at(Side, '*_immobile')
+
+
+class CointimeCohort(_Node):
+    awake: Awake = _at(Awake, '*_awake')
+    dormant: Side = _at(Side, '*_dormant')
+
+
+class AgeAggregate(_Node, Generic[A]):
+    all: A = _at(0, '')
+    sth: A = _at(0, 'sth')
+    lth: A = _at(0, 'lth')
+    under_4m: A = _at(0, '*_under_4m')
+    under_6m: A = _at(0, '*_under_6m')
+    over_4m: A = _at(0, '*_over_4m')
+    over_6m: A = _at(0, '*_over_6m')
 
 
 class HoldersCostBasis(_Node):
@@ -3191,6 +3332,14 @@ class UtxoSetSeries(_Node):
     count: SeriesPattern1[Count] = _at(SeriesPattern1, 'utxo_count')
 
 
+class Concentration(_Node):
+    top2: SeriesPattern9[Count32] = _at(SeriesPattern9, 'top_2_*')
+    top3: SeriesPattern9[Count32] = _at(SeriesPattern9, 'top_3_*')
+    top4: SeriesPattern9[Count32] = _at(SeriesPattern9, 'top_4_*')
+    top5: SeriesPattern9[Count32] = _at(SeriesPattern9, 'top_5_*')
+    top6: SeriesPattern9[Count32] = _at(SeriesPattern9, 'top_6_*')
+
+
 class HashPriceValue(_Node, Generic[A]):
     value: SeriesPattern1[A] = _at(SeriesPattern1, '*')
     atl: SeriesPattern1[A] = _at(SeriesPattern1, '*_atl')
@@ -3211,113 +3360,31 @@ class Rate(_Node):
     drawdown: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_drawdown')
 
 
-class PerTxDistribution(_Node, Generic[A]):
-    tx: SeriesPattern19[A] = _at(SeriesPattern19, '*')
-    min: SeriesPattern1[A] = _at(SeriesPattern1, '*_min')
-    max: SeriesPattern1[A] = _at(SeriesPattern1, '*_max')
-    p10: SeriesPattern1[A] = _at(SeriesPattern1, '*_p10')
-    p25: SeriesPattern1[A] = _at(SeriesPattern1, '*_p25')
-    median: SeriesPattern1[A] = _at(SeriesPattern1, '*_median')
-    p75: SeriesPattern1[A] = _at(SeriesPattern1, '*_p75')
-    p90: SeriesPattern1[A] = _at(SeriesPattern1, '*_p90')
+class EffectiveFeeRate(_Node):
+    tx: SeriesPattern20[Optional[FeeRate]] = _at(SeriesPattern20, '*')
+    min: SeriesPattern1[Optional[FeeRate]] = _at(SeriesPattern1, '*_low_estimate')
+    max: SeriesPattern1[Optional[FeeRate]] = _at(SeriesPattern1, '*_high_estimate')
+    p10: SeriesPattern1[Optional[FeeRate]] = _at(SeriesPattern1, '*_p10')
+    p25: SeriesPattern1[Optional[FeeRate]] = _at(SeriesPattern1, '*_p25')
+    median: SeriesPattern1[Optional[FeeRate]] = _at(SeriesPattern1, '*_median')
+    p75: SeriesPattern1[Optional[FeeRate]] = _at(SeriesPattern1, '*_p75')
+    p90: SeriesPattern1[Optional[FeeRate]] = _at(SeriesPattern1, '*_p90')
+
+
+class Fee(_Node):
+    tx: SeriesPattern20[Sats] = _at(SeriesPattern20, '*')
+    min: SeriesPattern1[Sats] = _at(SeriesPattern1, '*_min')
+    max: SeriesPattern1[Sats] = _at(SeriesPattern1, '*_max')
+    p10: SeriesPattern1[Sats] = _at(SeriesPattern1, '*_p10')
+    p25: SeriesPattern1[Sats] = _at(SeriesPattern1, '*_p25')
+    median: SeriesPattern1[Sats] = _at(SeriesPattern1, '*_median')
+    p75: SeriesPattern1[Sats] = _at(SeriesPattern1, '*_p75')
+    p90: SeriesPattern1[Sats] = _at(SeriesPattern1, '*_p90')
 
 
 class Value(_Node):
     btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*')
     usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_usd')
-
-
-class CointimeSupply(_Node):
-    vaulted: Value = _at(Value, 'vaulted_*')
-    hodled_or_lost: Value = _at(Value, 'hodled_or_lost_*')
-    active: Value = _at(Value, 'active_*')
-
-
-class MobileSupply(_Node):
-    total: Value = _at(Value, '*')
-    in_loss: InLoss = _at(InLoss, '*_in_loss_share')
-
-
-class Awake(_Node):
-    supply: MobileSupply = _at(MobileSupply, '*_supply')
-    capital: MobileCapital = _at(MobileCapital, '*')
-    cost_basis: CostBasis = _at(CostBasis, '*')
-
-
-class Side(_Node):
-    supply: Value = _at(Value, '*')
-
-
-class CoinflowCohort(_Node):
-    mobile: Awake = _at(Awake, '*_mobile')
-    immobile: Side = _at(Side, '*_immobile_supply')
-
-
-class CoinflowRange(_Node):
-    spending_rate: SeriesPattern1[Optional[PerDay]] = _at(SeriesPattern1, '*_spending_rate')
-    spending_exposure: SeriesPattern1[Optional[Float]] = _at(SeriesPattern1, '*_spending_exposure')
-    mobility: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_mobility')
-    mobile: Side = _at(Side, '*_mobile_supply')
-    immobile: Side = _at(Side, '*_immobile_supply')
-
-
-class CointimeCohort(_Node):
-    awake: Awake = _at(Awake, '*_awake')
-    dormant: Side = _at(Side, '*_dormant_supply')
-
-
-class AgeAggregate(_Node, Generic[A]):
-    all: A = _at(0, '')
-    sth: A = _at(0, 'sth')
-    lth: A = _at(0, 'lth')
-    under_4m: A = _at(0, '*_under_4m')
-    under_6m: A = _at(0, '*_under_6m')
-    over_4m: A = _at(0, '*_over_4m')
-    over_6m: A = _at(0, '*_over_6m')
-
-
-class BandSupply(_Node):
-    total: Value = _at(Value, '*')
-    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_share')
-
-
-class Band(_Node):
-    supply: BandSupply = _at(BandSupply, '*_supply')
-    capital: BandCapital = _at(BandCapital, '*')
-
-
-class ProfitabilityRange(_Node):
-    profit_over_1000_percent: Band = _at(Band, '*_profit_over_1000_percent')
-    profit_500_to_1000_percent: Band = _at(Band, '*_profit_500_to_1000_percent')
-    profit_300_to_500_percent: Band = _at(Band, '*_profit_300_to_500_percent')
-    profit_200_to_300_percent: Band = _at(Band, '*_profit_200_to_300_percent')
-    profit_100_to_200_percent: Band = _at(Band, '*_profit_100_to_200_percent')
-    profit_90_to_100_percent: Band = _at(Band, '*_profit_90_to_100_percent')
-    profit_80_to_90_percent: Band = _at(Band, '*_profit_80_to_90_percent')
-    profit_70_to_80_percent: Band = _at(Band, '*_profit_70_to_80_percent')
-    profit_60_to_70_percent: Band = _at(Band, '*_profit_60_to_70_percent')
-    profit_50_to_60_percent: Band = _at(Band, '*_profit_50_to_60_percent')
-    profit_40_to_50_percent: Band = _at(Band, '*_profit_40_to_50_percent')
-    profit_30_to_40_percent: Band = _at(Band, '*_profit_30_to_40_percent')
-    profit_20_to_30_percent: Band = _at(Band, '*_profit_20_to_30_percent')
-    profit_10_to_20_percent: Band = _at(Band, '*_profit_10_to_20_percent')
-    profit_0_to_10_percent: Band = _at(Band, '*_profit_0_to_10_percent')
-    loss_0_to_10_percent: Band = _at(Band, '*_loss_0_to_10_percent')
-    loss_10_to_20_percent: Band = _at(Band, '*_loss_10_to_20_percent')
-    loss_20_to_30_percent: Band = _at(Band, '*_loss_20_to_30_percent')
-    loss_30_to_40_percent: Band = _at(Band, '*_loss_30_to_40_percent')
-    loss_40_to_50_percent: Band = _at(Band, '*_loss_40_to_50_percent')
-    loss_50_to_60_percent: Band = _at(Band, '*_loss_50_to_60_percent')
-    loss_60_to_70_percent: Band = _at(Band, '*_loss_60_to_70_percent')
-    loss_70_to_80_percent: Band = _at(Band, '*_loss_70_to_80_percent')
-    loss_80_to_90_percent: Band = _at(Band, '*_loss_80_to_90_percent')
-    loss_90_to_100_percent: Band = _at(Band, '*_loss_90_to_100_percent')
-
-
-class Profitability(_Node):
-    all: ProfitabilityRange = _at(ProfitabilityRange, '')
-    sth: ProfitabilityRange = _at(ProfitabilityRange, '*')
-    lth: ProfitabilityRange = _at(ProfitabilityRange, 'lth')
 
 
 class OpReturnWindows(_Node):
@@ -3328,17 +3395,19 @@ class OpReturnWindows(_Node):
 
 
 class PoolFees(_Node):
-    avg: OpReturnWindows = _at(OpReturnWindows, '*')
+    cumulative: Value = _at(Value, '*_cumulative')
+    sum: OpReturnWindows = _at(OpReturnWindows, '*_sum')
+    avg: OpReturnWindows = _at(OpReturnWindows, '*_avg')
 
 
-class Coinbase(_Node):
+class Amount(_Node):
     cumulative: Value = _at(Value, '*_cumulative')
     sum: OpReturnWindows = _at(OpReturnWindows, '*_sum')
 
 
 class OpReturnValue(_Node):
-    btc: SeriesPattern18[Optional[Bitcoin]] = _at(SeriesPattern18, '*')
-    usd: SeriesPattern18[Optional[Dollars]] = _at(SeriesPattern18, '*_usd')
+    btc: SeriesPattern19[Optional[Bitcoin]] = _at(SeriesPattern19, '*')
+    usd: SeriesPattern19[Optional[Dollars]] = _at(SeriesPattern19, '*_usd')
 
 
 class ValueFlow(_Node):
@@ -3382,7 +3451,14 @@ class ValueFlowStats(_Node):
     share: Share = _at(Share, 'fee_share')
 
 
-class MiningValueFlow(_Node):
+class FeesSeries(_Node):
+    block: OpReturnValue = _at(OpReturnValue, '*_fees')
+    cumulative: Value = _at(Value, '*_fees_cumulative')
+    sum: OpReturnWindows = _at(OpReturnWindows, '*_fees_sum')
+    chain_share: Share = _at(Share, '*_fee_chain_share')
+
+
+class TxValue(_Node):
     block: OpReturnValue = _at(OpReturnValue, '*')
     cumulative: Value = _at(Value, '*_cumulative')
     sum: OpReturnWindows = _at(OpReturnWindows, '*_sum')
@@ -3391,7 +3467,8 @@ class MiningValueFlow(_Node):
 
 class Rewards(_Node):
     coinbase: ValueFlow = _at(ValueFlow, '*')
-    subsidy: MiningValueFlow = _at(MiningValueFlow, 'subsidy')
+    subsidy: TxValue = _at(TxValue, 'subsidy')
+    puell_multiple: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'puell_multiple')
     fees: ValueFlowStats = _at(ValueFlowStats, 'fees')
     unclaimed: ValueFlow = _at(ValueFlow, 'unclaimed_rewards')
 
@@ -3401,13 +3478,6 @@ class Mining(_Node):
     hashrate: Rate = _at(Rate, 'hashrate')
     hash_price: HashPriceValue[Optional[HashPrice]] = _at(HashPriceValue, '*_price')
     hash_value: HashPriceValue[Optional[HashValue]] = _at(HashPriceValue, '*_value')
-
-
-class FeesSeries(_Node):
-    block: OpReturnValue = _at(OpReturnValue, '*_fees')
-    cumulative: Value = _at(Value, '*_fees_cumulative')
-    sum: OpReturnWindows = _at(OpReturnWindows, '*_fees_sum')
-    chain_share: Share = _at(Share, '*_fee_chain_share')
 
 
 class Halving(_Node):
@@ -3433,7 +3503,7 @@ class Windows(_Node, Generic[A]):
 
 
 class NewAddressCount(_Node):
-    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*')
+    block: SeriesPattern19[Count] = _at(SeriesPattern19, '*')
     sum: Windows[Count] = _at(Windows, '*_sum')
 
 
@@ -3452,11 +3522,11 @@ class SharedCapital(_Node):
 
 
 class SharedSupply(_Node):
-    total: Value = _at(Value, '*')
-    in_profit: PredicateSupply = _at(PredicateSupply, '*_in_profit')
-    in_loss: PredicateSupply = _at(PredicateSupply, '*_in_loss')
-    delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_delta')
-    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_share')
+    total: SpotValue = _at(SpotValue, '*')
+    in_profit: SupplyInProfit = _at(SupplyInProfit, '*')
+    in_loss: AllSupplyInLoss = _at(AllSupplyInLoss, '*')
+    delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_supply_delta')
+    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_supply_share')
 
 
 class Capital(_Node):
@@ -3468,9 +3538,9 @@ class Capital(_Node):
 
 
 class HoldersSupply(_Node):
-    total: SpotValue = _at(SpotValue, 'circulating_*')
-    in_profit: PredicateSupply = _at(PredicateSupply, '*_in_profit')
-    in_loss: PredicateSupply = _at(PredicateSupply, '*_in_loss')
+    total: HoldersSpotValue = _at(HoldersSpotValue, 'circulating_*')
+    in_profit: SupplyInProfit = _at(SupplyInProfit, '')
+    in_loss: AllSupplyInLoss = _at(AllSupplyInLoss, '')
     delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_delta')
 
 
@@ -3482,17 +3552,17 @@ class CapitalViews(_Node):
 
 
 class CohortSupply(_Node):
-    total: Value = _at(Value, '*')
-    delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_delta')
-    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_share')
+    total: SpotValue = _at(SpotValue, '*')
+    delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_supply_delta')
+    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_supply_share')
 
 
 class CreationSupply(_Node):
-    total: Value = _at(Value, '*')
-    delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_delta')
-    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_share')
-    in_profit: Value = _at(Value, '*_in_profit')
-    in_loss: Value = _at(Value, '*_in_loss')
+    total: SpotValue = _at(SpotValue, '*')
+    delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_supply_delta')
+    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_supply_share')
+    in_profit: InProfit = _at(InProfit, '*')
+    in_loss: InLoss = _at(InLoss, '*')
 
 
 class WithDelta(_Node, Generic[A, B]):
@@ -3506,6 +3576,7 @@ class Supply(_Node):
     inflation_rate: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, 'inflation_rate')
     velocity: Velocity = _at(Velocity, 'velocity')
     market_cap: WithDelta[Optional[Dollars], Optional[Dollars]] = _at(WithDelta, 'market_cap')
+    nvt: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'nvt')
 
 
 class BalanceUtxos(_Node):
@@ -3527,36 +3598,51 @@ class CreationCapital(_Node):
 
 
 class AgeCreationSupply(_Node):
-    total: Value = _at(Value, '*_supply')
+    total: SpotValue = _at(SpotValue, '*')
     delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_supply_delta')
     share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_supply_share')
-    in_profit: Value = _at(Value, '*_supply_in_profit')
-    in_loss: Value = _at(Value, '*_supply_in_loss')
+    in_profit: InProfit = _at(InProfit, '*')
+    in_loss: InLoss = _at(InLoss, '*')
     aged_out: ValueFlow = _at(ValueFlow, '*_aged_out_supply')
 
 
 class DataBytesSeries(_Node):
-    block: SeriesPattern18[Bytes] = _at(SeriesPattern18, '*_bytes')
+    block: SeriesPattern19[Bytes] = _at(SeriesPattern19, '*_bytes')
     cumulative: SeriesPattern1[Bytes] = _at(SeriesPattern1, '*_bytes_cumulative')
     sum: Windows[Bytes] = _at(Windows, '*_bytes_sum')
     chain_share: Share = _at(Share, '*_chain_share')
 
 
 class Inscription(_Node):
-    flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'has_*')
-    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
+    flag: SeriesPattern20[Boolean] = _at(SeriesPattern20, 'has_*')
+    block: SeriesPattern19[Count] = _at(SeriesPattern19, '*_tx_count')
     cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
     sum: Windows[Count] = _at(Windows, '*_tx_count_sum')
     share: Share = _at(Share, '*_tx_share')
+    value: TxValue = _at(TxValue, '*_tx_value')
     fees: FeesSeries = _at(FeesSeries, '*')
 
 
+class Vsize(_Node):
+    tx: SeriesPattern20[VSize] = _at(SeriesPattern20, '*')
+    min: SeriesPattern1[VSize] = _at(SeriesPattern1, '*_min')
+    max: SeriesPattern1[VSize] = _at(SeriesPattern1, '*_max')
+    p10: SeriesPattern1[VSize] = _at(SeriesPattern1, '*_p10')
+    p25: SeriesPattern1[VSize] = _at(SeriesPattern1, '*_p25')
+    median: SeriesPattern1[VSize] = _at(SeriesPattern1, '*_median')
+    p75: SeriesPattern1[VSize] = _at(SeriesPattern1, '*_p75')
+    p90: SeriesPattern1[VSize] = _at(SeriesPattern1, '*_p90')
+    cumulative: SeriesPattern1[VSize] = _at(SeriesPattern1, '*_cumulative')
+    sum: Windows[VSize] = _at(Windows, '*_sum')
+
+
 class TransactionsFlagged(_Node):
-    flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'is_*')
-    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
+    flag: SeriesPattern20[Boolean] = _at(SeriesPattern20, 'is_*')
+    block: SeriesPattern19[Count] = _at(SeriesPattern19, '*_tx_count')
     cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
     sum: Windows[Count] = _at(Windows, '*_tx_count_sum')
     share: Share = _at(Share, '*_tx_share')
+    value: TxValue = _at(TxValue, '*_tx_value')
 
 
 class Patterns(_Node):
@@ -3565,27 +3651,21 @@ class Patterns(_Node):
     batch_payout: TransactionsFlagged = _at(TransactionsFlagged, 'batch_payout')
 
 
-class Fees(_Node):
-    fee: PerTxDistribution[Sats] = _at(PerTxDistribution, '*_fee')
-    fee_rate: SeriesPattern19[Optional[FeeRate]] = _at(SeriesPattern19, '*_fee_rate')
-    effective_fee_rate: PerTxDistribution[Optional[FeeRate]] = _at(PerTxDistribution, '*_effective_fee_rate')
-    cpfp_parent: TransactionsFlagged = _at(TransactionsFlagged, 'cpfp_parent')
-    cpfp_child: TransactionsFlagged = _at(TransactionsFlagged, 'cpfp_child')
-
-
 class TxCount(_Node):
-    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_count')
+    block: SeriesPattern19[Count] = _at(SeriesPattern19, '*_count')
     cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_count_cumulative')
     sum: Windows[Count] = _at(Windows, '*_count_sum')
     share: Share = _at(Share, '*_share')
+    value: TxValue = _at(TxValue, '*_value')
 
 
 class Flagged(_Node):
-    flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'has_*')
-    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
+    flag: SeriesPattern20[Boolean] = _at(SeriesPattern20, 'has_*')
+    block: SeriesPattern19[Count] = _at(SeriesPattern19, '*_tx_count')
     cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
     sum: Windows[Count] = _at(Windows, '*_tx_count_sum')
     share: Share = _at(Share, '*_tx_share')
+    value: TxValue = _at(TxValue, '*_tx_value')
 
 
 class Signatures(_Node):
@@ -3612,19 +3692,8 @@ class TransactionsScripts(_Node):
     fake_scripthash: Flagged = _at(Flagged, 'fake_scripthash')
 
 
-class Features(_Node):
-    scripts: TransactionsScripts = _at(TransactionsScripts, 'script')
-    signatures: Signatures = _at(Signatures, 'sighash')
-    segwit: TxCount = _at(TxCount, 'segwit_*')
-    rbf_signaling: TransactionsFlagged = _at(TransactionsFlagged, 'rbf_signaling')
-    dust_output: Flagged = _at(Flagged, 'dust_output')
-    epobc: TransactionsFlagged = _at(TransactionsFlagged, 'epobc')
-    one_input: TxCount = _at(TxCount, 'one_input_*')
-    one_output: TxCount = _at(TxCount, 'one_output_*')
-
-
 class Fullness(_Node):
-    block: SeriesPattern18[Optional[Percent]] = _at(SeriesPattern18, '*')
+    block: SeriesPattern19[Optional[Percent]] = _at(SeriesPattern19, '*')
     avg: Windows[Optional[Percent]] = _at(Windows, '*_avg')
     min: Windows[Optional[Percent]] = _at(Windows, '*_min')
     max: Windows[Optional[Percent]] = _at(Windows, '*_max')
@@ -3636,7 +3705,7 @@ class Fullness(_Node):
 
 
 class Flow(_Node, Generic[A]):
-    block: SeriesPattern18[A] = _at(SeriesPattern18, '*')
+    block: SeriesPattern19[A] = _at(SeriesPattern19, '*')
     cumulative: SeriesPattern1[A] = _at(SeriesPattern1, '*_cumulative')
     sum: Windows[A] = _at(Windows, '*_sum')
 
@@ -3658,8 +3727,8 @@ class CointimeRange(_Node):
     coindays_consumed: Flow[Optional[CoinDays]] = _at(Flow, '*_coindays_consumed')
     wakefulness: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_wakefulness')
     awake_to_dormant: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_awake_to_dormant')
-    awake: Side = _at(Side, '*_awake_supply')
-    dormant: Side = _at(Side, '*_dormant_supply')
+    awake: Side = _at(Side, '*_awake')
+    dormant: Side = _at(Side, '*_dormant')
 
 
 class CointimeActivity(_Node):
@@ -3719,7 +3788,7 @@ class Realized(_Node):
 
 class Balance(_Node):
     funded: WithDelta[Count, CountSigned] = _at(WithDelta, '*_address_count')
-    supply: CohortSupply = _at(CohortSupply, '*_supply')
+    supply: CohortSupply = _at(CohortSupply, '*')
     capital: CapitalViews = _at(CapitalViews, '*')
     utxos: BalanceUtxos = _at(BalanceUtxos, '*_utxo_count')
     activity: Activity = _at(Activity, '*_transfer_volume')
@@ -3760,7 +3829,7 @@ class Metrics(_Node):
 
 
 class Cohort(_Node):
-    supply: CohortSupply = _at(CohortSupply, '*_supply')
+    supply: CohortSupply = _at(CohortSupply, '*')
     capital: CapitalViews = _at(CapitalViews, '*')
     utxos: CohortUtxos = _at(CohortUtxos, '*')
     activity: Activity = _at(Activity, '*_transfer_volume')
@@ -3809,7 +3878,7 @@ class Utxos(_Node):
 
 
 class CreationCohort(_Node, Generic[A, B, C, D, E, F]):
-    supply: A = _at(0, '*_supply')
+    supply: A = _at(0, '*')
     capital: B = _at(1, '*')
     utxos: CohortUtxos = _at(CohortUtxos, '*')
     activity: C = _at(2, '*')
@@ -3864,16 +3933,6 @@ class ByHalvingEpoch(_Node):
     _5: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_5')
 
 
-class Range(_Node):
-    supply: AgeCreationSupply = _at(AgeCreationSupply, '*')
-    capital: CreationCapital = _at(CreationCapital, '*')
-    utxos: CohortUtxos = _at(CohortUtxos, '*')
-    activity: AgeCreationActivity = _at(AgeCreationActivity, '*')
-    realized: CreationRealized = _at(CreationRealized, '*')
-    unrealized: CreationUnrealized = _at(CreationUnrealized, '*')
-    cost_basis: CohortCostBasis = _at(CohortCostBasis, '*')
-
-
 class AgeRange(_Node, Generic[A]):
     under_1h: A = _at(0, '*_under_1h')
     _1h_to_1d: A = _at(0, '*_1h_to_1d')
@@ -3901,7 +3960,7 @@ class AgeRange(_Node, Generic[A]):
 
 
 class Coinflow(_Node):
-    age_ranges: AgeRange[CoinflowRange] = _at((AgeRange, CoinflowRange), '*')
+    age_ranges: AgeRange[Range] = _at((AgeRange, Range), '*')
     cohorts: AgeAggregate[CoinflowCohort] = _at((AgeAggregate, CoinflowCohort), '*')
 
 
@@ -3909,7 +3968,7 @@ class Cointime(_Node):
     activity: CointimeActivity = _at(CointimeActivity, 'coinblocks')
     age_ranges: AgeRange[CointimeRange] = _at((AgeRange, CointimeRange), '*')
     cohorts: AgeAggregate[CointimeCohort] = _at((AgeAggregate, CointimeCohort), '*')
-    supply: CointimeSupply = _at(CointimeSupply, 'supply')
+    supply: CointimeSupply = _at(CointimeSupply, 'vaulted')
     value: CointimeValue = _at(CointimeValue, 'cointime_value')
     caps: Caps = _at(Caps, 'cap')
     prices: Prices = _at(Prices, 'vaulted')
@@ -3918,9 +3977,20 @@ class Cointime(_Node):
 
 
 class Age(_Node):
-    ranges: AgeRange[Range] = _at((AgeRange, Range), '*')
+    ranges: AgeRange[CreationCohort[AgeCreationSupply, CreationCapital, AgeCreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis]] = _at((AgeRange, (CreationCohort, AgeCreationSupply, CreationCapital, AgeCreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis)), '*')
+    rhodl_ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'rhodl_ratio')
     halving_epochs: ByHalvingEpoch = _at(ByHalvingEpoch, 'halving_epoch')
     vintages: Vintage = _at(Vintage, 'vintage')
+
+
+class OutputCount(_Node):
+    output_count: Flow[Count] = _at(Flow, '*')
+
+
+class Sizes(_Node):
+    over_42_bytes: OutputCount = _at(OutputCount, '*_42_bytes_output_count')
+    over_520_bytes: OutputCount = _at(OutputCount, '*_520_bytes_output_count')
+    over_10k_bytes: OutputCount = _at(OutputCount, '*_10k_bytes_output_count')
 
 
 class Bucket(_Node):
@@ -3933,8 +4003,8 @@ class Bucket(_Node):
 
 
 class Policy(_Node):
-    pre_v30_standard: Bucket = _at(Bucket, '*_pre_v30_standard')
-    pre_v30_nonstandard: Bucket = _at(Bucket, '*_pre_v30_nonstandard')
+    within_pre_v30_relay_limits: Bucket = _at(Bucket, '*_within_pre_v30_relay_limits')
+    beyond_pre_v30_relay_limits: Bucket = _at(Bucket, '*_beyond_pre_v30_relay_limits')
     oversized: Bucket = _at(Bucket, '*_oversized')
     multiple: Bucket = _at(Bucket, '*_multiple')
 
@@ -3958,6 +4028,7 @@ class ByKind(_Node):
     bitproof: Bucket = _at(Bucket, '*_bitproof')
     ascribe: Bucket = _at(Bucket, '*_ascribe')
     stampery: Bucket = _at(Bucket, '*_stampery')
+    bip47: Bucket = _at(Bucket, '*_bip47')
     bare_hash: Bucket = _at(Bucket, '*_bare_hash')
     text: Bucket = _at(Bucket, '*_text')
     empty: Bucket = _at(Bucket, '*_empty')
@@ -3965,7 +4036,7 @@ class ByKind(_Node):
 
 
 class OpReturn(_Node):
-    flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'has_*')
+    flag: SeriesPattern20[Boolean] = _at(SeriesPattern20, 'has_*')
     output_count: Flow[Count] = _at(Flow, '*_output_count')
     data_bytes: DataBytesSeries = _at(DataBytesSeries, '*_data')
     tx_count: Flow[Count] = _at(Flow, '*_tx_count')
@@ -3974,6 +4045,110 @@ class OpReturn(_Node):
     fees: FeesSeries = _at(FeesSeries, '*')
     protocols: ByKind = _at(ByKind, '*')
     policies: Policy = _at(Policy, '*')
+    sizes: Sizes = _at(Sizes, '*_data_over')
+
+
+class Spending(_Node):
+    only_segwit: Flow[Count] = _at(Flow, 'only_segwit_*')
+    only_legacy: Flow[Count] = _at(Flow, 'only_legacy_*')
+    segwit_and_legacy: Flow[Count] = _at(Flow, 'segwit_and_legacy_*')
+
+
+class Timelocks(_Node):
+    height: Flow[Count] = _at(Flow, 'height_*')
+    time: Flow[Count] = _at(Flow, 'time_*')
+    unenforced: Flow[Count] = _at(Flow, 'unenforced_*')
+    relative_height: Flow[Count] = _at(Flow, 'relative_height_*')
+    relative_time: Flow[Count] = _at(Flow, 'relative_time_*')
+
+
+class Payments(_Node):
+    count: Flow[Count] = _at(Flow, '*')
+    segwit_spending: Flow[Count] = _at(Flow, 'segwit_spending_*')
+    rbf_signaling: Flow[Count] = _at(Flow, 'rbf_signaling_*')
+
+
+class VsizeByEffectiveFeeRate(_Node):
+    under_0p1_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_under_0p1_*')
+    _0p1_to_0p25_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_0p1_to_0p25_*')
+    _0p25_to_0p5_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_0p25_to_0p5_*')
+    _0p5_to_1_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_0p5_to_1_*')
+    _1_to_2_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_1_to_2_*')
+    _2_to_5_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_2_to_5_*')
+    _5_to_10_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_5_to_10_*')
+    _10_to_25_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_10_to_25_*')
+    _25_to_50_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_25_to_50_*')
+    _50_to_100_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_50_to_100_*')
+    _100_to_250_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_100_to_250_*')
+    _250_to_500_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_250_to_500_*')
+    _500_to_1k_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_500_to_1k_*')
+    over_1k_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_over_1k_*')
+
+
+class TxCountByFeeRate(_Node):
+    under_0p1_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_under_0p1_*')
+    _0p1_to_0p25_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_0p1_to_0p25_*')
+    _0p25_to_0p5_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_0p25_to_0p5_*')
+    _0p5_to_1_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_0p5_to_1_*')
+    _1_to_2_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_1_to_2_*')
+    _2_to_5_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_2_to_5_*')
+    _5_to_10_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_5_to_10_*')
+    _10_to_25_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_10_to_25_*')
+    _25_to_50_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_25_to_50_*')
+    _50_to_100_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_50_to_100_*')
+    _100_to_250_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_100_to_250_*')
+    _250_to_500_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_250_to_500_*')
+    _500_to_1k_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_500_to_1k_*')
+    over_1k_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_over_1k_*')
+
+
+class ZeroFee(_Node):
+    tx_count: Flow[Count] = _at(Flow, '*')
+
+
+class Fees(_Node):
+    fee: Fee = _at(Fee, '*_fee')
+    fee_rate: SeriesPattern20[Optional[FeeRate]] = _at(SeriesPattern20, '*_fee_rate')
+    effective_fee_rate: EffectiveFeeRate = _at(EffectiveFeeRate, '*_effective_fee_rate')
+    cpfp_parent: TransactionsFlagged = _at(TransactionsFlagged, 'cpfp_parent')
+    cpfp_child: TransactionsFlagged = _at(TransactionsFlagged, 'cpfp_child')
+    zero_fee: ZeroFee = _at(ZeroFee, 'zero_fee_*_count')
+    tx_count_by_fee_rate: TxCountByFeeRate = _at(TxCountByFeeRate, 'sat_vb_*_count')
+    vsize_by_effective_fee_rate: VsizeByEffectiveFeeRate = _at(VsizeByEffectiveFeeRate, 'sat_vb_*_vsize')
+
+
+class Features(_Node):
+    one_input_one_output: Flow[Count] = _at(Flow, 'one_input_one_output_*_count')
+    one_input_two_output: Flow[Count] = _at(Flow, 'one_input_two_output_*_count')
+    bip69: Flow[Count] = _at(Flow, 'bip69_*_count')
+    bip69_expected_by_chance: Flow[Optional[ExpectedCount]] = _at(Flow, 'bip69_expected_by_chance_*_count')
+    scripts: TransactionsScripts = _at(TransactionsScripts, 'script')
+    signatures: Signatures = _at(Signatures, 'sighash')
+    segwit: TxCount = _at(TxCount, 'segwit_*')
+    rbf_signaling: TransactionsFlagged = _at(TransactionsFlagged, 'rbf_signaling')
+    dust_output: Flagged = _at(Flagged, 'dust_output')
+    epobc: TransactionsFlagged = _at(TransactionsFlagged, 'epobc')
+    one_input: TxCount = _at(TxCount, 'one_input_*')
+    one_output: TxCount = _at(TxCount, 'one_output_*')
+
+
+class ByType(_Node):
+    p2pk: Flow[Count] = _at(Flow, 'coinbase_p2pk_*')
+    p2pkh: Flow[Count] = _at(Flow, 'coinbase_p2pkh_*')
+    p2ms: Flow[Count] = _at(Flow, 'coinbase_p2ms_*')
+    p2sh: Flow[Count] = _at(Flow, 'coinbase_p2sh_*')
+    p2wpkh: Flow[Count] = _at(Flow, 'coinbase_p2wpkh_*')
+    p2wsh: Flow[Count] = _at(Flow, 'coinbase_p2wsh_*')
+    p2tr: Flow[Count] = _at(Flow, 'coinbase_p2tr_*')
+    p2a: Flow[Count] = _at(Flow, 'coinbase_p2a_*')
+    empty_script: Flow[Count] = _at(Flow, 'coinbase_empty_script_*')
+    unknown_script: Flow[Count] = _at(Flow, 'coinbase_unknown_script_*')
+    op_return: Flow[Count] = _at(Flow, 'coinbase_op_return_*')
+
+
+class Coinbase(_Node):
+    count: Flow[Count] = _at(Flow, 'coinbase_*')
+    types: ByType = _at(ByType, '*')
 
 
 class OutputTypeSeries(_Node):
@@ -3981,9 +4156,92 @@ class OutputTypeSeries(_Node):
     share: Share = _at(Share, '*_share')
     tx_count: Flow[Count] = _at(Flow, '*_tx_count')
     tx_share: Share = _at(Share, '*_tx_share')
+    value: ValueFlow = _at(ValueFlow, '*_value')
 
 
-class ByType(_Node):
+class SpentWithin(_Node):
+    _1_block: Flow[Count] = _at(Flow, 'within_1_block_*')
+    _6_blocks: Flow[Count] = _at(Flow, 'within_6_blocks_*')
+    _144_blocks: Flow[Count] = _at(Flow, 'within_144_blocks_*')
+    _2016_blocks: Flow[Count] = _at(Flow, 'within_2016_blocks_*')
+
+
+class Opcodes(_Node):
+    checksig: Flow[Count] = _at(Flow, 'op_checksig_*')
+    checksigverify: Flow[Count] = _at(Flow, 'op_checksigverify_*')
+    checkmultisig: Flow[Count] = _at(Flow, 'op_checkmultisig_*')
+    checksigadd: Flow[Count] = _at(Flow, 'op_checksigadd_*')
+    checklocktimeverify: Flow[Count] = _at(Flow, 'op_checklocktimeverify_*')
+    checksequenceverify: Flow[Count] = _at(Flow, 'op_checksequenceverify_*')
+    hash160: Flow[Count] = _at(Flow, 'op_hash160_*')
+    sha256: Flow[Count] = _at(Flow, 'op_sha256_*')
+    if_: Flow[Count] = _at(Flow, 'op_if_*')
+    notif: Flow[Count] = _at(Flow, 'op_notif_*')
+
+
+class Multisig(_Node):
+    p2sh: Flow[Count] = _at(Flow, 'p2sh_*')
+    p2sh_p2wsh: Flow[Count] = _at(Flow, 'p2sh_p2wsh_*')
+    p2wsh: Flow[Count] = _at(Flow, 'p2wsh_*')
+
+
+class NestedSegwit(_Node):
+    p2wpkh: Flow[Count] = _at(Flow, 'p2sh_p2wpkh_*')
+    p2wsh: Flow[Count] = _at(Flow, 'p2sh_p2wsh_*')
+
+
+class Pubkeys(_Node):
+    compressed: Flow[Count] = _at(Flow, 'compressed_*')
+    uncompressed: Flow[Count] = _at(Flow, 'uncompressed_*')
+
+
+class EcdsaSighashes(_Node):
+    all: Flow[Count] = _at(Flow, 'sighash_all_*')
+    none: Flow[Count] = _at(Flow, 'sighash_none_*')
+    single: Flow[Count] = _at(Flow, 'sighash_single_*')
+    all_anyone_can_pay: Flow[Count] = _at(Flow, 'sighash_all_anyone_can_pay_*')
+    none_anyone_can_pay: Flow[Count] = _at(Flow, 'sighash_none_anyone_can_pay_*')
+    single_anyone_can_pay: Flow[Count] = _at(Flow, 'sighash_single_anyone_can_pay_*')
+
+
+class EcdsaLengths(_Node):
+    _70_bytes: Flow[Count] = _at(Flow, 'ecdsa_70_*')
+    _71_bytes: Flow[Count] = _at(Flow, 'ecdsa_71_*')
+    _72_bytes: Flow[Count] = _at(Flow, 'ecdsa_72_*')
+    _73_bytes: Flow[Count] = _at(Flow, 'ecdsa_73_*')
+    _74_bytes: Flow[Count] = _at(Flow, 'ecdsa_74_*')
+    over_74_bytes: Flow[Count] = _at(Flow, 'ecdsa_over_74_*')
+
+
+class EcdsaSignatures(_Node):
+    count: Flow[Count] = _at(Flow, 'ecdsa_*_count')
+    bytes: Flow[Bytes] = _at(Flow, 'ecdsa_*_bytes')
+    strict_der: Flow[Count] = _at(Flow, 'strict_der_ecdsa_*_count')
+    low_r: Flow[Count] = _at(Flow, 'low_r_ecdsa_*_count')
+    low_s: Flow[Count] = _at(Flow, 'low_s_ecdsa_*_count')
+    low_r_low_s: Flow[Count] = _at(Flow, 'low_r_low_s_ecdsa_*_count')
+    length: EcdsaLengths = _at(EcdsaLengths, 'bytes_*_count')
+    sighash: EcdsaSighashes = _at(EcdsaSighashes, 'ecdsa_*_count')
+
+
+class SchnorrSignatures(_Node):
+    count: Flow[Count] = _at(Flow, '*_count')
+    bytes: Flow[Bytes] = _at(Flow, '*_bytes')
+
+
+class InputSignatures(_Node):
+    schnorr: SchnorrSignatures = _at(SchnorrSignatures, 'schnorr_*')
+    ecdsa: EcdsaSignatures = _at(EcdsaSignatures, '*')
+
+
+class TypeSeries(_Node):
+    count: Flow[Count] = _at(Flow, '*_count')
+    share: Share = _at(Share, '*_share')
+    tx_count: Flow[Count] = _at(Flow, '*_tx_count')
+    tx_share: Share = _at(Share, '*_tx_share')
+
+
+class Types(_Node):
     p2pk: OutputTypeSeries = _at(OutputTypeSeries, 'p2pk_*')
     p2pkh: OutputTypeSeries = _at(OutputTypeSeries, 'p2pkh_*')
     p2ms: OutputTypeSeries = _at(OutputTypeSeries, 'p2ms_*')
@@ -3994,24 +4252,24 @@ class ByType(_Node):
     p2a: OutputTypeSeries = _at(OutputTypeSeries, 'p2a_*')
     empty_script: OutputTypeSeries = _at(OutputTypeSeries, 'empty_script_*')
     unknown_script: OutputTypeSeries = _at(OutputTypeSeries, 'unknown_script_*')
-    op_return: OutputTypeSeries = _at(OutputTypeSeries, 'op_return_*')
+    op_return: TypeSeries = _at(TypeSeries, 'op_return_*')
 
 
 class SpendableType(_Node):
-    p2pk: OutputTypeSeries = _at(OutputTypeSeries, 'p2pk_*')
-    p2pkh: OutputTypeSeries = _at(OutputTypeSeries, 'p2pkh_*')
-    p2ms: OutputTypeSeries = _at(OutputTypeSeries, 'p2ms_*')
-    p2sh: OutputTypeSeries = _at(OutputTypeSeries, 'p2sh_*')
-    p2wpkh: OutputTypeSeries = _at(OutputTypeSeries, 'p2wpkh_*')
-    p2wsh: OutputTypeSeries = _at(OutputTypeSeries, 'p2wsh_*')
-    p2tr: OutputTypeSeries = _at(OutputTypeSeries, 'p2tr_*')
-    p2a: OutputTypeSeries = _at(OutputTypeSeries, 'p2a_*')
-    empty_script: OutputTypeSeries = _at(OutputTypeSeries, 'empty_script_*')
-    unknown_script: OutputTypeSeries = _at(OutputTypeSeries, 'unknown_script_*')
+    p2pk: TypeSeries = _at(TypeSeries, 'p2pk_*')
+    p2pkh: TypeSeries = _at(TypeSeries, 'p2pkh_*')
+    p2ms: TypeSeries = _at(TypeSeries, 'p2ms_*')
+    p2sh: TypeSeries = _at(TypeSeries, 'p2sh_*')
+    p2wpkh: TypeSeries = _at(TypeSeries, 'p2wpkh_*')
+    p2wsh: TypeSeries = _at(TypeSeries, 'p2wsh_*')
+    p2tr: TypeSeries = _at(TypeSeries, 'p2tr_*')
+    p2a: TypeSeries = _at(TypeSeries, 'p2a_*')
+    empty_script: TypeSeries = _at(TypeSeries, 'empty_script_*')
+    unknown_script: TypeSeries = _at(TypeSeries, 'unknown_script_*')
 
 
 class FlowStats(_Node, Generic[A, B]):
-    block: SeriesPattern18[A] = _at(SeriesPattern18, '*')
+    block: SeriesPattern19[A] = _at(SeriesPattern19, '*')
     cumulative: SeriesPattern1[A] = _at(SeriesPattern1, '*_cumulative')
     sum: Windows[A] = _at(Windows, '*_sum')
     avg: Windows[B] = _at(Windows, '*_avg')
@@ -4025,22 +4283,20 @@ class FlowStats(_Node, Generic[A, B]):
 
 
 class Outputs(_Node):
-    spending_txin_index: SeriesPattern23[TxInIndex] = _at(SeriesPattern23, 'spending_txin_index')
+    spending_txin_index: SeriesPattern24[TxInIndex] = _at(SeriesPattern24, 'spending_txin_index')
     count: FlowStats[Count, Optional[CountFract]] = _at(FlowStats, '*_count')
     per_second: Windows[Optional[PerSecond]] = _at(Windows, 'outputs_per_second')
-    spendable_count: Flow[Count] = _at(Flow, 'spendable_*_count')
-    types: ByType = _at(ByType, '*')
+    non_op_return_count: Flow[Count] = _at(Flow, 'non_op_return_*_count')
+    types: Types = _at(Types, '*')
     op_return_value: ValueFlow = _at(ValueFlow, 'op_return_value')
-
-
-class Inputs(_Node):
-    count: FlowStats[Count, Optional[CountFract]] = _at(FlowStats, '*_count')
-    per_second: Windows[Optional[PerSecond]] = _at(Windows, 'inputs_per_second')
-    types: SpendableType = _at(SpendableType, '*')
+    coinbase: Coinbase = _at(Coinbase, '*_count')
+    pubkeys: Pubkeys = _at(Pubkeys, 'pubkey_in_*_count')
 
 
 class Averaged(_Node, Generic[A, B]):
-    block: SeriesPattern18[A] = _at(SeriesPattern18, '*')
+    block: SeriesPattern19[A] = _at(SeriesPattern19, '*')
+    cumulative: SeriesPattern1[A] = _at(SeriesPattern1, '*_cumulative')
+    sum: Windows[A] = _at(Windows, '*_sum')
     avg: Windows[B] = _at(Windows, '*_avg')
 
 
@@ -4057,7 +4313,7 @@ class ReuseEvents(_Node):
 
 class Respent(_Node):
     count: RespentCount = _at(RespentCount, '*')
-    supply: PredicateSupply = _at(PredicateSupply, '*_respent_address_supply')
+    supply: PredicateSupply = _at(PredicateSupply, '*_respent_address')
     events: ReuseEvents = _at(ReuseEvents, '*')
 
 
@@ -4069,8 +4325,15 @@ class AddressesReuseEvents(_Node):
 
 class Reused(_Node):
     count: ReusedCount = _at(ReusedCount, '*')
-    supply: PredicateSupply = _at(PredicateSupply, '*_reused_address_supply')
+    supply: PredicateSupply = _at(PredicateSupply, '*_reused_address')
     events: AddressesReuseEvents = _at(AddressesReuseEvents, '*')
+
+
+class AddressesReused(_Node):
+    count: ReusedCount = _at(ReusedCount, '')
+    supply: PredicateSupply = _at(PredicateSupply, 'reused_*')
+    events: AddressesReuseEvents = _at(AddressesReuseEvents, '')
+    direct: OutputCount = _at(OutputCount, 'output_back_to_input_*_count')
 
 
 class AddressesActivity(_Node):
@@ -4109,10 +4372,10 @@ class Addresses(_Node):
     new: NewAddressCount = _at(NewAddressCount, 'new_*_count')
     activity: AddressesActivity = _at(AddressesActivity, '')
     avg_balance: Value = _at(Value, '*_balance_avg')
-    reused: Reused = _at(Reused, '')
+    reused: AddressesReused = _at(AddressesReused, '*')
     respent: Respent = _at(Respent, '')
     exposed: Exposed = _at(Exposed, '')
-    supply: CohortSupply = _at(CohortSupply, '*_supply')
+    supply: CohortSupply = _at(CohortSupply, '*')
     capital: CapitalViews = _at(CapitalViews, '*')
     types: AddressType = _at(AddressType, 'p2pk')
     balances: AmountRange[ZeroBalance, Balance] = _at((AmountRange, ZeroBalance, Balance), 'balance')
@@ -4123,18 +4386,58 @@ class CumulativeFlow(_Node):
     sum: Windows[Count] = _at(Windows, '*_sum')
 
 
+class Antpool(_Node):
+    block_count: CumulativeFlow = _at(CumulativeFlow, '*')
+
+
+class Groups(_Node):
+    antpool: Antpool = _at(Antpool, '*')
+
+
 class Pool(_Node):
     block_count: CumulativeFlow = _at(CumulativeFlow, '*_block_count')
     block_share: Share = _at(Share, '*_block_share')
-    coinbase: Coinbase = _at(Coinbase, '*_coinbase')
-    fees: PoolFees = _at(PoolFees, '*_fees_avg')
+    coinbase: Amount = _at(Amount, '*_coinbase')
+    fees: PoolFees = _at(PoolFees, '*_fees')
+    empty_block_count: CumulativeFlow = _at(CumulativeFlow, '*_empty_block_count')
+    bip54_coinbase_locktime_block_count: CumulativeFlow = _at(CumulativeFlow, '*_bip54_coinbase_locktime_block_count')
+    nonzero_coinbase_locktime_block_count: CumulativeFlow = _at(CumulativeFlow, '*_nonzero_coinbase_locktime_block_count')
+    fee_rate_under_0p1_sat_vb_tx_count: CumulativeFlow = _at(CumulativeFlow, '*_fee_rate_under_0p1_sat_vb_tx_count')
     hashrate: Windows[Optional[Hashrate]] = _at(Windows, '*_hashrate')
 
 
 class Pools(_Node):
-    block_pool: SeriesPattern18[PoolSlug] = _at(SeriesPattern18, 'block_*')
+    block_pool: SeriesPattern19[PoolSlug] = _at(SeriesPattern19, 'block_*')
     unknown: Pool = _at(Pool, '*_unknown')
     debitmydata: Pool = _at(Pool, '*_debitmydata')
+    concentration: Concentration = _at(Concentration, 'pools_block_count')
+    concentration_grouped: Concentration = _at(Concentration, 'pools_antpool_group_as_one_block_count')
+    groups: Groups = _at(Groups, '*_antpool_group_block_count')
+
+
+class Inputs(_Node):
+    count: FlowStats[Count, Optional[CountFract]] = _at(FlowStats, 'input_*')
+    per_second: Windows[Optional[PerSecond]] = _at(Windows, 'inputs_per_second')
+    types: SpendableType = _at(SpendableType, 'input')
+    signatures: InputSignatures = _at(InputSignatures, 'signature')
+    pubkeys: Pubkeys = _at(Pubkeys, 'pubkey_in_input_*')
+    nested_segwit: NestedSegwit = _at(NestedSegwit, 'input_*')
+    multisig: Multisig = _at(Multisig, 'multisig_input_*')
+    opcodes: Opcodes = _at(Opcodes, 'in_input_*')
+    p2tr_script_path: Flow[Count] = _at(Flow, 'p2tr_script_path_input_*')
+    inscriptions: Flow[Count] = _at(Flow, 'inscription_input_*')
+    spent_within: SpentWithin = _at(SpentWithin, 'spent_utxo_*')
+    same_block: Flow[Count] = _at(Flow, 'same_block_spent_utxo_*')
+    coinbase_witness: CumulativeFlow = _at(CumulativeFlow, 'coinbase_witness_block_*')
+
+
+class CoinbaseLocktime(_Node):
+    nonzero: CumulativeFlow = _at(CumulativeFlow, 'nonzero_*')
+    bip54: CumulativeFlow = _at(CumulativeFlow, 'bip54_*')
+
+
+class VersionBits(_Node):
+    bit4: CumulativeFlow = _at(CumulativeFlow, '*')
 
 
 class Blocks(_Node):
@@ -4146,137 +4449,141 @@ class Blocks(_Node):
     fullness: Fullness = _at(Fullness, '*_fullness')
     difficulty: BlocksDifficulty = _at(BlocksDifficulty, 'difficulty')
     halving: Halving = _at(Halving, 'halving')
+    empty_count: CumulativeFlow = _at(CumulativeFlow, 'empty_*_count')
+    work: Flow[Optional[Work]] = _at(Flow, '*_work')
+    version_bits: VersionBits = _at(VersionBits, 'version_bit_4_*_count')
+    coinbase_locktime: CoinbaseLocktime = _at(CoinbaseLocktime, 'coinbase_locktime_*_count')
 
 
 class Price(_Node):
-    open: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_open')
-    high: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_high')
-    low: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_low')
-    close: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_close')
-    ohlc: SeriesPattern2[OHLCDollars] = _at(SeriesPattern2, '*_ohlc')
+    open: SeriesPattern3[Optional[Dollars]] = _at(SeriesPattern3, '*_open')
+    high: SeriesPattern3[Optional[Dollars]] = _at(SeriesPattern3, '*_high')
+    low: SeriesPattern3[Optional[Dollars]] = _at(SeriesPattern3, '*_low')
+    close: SeriesPattern3[Optional[Dollars]] = _at(SeriesPattern3, '*_close')
+    ohlc: SeriesPattern3[OHLCDollars] = _at(SeriesPattern3, '*_ohlc')
     spot: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
-    sats_per_dollar: SeriesPattern1[Sats] = _at(SeriesPattern1, 'sats_per_dollar')
+    sats_per_dollar: SeriesPattern2[Sats] = _at(SeriesPattern2, 'sats_per_dollar')
 
 
 class Timestamps(_Node):
-    monotonic: SeriesPattern18[Timestamp] = _at(SeriesPattern18, '*_monotonic')
-    period_start: SeriesPattern2[Timestamp] = _at(SeriesPattern2, '*')
+    monotonic: SeriesPattern19[Timestamp] = _at(SeriesPattern19, '*_monotonic')
+    period_start: SeriesPattern3[Timestamp] = _at(SeriesPattern3, '*')
 
 
 class TxoutIndex(_Node):
-    identity: SeriesPattern22[TxOutIndex] = _at(SeriesPattern22, '*')
+    identity: SeriesPattern23[TxOutIndex] = _at(SeriesPattern23, '*')
 
 
 class TxinIndex(_Node):
-    identity: SeriesPattern20[TxInIndex] = _at(SeriesPattern20, '*')
+    identity: SeriesPattern21[TxInIndex] = _at(SeriesPattern21, '*')
 
 
 class MappingsTxIndex(_Node):
-    identity: SeriesPattern19[TxIndex] = _at(SeriesPattern19, '*_index')
-    input_count: SeriesPattern19[Count] = _at(SeriesPattern19, '*_input_count')
-    output_count: SeriesPattern19[Count] = _at(SeriesPattern19, '*_output_count')
+    identity: SeriesPattern20[TxIndex] = _at(SeriesPattern20, '*_index')
+    input_count: SeriesPattern20[Count] = _at(SeriesPattern20, '*_input_count')
+    output_count: SeriesPattern20[Count] = _at(SeriesPattern20, '*_output_count')
 
 
 class MappingsYear10(_Node):
+    date: SeriesPattern16[Date] = _at(SeriesPattern16, '*')
+    first_height: SeriesPattern16[Height] = _at(SeriesPattern16, 'first_height')
+
+
+class MappingsYear1(_Node):
     date: SeriesPattern15[Date] = _at(SeriesPattern15, '*')
     first_height: SeriesPattern15[Height] = _at(SeriesPattern15, 'first_height')
 
 
-class MappingsYear1(_Node):
+class MappingsMonth6(_Node):
     date: SeriesPattern14[Date] = _at(SeriesPattern14, '*')
     first_height: SeriesPattern14[Height] = _at(SeriesPattern14, 'first_height')
 
 
-class MappingsMonth6(_Node):
+class MappingsMonth3(_Node):
     date: SeriesPattern13[Date] = _at(SeriesPattern13, '*')
     first_height: SeriesPattern13[Height] = _at(SeriesPattern13, 'first_height')
 
 
-class MappingsMonth3(_Node):
+class MappingsMonth1(_Node):
     date: SeriesPattern12[Date] = _at(SeriesPattern12, '*')
     first_height: SeriesPattern12[Height] = _at(SeriesPattern12, 'first_height')
 
 
-class MappingsMonth1(_Node):
+class MappingsWeek1(_Node):
     date: SeriesPattern11[Date] = _at(SeriesPattern11, '*')
     first_height: SeriesPattern11[Height] = _at(SeriesPattern11, 'first_height')
 
 
-class MappingsWeek1(_Node):
+class MappingsDay3(_Node):
     date: SeriesPattern10[Date] = _at(SeriesPattern10, '*')
     first_height: SeriesPattern10[Height] = _at(SeriesPattern10, 'first_height')
 
 
-class MappingsDay3(_Node):
+class MappingsDay1(_Node):
     date: SeriesPattern9[Date] = _at(SeriesPattern9, '*')
     first_height: SeriesPattern9[Height] = _at(SeriesPattern9, 'first_height')
 
 
-class MappingsDay1(_Node):
-    date: SeriesPattern8[Date] = _at(SeriesPattern8, '*')
-    first_height: SeriesPattern8[Height] = _at(SeriesPattern8, 'first_height')
-
-
 class MappingsHour12(_Node):
-    first_height: SeriesPattern7[Height] = _at(SeriesPattern7, '*')
+    first_height: SeriesPattern8[Height] = _at(SeriesPattern8, '*')
 
 
 class MappingsHour4(_Node):
-    first_height: SeriesPattern6[Height] = _at(SeriesPattern6, '*')
+    first_height: SeriesPattern7[Height] = _at(SeriesPattern7, '*')
 
 
 class MappingsHour1(_Node):
-    first_height: SeriesPattern5[Height] = _at(SeriesPattern5, '*')
+    first_height: SeriesPattern6[Height] = _at(SeriesPattern6, '*')
 
 
 class MappingsMinute30(_Node):
-    first_height: SeriesPattern4[Height] = _at(SeriesPattern4, '*')
+    first_height: SeriesPattern5[Height] = _at(SeriesPattern5, '*')
 
 
 class MappingsMinute10(_Node):
-    first_height: SeriesPattern3[Height] = _at(SeriesPattern3, '*')
+    first_height: SeriesPattern4[Height] = _at(SeriesPattern4, '*')
 
 
 class MappingsHalvingEpoch(_Node):
-    first_height: SeriesPattern16[Height] = _at(SeriesPattern16, '*')
-
-
-class MappingsDifficultyEpoch(_Node):
     first_height: SeriesPattern17[Height] = _at(SeriesPattern17, '*')
 
 
+class MappingsDifficultyEpoch(_Node):
+    first_height: SeriesPattern18[Height] = _at(SeriesPattern18, '*')
+
+
 class MappingsHeight(_Node):
-    minute10: SeriesPattern18[Minute10] = _at(SeriesPattern18, '*_minute10')
-    minute30: SeriesPattern18[Minute30] = _at(SeriesPattern18, '*_minute30')
-    hour1: SeriesPattern18[Hour1] = _at(SeriesPattern18, '*_hour1')
-    hour4: SeriesPattern18[Hour4] = _at(SeriesPattern18, '*_hour4')
-    hour12: SeriesPattern18[Hour12] = _at(SeriesPattern18, '*_hour12')
-    day1: SeriesPattern18[Day1] = _at(SeriesPattern18, '*_day1')
-    day3: SeriesPattern18[Day3] = _at(SeriesPattern18, '*_day3')
-    difficulty_epoch: SeriesPattern18[DifficultyEpoch] = _at(SeriesPattern18, 'difficulty_epoch')
-    halving_epoch: SeriesPattern18[HalvingEpoch] = _at(SeriesPattern18, 'halving_epoch')
-    week1: SeriesPattern18[Week1] = _at(SeriesPattern18, '*_week1')
-    month1: SeriesPattern18[Month1] = _at(SeriesPattern18, '*_month1')
-    month3: SeriesPattern18[Month3] = _at(SeriesPattern18, '*_month3')
-    month6: SeriesPattern18[Month6] = _at(SeriesPattern18, '*_month6')
-    year1: SeriesPattern18[Year1] = _at(SeriesPattern18, '*_year1')
-    year10: SeriesPattern18[Year10] = _at(SeriesPattern18, '*_year10')
+    minute10: SeriesPattern19[Minute10] = _at(SeriesPattern19, '*_minute10')
+    minute30: SeriesPattern19[Minute30] = _at(SeriesPattern19, '*_minute30')
+    hour1: SeriesPattern19[Hour1] = _at(SeriesPattern19, '*_hour1')
+    hour4: SeriesPattern19[Hour4] = _at(SeriesPattern19, '*_hour4')
+    hour12: SeriesPattern19[Hour12] = _at(SeriesPattern19, '*_hour12')
+    day1: SeriesPattern19[Day1] = _at(SeriesPattern19, '*_day1')
+    day3: SeriesPattern19[Day3] = _at(SeriesPattern19, '*_day3')
+    difficulty_epoch: SeriesPattern19[DifficultyEpoch] = _at(SeriesPattern19, 'difficulty_epoch')
+    halving_epoch: SeriesPattern19[HalvingEpoch] = _at(SeriesPattern19, 'halving_epoch')
+    week1: SeriesPattern19[Week1] = _at(SeriesPattern19, '*_week1')
+    month1: SeriesPattern19[Month1] = _at(SeriesPattern19, '*_month1')
+    month3: SeriesPattern19[Month3] = _at(SeriesPattern19, '*_month3')
+    month6: SeriesPattern19[Month6] = _at(SeriesPattern19, '*_month6')
+    year1: SeriesPattern19[Year1] = _at(SeriesPattern19, '*_year1')
+    year10: SeriesPattern19[Year10] = _at(SeriesPattern19, '*_year10')
 
 
 class MappingsOpReturn(_Node):
-    identity: SeriesPattern25[OpReturnOutputIndex] = _at(SeriesPattern25, '*')
+    identity: SeriesPattern26[OpReturnOutputIndex] = _at(SeriesPattern26, '*')
 
 
 class MappingsUnknownScript(_Node):
-    identity: SeriesPattern35[UnknownScriptOutputIndex] = _at(SeriesPattern35, '*')
+    identity: SeriesPattern36[UnknownScriptOutputIndex] = _at(SeriesPattern36, '*')
 
 
 class EmptyScript(_Node):
-    identity: SeriesPattern24[EmptyScriptOutputIndex] = _at(SeriesPattern24, '*')
+    identity: SeriesPattern25[EmptyScriptOutputIndex] = _at(SeriesPattern25, '*')
 
 
 class MappingsP2ms(_Node):
-    identity: SeriesPattern27[P2MSOutputIndex] = _at(SeriesPattern27, '*')
+    identity: SeriesPattern28[P2MSOutputIndex] = _at(SeriesPattern28, '*')
 
 
 class Script(_Node):
@@ -4287,67 +4594,67 @@ class Script(_Node):
 
 
 class MappingsP2a(_Node):
-    identity: SeriesPattern26[P2AAddressIndex] = _at(SeriesPattern26, '*_index')
-    address: SeriesPattern26[Address] = _at(SeriesPattern26, '*')
+    identity: SeriesPattern27[P2AAddressIndex] = _at(SeriesPattern27, '*_index')
+    address: SeriesPattern27[Address] = _at(SeriesPattern27, '*')
 
 
 class MappingsP2tr(_Node):
-    identity: SeriesPattern32[P2TRAddressIndex] = _at(SeriesPattern32, '*_index')
-    address: SeriesPattern32[Address] = _at(SeriesPattern32, '*')
-
-
-class MappingsP2wsh(_Node):
-    identity: SeriesPattern34[P2WSHAddressIndex] = _at(SeriesPattern34, '*_index')
-    address: SeriesPattern34[Address] = _at(SeriesPattern34, '*')
-
-
-class MappingsP2wpkh(_Node):
-    identity: SeriesPattern33[P2WPKHAddressIndex] = _at(SeriesPattern33, '*_index')
+    identity: SeriesPattern33[P2TRAddressIndex] = _at(SeriesPattern33, '*_index')
     address: SeriesPattern33[Address] = _at(SeriesPattern33, '*')
 
 
+class MappingsP2wsh(_Node):
+    identity: SeriesPattern35[P2WSHAddressIndex] = _at(SeriesPattern35, '*_index')
+    address: SeriesPattern35[Address] = _at(SeriesPattern35, '*')
+
+
+class MappingsP2wpkh(_Node):
+    identity: SeriesPattern34[P2WPKHAddressIndex] = _at(SeriesPattern34, '*_index')
+    address: SeriesPattern34[Address] = _at(SeriesPattern34, '*')
+
+
 class MappingsP2sh(_Node):
-    identity: SeriesPattern31[P2SHAddressIndex] = _at(SeriesPattern31, '*_index')
-    address: SeriesPattern31[Address] = _at(SeriesPattern31, '*')
+    identity: SeriesPattern32[P2SHAddressIndex] = _at(SeriesPattern32, '*_index')
+    address: SeriesPattern32[Address] = _at(SeriesPattern32, '*')
 
 
 class MappingsP2pkh(_Node):
-    identity: SeriesPattern30[P2PKHAddressIndex] = _at(SeriesPattern30, '*_index')
-    address: SeriesPattern30[Address] = _at(SeriesPattern30, '*')
+    identity: SeriesPattern31[P2PKHAddressIndex] = _at(SeriesPattern31, '*_index')
+    address: SeriesPattern31[Address] = _at(SeriesPattern31, '*')
 
 
 class MappingsP2pk33(_Node):
-    identity: SeriesPattern28[P2PK33AddressIndex] = _at(SeriesPattern28, '*_index')
-    address: SeriesPattern28[Address] = _at(SeriesPattern28, '*')
-
-
-class MappingsP2pk65(_Node):
-    identity: SeriesPattern29[P2PK65AddressIndex] = _at(SeriesPattern29, '*_index')
+    identity: SeriesPattern29[P2PK33AddressIndex] = _at(SeriesPattern29, '*_index')
     address: SeriesPattern29[Address] = _at(SeriesPattern29, '*')
 
 
+class MappingsP2pk65(_Node):
+    identity: SeriesPattern30[P2PK65AddressIndex] = _at(SeriesPattern30, '*_index')
+    address: SeriesPattern30[Address] = _at(SeriesPattern30, '*')
+
+
 class IndexerOpReturn(_Node):
-    first_index: SeriesPattern18[OpReturnOutputIndex] = _at(SeriesPattern18, 'first_*_output_index')
-    tx_index: SeriesPattern25[TxIndex] = _at(SeriesPattern25, '*_output_tx_index')
-    protocol: SeriesPattern25[OpReturnKind] = _at(SeriesPattern25, '*_protocol')
-    post_op_return_bytes: SeriesPattern25[Bytes] = _at(SeriesPattern25, 'post_*_bytes')
+    first_index: SeriesPattern19[OpReturnOutputIndex] = _at(SeriesPattern19, 'first_*_output_index')
+    tx_index: SeriesPattern26[TxIndex] = _at(SeriesPattern26, '*_output_tx_index')
+    protocol: SeriesPattern26[OpReturnKind] = _at(SeriesPattern26, '*_protocol')
+    post_op_return_bytes: SeriesPattern26[Bytes] = _at(SeriesPattern26, 'post_*_bytes')
 
 
 class IndexerUnknownScript(_Node):
-    first_index: SeriesPattern18[UnknownScriptOutputIndex] = _at(SeriesPattern18, 'first_*_output_index')
-    tx_index: SeriesPattern35[TxIndex] = _at(SeriesPattern35, '*_output_tx_index')
-    legacy_sigop_cost: SeriesPattern35[SigOps] = _at(SeriesPattern35, '*_legacy_sigop_cost')
+    first_index: SeriesPattern19[UnknownScriptOutputIndex] = _at(SeriesPattern19, 'first_*_output_index')
+    tx_index: SeriesPattern36[TxIndex] = _at(SeriesPattern36, '*_output_tx_index')
+    legacy_sigop_cost: SeriesPattern36[SigOps] = _at(SeriesPattern36, '*_legacy_sigop_cost')
 
 
 class ScriptType(_Node):
-    first_index: SeriesPattern18[EmptyScriptOutputIndex] = _at(SeriesPattern18, 'first_*_index')
-    tx_index: SeriesPattern24[TxIndex] = _at(SeriesPattern24, '*_tx_index')
+    first_index: SeriesPattern19[EmptyScriptOutputIndex] = _at(SeriesPattern19, 'first_*_index')
+    tx_index: SeriesPattern25[TxIndex] = _at(SeriesPattern25, '*_tx_index')
 
 
 class IndexerP2ms(_Node):
-    first_index: SeriesPattern18[P2MSOutputIndex] = _at(SeriesPattern18, 'first_*_output_index')
-    tx_index: SeriesPattern27[TxIndex] = _at(SeriesPattern27, '*_output_tx_index')
-    legacy_sigop_cost: SeriesPattern27[SigOps] = _at(SeriesPattern27, '*_legacy_sigop_cost')
+    first_index: SeriesPattern19[P2MSOutputIndex] = _at(SeriesPattern19, 'first_*_output_index')
+    tx_index: SeriesPattern28[TxIndex] = _at(SeriesPattern28, '*_output_tx_index')
+    legacy_sigop_cost: SeriesPattern28[SigOps] = _at(SeriesPattern28, '*_legacy_sigop_cost')
 
 
 class Scripts(_Node):
@@ -4357,43 +4664,43 @@ class Scripts(_Node):
 
 
 class IndexerP2a(_Node):
-    first_index: SeriesPattern18[P2AAddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
-    bytes: SeriesPattern26[P2ABytes] = _at(SeriesPattern26, '*_bytes')
+    first_index: SeriesPattern19[P2AAddressIndex] = _at(SeriesPattern19, 'first_*_address_index')
+    bytes: SeriesPattern27[P2ABytes] = _at(SeriesPattern27, '*_bytes')
 
 
 class IndexerP2tr(_Node):
-    first_index: SeriesPattern18[P2TRAddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
-    bytes: SeriesPattern32[P2TRBytes] = _at(SeriesPattern32, '*_bytes')
+    first_index: SeriesPattern19[P2TRAddressIndex] = _at(SeriesPattern19, 'first_*_address_index')
+    bytes: SeriesPattern33[P2TRBytes] = _at(SeriesPattern33, '*_bytes')
 
 
 class IndexerP2wsh(_Node):
-    first_index: SeriesPattern18[P2WSHAddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
-    bytes: SeriesPattern34[P2WSHBytes] = _at(SeriesPattern34, '*_bytes')
+    first_index: SeriesPattern19[P2WSHAddressIndex] = _at(SeriesPattern19, 'first_*_address_index')
+    bytes: SeriesPattern35[P2WSHBytes] = _at(SeriesPattern35, '*_bytes')
 
 
 class IndexerP2wpkh(_Node):
-    first_index: SeriesPattern18[P2WPKHAddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
-    bytes: SeriesPattern33[P2WPKHBytes] = _at(SeriesPattern33, '*_bytes')
+    first_index: SeriesPattern19[P2WPKHAddressIndex] = _at(SeriesPattern19, 'first_*_address_index')
+    bytes: SeriesPattern34[P2WPKHBytes] = _at(SeriesPattern34, '*_bytes')
 
 
 class IndexerP2sh(_Node):
-    first_index: SeriesPattern18[P2SHAddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
-    bytes: SeriesPattern31[P2SHBytes] = _at(SeriesPattern31, '*_bytes')
+    first_index: SeriesPattern19[P2SHAddressIndex] = _at(SeriesPattern19, 'first_*_address_index')
+    bytes: SeriesPattern32[P2SHBytes] = _at(SeriesPattern32, '*_bytes')
 
 
 class IndexerP2pkh(_Node):
-    first_index: SeriesPattern18[P2PKHAddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
-    bytes: SeriesPattern30[P2PKHBytes] = _at(SeriesPattern30, '*_bytes')
+    first_index: SeriesPattern19[P2PKHAddressIndex] = _at(SeriesPattern19, 'first_*_address_index')
+    bytes: SeriesPattern31[P2PKHBytes] = _at(SeriesPattern31, '*_bytes')
 
 
 class IndexerP2pk33(_Node):
-    first_index: SeriesPattern18[P2PK33AddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
-    bytes: SeriesPattern28[P2PK33Bytes] = _at(SeriesPattern28, '*_bytes')
+    first_index: SeriesPattern19[P2PK33AddressIndex] = _at(SeriesPattern19, 'first_*_address_index')
+    bytes: SeriesPattern29[P2PK33Bytes] = _at(SeriesPattern29, '*_bytes')
 
 
 class IndexerP2pk65(_Node):
-    first_index: SeriesPattern18[P2PK65AddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
-    bytes: SeriesPattern29[P2PK65Bytes] = _at(SeriesPattern29, '*_bytes')
+    first_index: SeriesPattern19[P2PK65AddressIndex] = _at(SeriesPattern19, 'first_*_address_index')
+    bytes: SeriesPattern30[P2PK65Bytes] = _at(SeriesPattern30, '*_bytes')
 
 
 class Addrs(_Node, Generic[A, B, C, D, E, F, G, H]):
@@ -4433,24 +4740,24 @@ class Mappings(_Node):
 
 
 class IndexerOutputs(_Node):
-    first_txout_index: SeriesPattern18[TxOutIndex] = _at(SeriesPattern18, 'first_txout_index')
-    value: SeriesPattern22[Sats] = _at(SeriesPattern22, '*_value')
-    output_type: SeriesPattern22[OutputType] = _at(SeriesPattern22, '*_type')
-    type_index: SeriesPattern22[TypeIndex] = _at(SeriesPattern22, 'type_index')
+    first_txout_index: SeriesPattern19[TxOutIndex] = _at(SeriesPattern19, 'first_txout_index')
+    value: SeriesPattern23[Sats] = _at(SeriesPattern23, '*_value')
+    output_type: SeriesPattern23[OutputType] = _at(SeriesPattern23, '*_type')
+    type_index: SeriesPattern23[TypeIndex] = _at(SeriesPattern23, 'type_index')
 
 
 class IndexerInputs(_Node):
-    first_txin_index: SeriesPattern18[TxInIndex] = _at(SeriesPattern18, 'first_txin_*')
-    outpoint: SeriesPattern21[OutPoint] = _at(SeriesPattern21, 'outpoint')
-    txout_index: SeriesPattern21[TxOutIndex] = _at(SeriesPattern21, 'spent_txout_*')
-    tx_index: SeriesPattern20[TxIndex] = _at(SeriesPattern20, 'input_tx_*')
-    output_type: SeriesPattern20[OutputType] = _at(SeriesPattern20, 'output_type')
-    type_index: SeriesPattern21[TypeIndex] = _at(SeriesPattern21, 'type_*')
-    value: SeriesPattern20[Sats] = _at(SeriesPattern20, 'input_value')
+    first_txin_index: SeriesPattern19[TxInIndex] = _at(SeriesPattern19, 'first_txin_*')
+    outpoint: SeriesPattern22[OutPoint] = _at(SeriesPattern22, 'outpoint')
+    txout_index: SeriesPattern22[TxOutIndex] = _at(SeriesPattern22, 'spent_txout_*')
+    tx_index: SeriesPattern21[TxIndex] = _at(SeriesPattern21, 'input_tx_*')
+    output_type: SeriesPattern21[OutputType] = _at(SeriesPattern21, 'output_type')
+    type_index: SeriesPattern22[TypeIndex] = _at(SeriesPattern22, 'type_*')
+    value: SeriesPattern21[Sats] = _at(SeriesPattern21, 'input_value')
 
 
 class CountSeries(_Node):
-    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*')
+    block: SeriesPattern19[Count] = _at(SeriesPattern19, '*')
 
 
 class VersionCount(_Node, Generic[A]):
@@ -4463,24 +4770,29 @@ class VersionCount(_Node, Generic[A]):
 class Transactions(_Node):
     count: FlowStats[Count, Optional[CountFract]] = _at(FlowStats, '*_count')
     features: Features = _at(Features, '*')
-    vsize: PerTxDistribution[VSize] = _at(PerTxDistribution, '*_vsize')
+    vsize: Vsize = _at(Vsize, '*_vsize')
     fees: Fees = _at(Fees, '*')
     inscription: Inscription = _at(Inscription, 'inscription')
     patterns: Patterns = _at(Patterns, 'coinjoin')
     nonstandard: TransactionsFlagged = _at(TransactionsFlagged, 'nonstandard')
     versions: VersionCount[TxCount] = _at((VersionCount, TxCount), '*')
     transfer_volume: ValueFlow = _at(ValueFlow, 'transfer_volume')
+    payments: Payments = _at(Payments, 'payment_count')
+    timelocks: Timelocks = _at(Timelocks, 'locktime_*_count')
+    spending: Spending = _at(Spending, 'spending_*_count')
+    ephemeral_dust: Flow[Count] = _at(Flow, 'ephemeral_dust_spending_*_count')
+    same_block_spending: Flow[Count] = _at(Flow, 'same_block_spending_*_count')
     per_second: Windows[Optional[PerSecond]] = _at(Windows, '*_per_second')
 
 
 class IndexerFeature(_Node):
-    flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'is_*')
-    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
+    flag: SeriesPattern20[Boolean] = _at(SeriesPattern20, 'is_*')
+    block: SeriesPattern19[Count] = _at(SeriesPattern19, '*_tx_count')
 
 
 class Feature(_Node):
-    flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'has_*')
-    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
+    flag: SeriesPattern20[Boolean] = _at(SeriesPattern20, 'has_*')
+    block: SeriesPattern19[Count] = _at(SeriesPattern19, '*_tx_count')
 
 
 class TransactionFeatures(_Node):
@@ -4512,29 +4824,29 @@ class TransactionFeatures(_Node):
 
 
 class IndexerTransactions(_Node):
-    first_tx_index: SeriesPattern18[TxIndex] = _at(SeriesPattern18, 'first_*_index')
-    txid: SeriesPattern19[Txid] = _at(SeriesPattern19, 'txid')
-    version: SeriesPattern19[TxVersion] = _at(SeriesPattern19, '*_version')
-    locktime: SeriesPattern19[RawLockTime] = _at(SeriesPattern19, '*_locktime')
-    weight: SeriesPattern19[Weight] = _at(SeriesPattern19, '*_weight')
-    size: SeriesPattern19[Bytes] = _at(SeriesPattern19, '*_size')
-    sigop_cost: SeriesPattern19[SigOps] = _at(SeriesPattern19, '*_sigop_cost')
-    first_txin_index: SeriesPattern19[TxInIndex] = _at(SeriesPattern19, 'first_txin_index')
-    first_txout_index: SeriesPattern19[TxOutIndex] = _at(SeriesPattern19, 'first_txout_index')
+    first_tx_index: SeriesPattern19[TxIndex] = _at(SeriesPattern19, 'first_*_index')
+    txid: SeriesPattern20[Txid] = _at(SeriesPattern20, 'txid')
+    version: SeriesPattern20[TxVersion] = _at(SeriesPattern20, '*_version')
+    locktime: SeriesPattern20[RawLockTime] = _at(SeriesPattern20, '*_locktime')
+    weight: SeriesPattern20[Weight] = _at(SeriesPattern20, '*_weight')
+    size: SeriesPattern20[Bytes] = _at(SeriesPattern20, '*_size')
+    sigop_cost: SeriesPattern20[SigOps] = _at(SeriesPattern20, '*_sigop_cost')
+    first_txin_index: SeriesPattern20[TxInIndex] = _at(SeriesPattern20, 'first_txin_index')
+    first_txout_index: SeriesPattern20[TxOutIndex] = _at(SeriesPattern20, 'first_txout_index')
     features: TransactionFeatures = _at(TransactionFeatures, 'sighash')
     versions: VersionCount[CountSeries] = _at((VersionCount, CountSeries), '*_count')
 
 
 class IndexerBlocks(_Node):
-    blockhash: SeriesPattern18[BlockHash] = _at(SeriesPattern18, 'blockhash')
-    coinbase_tag: SeriesPattern18[CoinbaseTag] = _at(SeriesPattern18, 'coinbase_tag')
-    timestamp: SeriesPattern18[Timestamp] = _at(SeriesPattern18, 'timestamp')
-    median_time: SeriesPattern18[Timestamp] = _at(SeriesPattern18, 'median_time')
-    size: SeriesPattern18[Bytes] = _at(SeriesPattern18, 'block_size')
-    weight: SeriesPattern18[Weight] = _at(SeriesPattern18, 'block_weight')
-    segwit_tx_count: SeriesPattern18[Count] = _at(SeriesPattern18, '*_count')
-    segwit_tx_size: SeriesPattern18[Bytes] = _at(SeriesPattern18, '*_size')
-    segwit_tx_weight: SeriesPattern18[Weight] = _at(SeriesPattern18, '*_weight')
+    blockhash: SeriesPattern19[BlockHash] = _at(SeriesPattern19, 'blockhash')
+    coinbase_tag: SeriesPattern19[CoinbaseTag] = _at(SeriesPattern19, 'coinbase_tag')
+    timestamp: SeriesPattern19[Timestamp] = _at(SeriesPattern19, 'timestamp')
+    median_time: SeriesPattern19[Timestamp] = _at(SeriesPattern19, 'median_time')
+    size: SeriesPattern19[Bytes] = _at(SeriesPattern19, 'block_size')
+    weight: SeriesPattern19[Weight] = _at(SeriesPattern19, 'block_weight')
+    segwit_tx_count: SeriesPattern19[Count] = _at(SeriesPattern19, '*_count')
+    segwit_tx_size: SeriesPattern19[Bytes] = _at(SeriesPattern19, '*_size')
+    segwit_tx_weight: SeriesPattern19[Weight] = _at(SeriesPattern19, '*_weight')
 
 
 class Indexer(_Node):
@@ -4552,7 +4864,7 @@ class SeriesTree(_Node):
     mappings: Mappings = _at(Mappings, 'date')
     price: Price = _at(Price, 'price')
     blocks: Blocks = _at(Blocks, 'block')
-    inputs: Inputs = _at(Inputs, 'input')
+    inputs: Inputs = _at(Inputs, 'count')
     outputs: Outputs = _at(Outputs, 'output')
     transactions: Transactions = _at(Transactions, 'tx')
     mining: Mining = _at(Mining, 'hash')
@@ -5168,6 +5480,7 @@ class BitviewClient(BitviewClientBase):
       "bitproof": "Bitproof",
       "ascribe": "Ascribe",
       "stampery": "Stampery",
+      "bip47": "BIP-47",
       "bare_hash": "Bare hash",
       "text": "Text",
       "empty": "Empty",
@@ -5230,10 +5543,10 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/server/sync`"""
         return self.get_json('/api/server/sync')
 
-    def get_logs(self, after: Optional[str] = None) -> Logs:
+    def get_logs(self, *, after: Optional[str] = None) -> Logs:
         """Logs.
 
-        The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) and everything else it logs. To read on, send the answer's `next` back as `after`: the lines since, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted (and its answer has every kept line). Answers are cached for a second.
+        The server's last log lines, at most 1,000, oldest first: requests (status, method, path and duration; never who made them) and everything else it logs. To read on, send the answer's `next` back as `after`: the lines since, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted (and its answer has every kept line). Answers are cached for a second.
 
         Endpoint: `GET /api/server/logs`"""
         params: List[Tuple[str, Any]] = []
@@ -5274,7 +5587,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/series/indexes`"""
         return self.get_json('/api/series/indexes')
 
-    def list_series(self, page: Optional[int] = None, per_page: Optional[int] = None) -> PaginatedSeries:
+    def list_series(self, *, page: Optional[int] = None, per_page: Optional[int] = None) -> PaginatedSeries:
         """Series list.
 
         Paginated flat list of all available series names.
@@ -5287,10 +5600,10 @@ class BitviewClient(BitviewClientBase):
         path = f'/api/series/list{"?" + query if query else ""}'
         return self.get_json(path)
 
-    def search_series(self, q: str, limit: Optional[int] = None) -> List[SeriesName]:
+    def search_series(self, *, q: str, limit: Optional[int] = None) -> List[SeriesName]:
         """Search series.
 
-        Search series by name or descriptive terms. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.
+        Find on-chain metrics by plain words: MVRV, realized price, SOPR, NUPL, supply held by long-term or short-term holders, coin age, addresses by balance, hashrate, fees, volume, and thousands more. Start here for any metric question: it returns the series ids to pass to `get_series_latest` or `get_series`. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.
 
         Endpoint: `GET /api/series/search`"""
         params: List[Tuple[str, Any]] = []
@@ -5303,15 +5616,15 @@ class BitviewClient(BitviewClientBase):
     def get_series_info(self, series: SeriesName) -> SeriesInfo:
         """Get series info.
 
-        Returns the optional description, supported indexes, the indexes whose values can be null, the value type, and the optional unit (what the value type measures) for the specified series. The decoded series name is limited to 1024 UTF-8 bytes.
+        Returns the optional description, supported indexes, the indexes whose values can be null, the value type, the optional unit (what the value type measures), and the accumulation (how its values combine over time) of the specified series. The decoded series name is limited to 1024 UTF-8 bytes.
 
         Endpoint: `GET /api/series/{series}`"""
         return self.get_json(f'/api/series/{_segment(series)}')
 
-    def get_series(self, series: SeriesName, index: Index, start: Optional[RangeIndex] = None, end: Optional[RangeIndex] = None, limit: Optional[Limit] = None, format: Optional[Format] = None) -> Union[AnySeriesData, str]:
+    def get_series(self, series: SeriesName, index: Index, *, start: Optional[RangeIndex] = None, end: Optional[RangeIndex] = None, limit: Optional[Limit] = None, format: Optional[Format] = None) -> Union[AnySeriesData, str]:
         """Get series data.
 
-        Rows selected by a range of positions, dates or timestamps, as JSON or CSV.
+        History of an on-chain metric, by the series id from `search_series`: rows selected by a range of positions, dates or timestamps, as JSON or CSV.
 
         Endpoint: `GET /api/series/{series}/{index}`"""
         params: List[Tuple[str, Any]] = []
@@ -5325,7 +5638,7 @@ class BitviewClient(BitviewClientBase):
             return self.get_text(path)
         return _series_data(self.get_json(path))
 
-    def get_series_data(self, series: SeriesName, index: Index, start: Optional[RangeIndex] = None, end: Optional[RangeIndex] = None, limit: Optional[Limit] = None, format: Optional[Format] = None) -> Union[List[Any], str]:
+    def get_series_data(self, series: SeriesName, index: Index, *, start: Optional[RangeIndex] = None, end: Optional[RangeIndex] = None, limit: Optional[Limit] = None, format: Optional[Format] = None) -> Union[List[Any], str]:
         """Get raw series data.
 
         The data array without the `SeriesData` wrapper. Supports the same range and format parameters as `GET /api/series/{series}/{index}`.
@@ -5345,7 +5658,7 @@ class BitviewClient(BitviewClientBase):
     def get_series_latest(self, series: SeriesName, index: Index) -> Any:
         """Get latest series value.
 
-        Returns the single most recent value for a series, unwrapped (not inside a SeriesData object).
+        Current value of an on-chain metric, by the series id from `search_series`. Returns the value alone, not inside a SeriesData object.
 
         Endpoint: `GET /api/series/{series}/{index}/latest`"""
         return self.get_json(f'/api/series/{_segment(series)}/{_segment(index)}/latest')
@@ -5364,7 +5677,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/series/{series}/{index}/version`"""
         return self.get_json(f'/api/series/{_segment(series)}/{_segment(index)}/version')
 
-    def get_series_bulk(self, series: SeriesList, index: Index, start: Optional[RangeIndex] = None, end: Optional[RangeIndex] = None, limit: Optional[Limit] = None, format: Optional[Format] = None) -> Union[List[AnySeriesData], str]:
+    def get_series_bulk(self, *, series: SeriesList, index: Index, start: Optional[RangeIndex] = None, end: Optional[RangeIndex] = None, limit: Optional[Limit] = None, format: Optional[Format] = None) -> Union[List[AnySeriesData], str]:
         """Bulk series data.
 
         Fetch multiple series in a single request. Supports filtering by index and date range. Returns an array of SeriesData objects. For a single series, use `get_series` instead.
@@ -5391,10 +5704,10 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/urpd`"""
         return self.get_json('/api/urpd')
 
-    def get_urpd_latest(self, cohort: UrpdCohort, agg: Optional[UrpdAggregation] = None, weight: Optional[UrpdWeight] = None) -> Urpd:
+    def get_urpd_latest(self, cohort: UrpdCohort, *, agg: Optional[UrpdAggregation] = None, weight: Optional[UrpdWeight] = None) -> Urpd:
         """Latest URPD.
 
-        URPD for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.
+        URPD (UTXO realized price distribution: how much supply last moved at each price) for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.
 
         Endpoint: `GET /api/urpd/{cohort}`"""
         params: List[Tuple[str, Any]] = []
@@ -5404,10 +5717,10 @@ class BitviewClient(BitviewClientBase):
         path = f'/api/urpd/{_segment(cohort)}{"?" + query if query else ""}'
         return self.get_json(path)
 
-    def get_urpd(self, cohort: UrpdCohort, point: HeightOrDate, agg: Optional[UrpdAggregation] = None, weight: Optional[UrpdWeight] = None) -> Urpd:
+    def get_urpd(self, cohort: UrpdCohort, point: HeightOrDate, *, agg: Optional[UrpdAggregation] = None, weight: Optional[UrpdWeight] = None) -> Urpd:
         """URPD at block height or date.
 
-        URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is DMD. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
+        URPD (UTXO realized price distribution: how much supply last moved at each price) for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is DMD. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
 
         Endpoint: `GET /api/urpd/{cohort}/{point}`"""
         params: List[Tuple[str, Any]] = []
@@ -5437,7 +5750,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/v1/prices`"""
         return self.get_json('/api/v1/prices')
 
-    def get_historical_price(self, timestamp: Optional[Timestamp] = None, currency: Optional[Currency] = None) -> HistoricalPrice:
+    def get_historical_price(self, *, timestamp: Optional[Timestamp] = None, currency: Optional[Currency] = None) -> HistoricalPrice:
         """Historical price.
 
         Completed four-hour closes of DMD's reference price (the cost of mining one DMD, at least $0.001; not a market price), newest first as mempool.space lists them, labeled by interval end, from the chain's first block. With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.
@@ -5470,7 +5783,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/address/{address}`"""
         return self.get_json(f'/api/address/{_segment(address)}')
 
-    def get_address_txs(self, address: Address, after_txid: Optional[Txid] = None, max_txs: Optional[int] = None) -> List[Transaction]:
+    def get_address_txs(self, address: Address, *, after_txid: Optional[Txid] = None, max_txs: Optional[int] = None) -> List[Transaction]:
         """Address transactions.
 
         Get transaction history for an address, newest first: up to `max_txs` (50 by default and at most), mempool transactions first and confirmed ones filling the rest. To continue, pass the last returned txid as `after_txid`, or request `GET /api/address/{address}/txs/chain/{after_txid}` for confirmed history.
@@ -5485,7 +5798,7 @@ class BitviewClient(BitviewClientBase):
         path = f'/api/address/{_segment(address)}/txs{"?" + query if query else ""}'
         return self.get_json(path)
 
-    def get_address_confirmed_txs(self, address: Address, max_txs: Optional[int] = None) -> List[Transaction]:
+    def get_address_confirmed_txs(self, address: Address, *, max_txs: Optional[int] = None) -> List[Transaction]:
         """Address confirmed transactions.
 
         Get the newest confirmed transactions for an address, up to `max_txs` (25 by default and at most). For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.
@@ -5499,7 +5812,7 @@ class BitviewClient(BitviewClientBase):
         path = f'/api/address/{_segment(address)}/txs/chain{"?" + query if query else ""}'
         return self.get_json(path)
 
-    def get_address_confirmed_txs_after(self, address: Address, after_txid: Txid, max_txs: Optional[int] = None) -> List[Transaction]:
+    def get_address_confirmed_txs_after(self, address: Address, after_txid: Txid, *, max_txs: Optional[int] = None) -> List[Transaction]:
         """Address confirmed transactions (paginated).
 
         Get the next confirmed transactions strictly older than `after_txid`, up to `max_txs` (25 by default and at most); a txid outside the address's history answers `[]` (Esplora-canonical pagination form, matches mempool.space).
@@ -5513,7 +5826,7 @@ class BitviewClient(BitviewClientBase):
         path = f'/api/address/{_segment(address)}/txs/chain/{_segment(after_txid)}{"?" + query if query else ""}'
         return self.get_json(path)
 
-    def get_address_mempool_txs(self, address: Address, max_txs: Optional[int] = None) -> List[Transaction]:
+    def get_address_mempool_txs(self, address: Address, *, max_txs: Optional[int] = None) -> List[Transaction]:
         """Address mempool transactions.
 
         Get unconfirmed transactions for an address from the mempool, newest first, up to `max_txs` (50 by default and at most).
@@ -5549,6 +5862,8 @@ class BitviewClient(BitviewClientBase):
 
     def get_block(self, hash: BlockHash) -> BlockInfo:
         """Block information.
+
+        Details of a block by hash: height, time, transaction count, size, weight, and difficulty.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*
 
@@ -5618,6 +5933,8 @@ class BitviewClient(BitviewClientBase):
     def get_block_tip_height(self) -> Height:
         """Block tip height.
 
+        Height of the latest block.
+
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*
 
         Endpoint: `GET /api/blocks/tip/height`"""
@@ -5625,6 +5942,8 @@ class BitviewClient(BitviewClientBase):
 
     def get_block_tip_hash(self) -> BlockHash:
         """Block tip hash.
+
+        Hash of the latest block.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*
 
@@ -5713,6 +6032,8 @@ class BitviewClient(BitviewClientBase):
 
     def get_pools(self) -> List[PoolInfo]:
         """List all mining pools.
+
+        Every known mining pool.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
 
@@ -5812,6 +6133,8 @@ class BitviewClient(BitviewClientBase):
     def get_difficulty_adjustments(self) -> List[DifficultyAdjustmentEntry]:
         """Difficulty adjustments (all time).
 
+        Every difficulty adjustment in the chain's history.
+
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*
 
         Endpoint: `GET /api/v1/mining/difficulty-adjustments`"""
@@ -5890,7 +6213,7 @@ class BitviewClient(BitviewClientBase):
     def get_mempool_blocks(self) -> List[MempoolBlock]:
         """Projected mempool blocks.
 
-        Projected blocks for fee estimation. Block 0 reflects the node's actual next-block selection; blocks 1+ are a fee-tier approximation.
+        Projected blocks for fee estimation, up to eight as mempool.space's. Every block, block 0 the next, is packed as Core's block assembler packs (whole CPFP chunks by feerate, in dependency order, within Core's default weight and sigop budgets), ranked by the node's signed modified fees (including `prioritisetransaction`), with paid fees in the statistics. The last holds whatever is left: more than a block when the mempool is busy. `GET /api/mempool-blocks/{index}` serves each with its transactions, except such a last one.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*
 
@@ -5920,6 +6243,8 @@ class BitviewClient(BitviewClientBase):
     def get_mempool(self) -> MempoolInfo:
         """Mempool statistics.
 
+        Current mempool backlog: transaction count, total virtual size, total fees, and fee histogram.
+
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*
 
         Endpoint: `GET /api/mempool`"""
@@ -5935,7 +6260,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/mempool/txids`"""
         return self.get_json('/api/mempool/txids')
 
-    def get_mempool_recent(self) -> List[MempoolRecentTx]:
+    def get_mempool_recent(self) -> List[MempoolTxSummary]:
         """Recent mempool transactions.
 
         Get the last 10 transactions to enter the mempool.
@@ -5968,7 +6293,7 @@ class BitviewClient(BitviewClientBase):
     def get_mempool_block(self, index: MempoolBlockIndex) -> MempoolBlockContent:
         """Projected mempool block.
 
-        A projected mempool block with its transactions in order and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection, and the only one served for now (others answer 404). The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
+        A projected mempool block with its transactions in block order, each in esplora's light shape as `GET /api/mempool/recent` lists them (`txid`, `fee`, `vsize`, `value`: the whole body is at `GET /api/tx/{txid}`), and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, packed by Bitview as the rest are. The last one answers 404 while it holds more than a block (what's left of a busy mempool: only its stats are served), as does a block past the projection. The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
 
         Endpoint: `GET /api/mempool-blocks/{index}`"""
         return self.get_json(f'/api/mempool-blocks/{_segment(index)}')
@@ -5976,10 +6301,20 @@ class BitviewClient(BitviewClientBase):
     def get_mempool_block_diff(self, index: MempoolBlockIndex, since: MempoolBlockHash) -> MempoolBlockDiff:
         """Projected mempool block changes.
 
-        The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction object, a body to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict cached bodies. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. Returns `404` when `since` has aged out of server history: fetch `GET /api/mempool-blocks/{index}` again.
+        The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction in the same light shape as the block's, to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict what they cached for them. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. A `since` this server doesn't hold (aged out, another server's, or from before a restart) gets the whole block as new transactions and an empty `removed`: rebuild from `order` alone, and prune what was cached per transaction to the txids in the new `order`.
 
         Endpoint: `GET /api/mempool-blocks/{index}/diff/{since}`"""
         return self.get_json(f'/api/mempool-blocks/{_segment(index)}/diff/{_segment(since)}')
+
+    def get_block_template(self) -> BlockTemplate:
+        """Next block template.
+
+        The next block's template (BIP 22), built by this server: projected block 0's transactions in its order, as `GET /api/mempool-blocks/0` serves them, every parent before its children. It holds `version`, `previousblockhash`, `transactions` (each with `data`, `txid`, `hash`, `depends`, `fee`, `sigops`, `weight`), `coinbasevalue` (the subsidy plus the transactions' fees), `target`, `bits`, `curtime`, `mintime` (the tip's median time past plus one), `height`, `default_witness_commitment` and the rest, the format pools and mining software read. A complete block once a miner adds a coinbase paying `coinbasevalue` and carrying `default_witness_commitment`: each is served only after the node accepts the block it describes (`getblocktemplate` proposal mode, every check but proof of work), checked apart from the pool's publication, so it trails block 0 by that check (about 0.15 s). `503` until one is accepted at the current tip.
+
+        *[BIP 22](https://github.com/bitcoin/bips/blob/master/bip-0022.mediawiki)*
+
+        Endpoint: `GET /api/block-template`"""
+        return self.get_json('/api/block-template')
 
     def get_txid_by_index(self, index: TxIndex) -> Txid:
         """Txid by index.
@@ -6002,7 +6337,7 @@ class BitviewClient(BitviewClientBase):
     def get_tx_rbf(self, txid: Txid) -> RbfResponse:
         """RBF replacement history.
 
-        Returns the RBF replacement tree for a transaction, if any. Both `replacements` and `replaces` are null when the tx has no known RBF history within the mempool monitor's retention window.
+        Returns the RBF replacement tree for a transaction, if any. Both `replacements` and `replaces` are null when the tx has no known RBF history within the mempool monitor's retention window. A history past 63 versions or 4,096 transactions comes cut to its newest part, its root marked `"truncated": true`.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-rbf-history)*
 
@@ -6011,6 +6346,8 @@ class BitviewClient(BitviewClientBase):
 
     def get_tx(self, txid: Txid) -> Transaction:
         """Transaction information.
+
+        Full details of a transaction by txid: inputs, outputs, fee, size, and confirmation status.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction)*
 
@@ -6039,6 +6376,8 @@ class BitviewClient(BitviewClientBase):
 
     def get_tx_merkle_proof(self, txid: Txid) -> MerkleProof:
         """Transaction merkle proof.
+
+        Merkle inclusion proof of a confirmed transaction in its block.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkle-proof)*
 
@@ -6085,7 +6424,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/tx/{txid}/status`"""
         return self.get_json(f'/api/tx/{_segment(txid)}/status')
 
-    def get_transaction_times(self, txids: List[Txid]) -> List[Timestamp]:
+    def get_transaction_times(self, *, txids: List[Txid]) -> List[Timestamp]:
         """Transaction first-seen times.
 
         First-seen UNIX timestamps in seconds, in request order, of transactions in the mempool or that recently left it other than by replacement (mined ones included); 0 otherwise.
@@ -6107,7 +6446,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#post-transaction)*
 
         Endpoint: `POST /api/tx`"""
-        return self.post_text('/api/tx', body)
+        return self.post_text('/api/tx', body, 'text/plain; charset=utf-8')
 
     def get_utxo_set_latest(self) -> UtxoSet:
         """Latest UTXO set.
@@ -6132,6 +6471,86 @@ class BitviewClient(BitviewClientBase):
 
         Endpoint: `GET /api/utxo-set/{point}/diff`"""
         return self.get_json(f'/api/utxo-set/{_segment(point)}/diff')
+
+    def get_blindbit_info(self) -> BlindbitInfo:
+        """Server info.
+
+        The network, the last indexed block, and which tweak modes the server serves: the full index and cut-through, both taking a dust limit.
+
+        Endpoint: `GET /blindbit/mainnet/info`"""
+        return self.get_json('/blindbit/mainnet/info')
+
+    def get_blindbit_block_height(self) -> BlindbitBlockHeight:
+        """Last indexed block.
+
+        The height of the last indexed block.
+
+        Endpoint: `GET /blindbit/mainnet/block-height`"""
+        return self.get_json('/blindbit/mainnet/block-height')
+
+    def get_blindbit_block_hash(self, height: Height) -> BlindbitBlockHash:
+        """Block hash.
+
+        The hash of the block at a height.
+
+        Endpoint: `GET /blindbit/mainnet/block-hash/{height}`"""
+        return self.get_json(f'/blindbit/mainnet/block-hash/{_segment(height)}')
+
+    def get_blindbit_tweak_index(self, height: Height, *, dustLimit: Optional[int] = None) -> List[Tweak]:
+        """Tweak index.
+
+        The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional and takes any value, as BlindBit takes it (0 when left out), but transactions whose Taproot outputs all hold less than 600 sats aren't held, so any limit below 600 answers as 600.
+
+        Endpoint: `GET /blindbit/mainnet/tweak-index/{height}`"""
+        params: List[Tuple[str, Any]] = []
+        if dustLimit is not None: params.append(('dustLimit', dustLimit))
+        query = urlencode(params)
+        path = f'/blindbit/mainnet/tweak-index/{_segment(height)}{"?" + query if query else ""}'
+        return self.get_json(path)
+
+    def get_blindbit_tweaks(self, height: Height, *, dustLimit: Optional[int] = None) -> List[Tweak]:
+        """Cut-through tweaks.
+
+        `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.
+
+        Endpoint: `GET /blindbit/mainnet/tweaks/{height}`"""
+        params: List[Tuple[str, Any]] = []
+        if dustLimit is not None: params.append(('dustLimit', dustLimit))
+        query = urlencode(params)
+        path = f'/blindbit/mainnet/tweaks/{_segment(height)}{"?" + query if query else ""}'
+        return self.get_json(path)
+
+    def get_blindbit_filter(self, kind: BlindbitFilterKind, height: Height) -> BlindbitFilter:
+        """Block filter.
+
+        A BIP158 Golomb-coded set (P = 19, M = 784,931, keyed by the block hash) of the block's new Taproot output keys (`new-utxos`, the x-only keys) or of its spends of Taproot outputs (`spent`, hashed as in `spent-index`). Repeated elements count once, as in BIP158 (BlindBit repeats them), which leaves every membership test's answer the same.
+
+        Endpoint: `GET /blindbit/mainnet/filter/{kind}/{height}`"""
+        return self.get_json(f'/blindbit/mainnet/filter/{_segment(kind)}/{_segment(height)}')
+
+    def get_blindbit_spent_index(self, height: Height) -> BlindbitSpentIndex:
+        """Spent index.
+
+        The block's spends of Taproot outputs, each the first 8 bytes of `sha256(txid ‖ vout ‖ block hash)` in hex (the txid and this block's hash in internal byte order, the vout little-endian): a wallet hashes its own outpoints to find which this block spends. Always an object, even when empty (BlindBit then answers `[]`, which spdk can't read).
+
+        Endpoint: `GET /blindbit/mainnet/spent-index/{height}`"""
+        return self.get_json(f'/blindbit/mainnet/spent-index/{_segment(height)}')
+
+    def get_blindbit_utxos(self, height: Height) -> List[BlindbitUtxo]:
+        """Taproot outputs.
+
+        Every Taproot output of the block's eligible transactions (those `tweak-index` lists), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs). An output whose key isn't a point on the curve is left out: it can't be a payment, and spdk refuses a whole block over one.
+
+        Endpoint: `GET /blindbit/mainnet/utxos/{height}`"""
+        return self.get_json(f'/blindbit/mainnet/utxos/{_segment(height)}')
+
+    def post_blindbit_forward_tx(self, body: ForwardTx) -> Txid:
+        """Broadcast transaction.
+
+        Submits a raw transaction, `{"data": "<hex>"}`, to the node, as `POST /api/tx` does. Returns its txid as a JSON string. No responses are cached.
+
+        Endpoint: `POST /blindbit/mainnet/forward-tx`"""
+        return self.post_json('/blindbit/mainnet/forward-tx', json.dumps(body), 'application/json')
 
     def get_live_price(self) -> Dollars:
         """DMD reference price.

@@ -3,29 +3,111 @@
 // from `from` to `to`, fractions allowed), and where each index is across the plot. A pan moves the view by whole CSS
 // pixels (the rest kept for the next one), so a picture drawn before can be moved instead of drawn again. Its data
 // always holds part of the view (`minDataShare` of its width, or all of the data where it's less), a pan, a flick or a
-// zoom held there; zoomed in to `maxSpacing` CSS pixels a point at most, out to all of the data (or `minSpacing`). Its
-// newest point in view, a zoom keeps it where it is: the latest data stays in sight at the right.
+// zoom held there; zoomed in to `maxSpacing` CSS pixels a point at most, out to all of the data (or `minSpacing`). A
+// zoom keeps the point under the pointer where it is (what's looked at stays put). Its plot resized, the view's the same
+// points (stretched), past the zoom's bound if it takes it.
+
+/**
+ * The float noise a view's moves leave in an index, under which it counts as whole: a pixel column's first point the
+ * same in a pan's strip as in a whole draw (an index 1190.0000000000002 had put point 1190 in the next column).
+ */
+export const NOISE = 1e-9;
+/** An endpoint within NOISE of a whole point, that point. @param {number} x */
+const snap = (x) => (Math.abs(x - Math.round(x)) < NOISE ? Math.round(x) : x);
+/**
+ * Whether two of the view's lengths (its spacing, a point's x) are one but for the float noise a pan leaves in them (it
+ * moves `from` and `to` alike, their difference rounded anew): within NOISE of each other, relatively. A pan, not a
+ * zoom: a picture moved, words grouped as they were. @param {number} a @param {number} b
+ */
+export const alike = (a, b) => Math.abs(a - b) <= Math.abs(a) * NOISE;
+
+/** A column's first value at or after index `i` (a relative scale's base: a series' first in view), or NaN: none. @param {Float64Array} values @param {number} i */
+export function firstFrom(values, i) {
+  for (let k = Math.max(0, i); k < values.length; k++) if (values[k] === values[k]) return values[k];
+  return NaN;
+}
+
+/**
+ * The last value's index (NaN: none there, as a line's lastBy reads) in inclusive bounds (`from` to `to`, fractions taken inward); none, -1. A reading at rest
+ * (a legend's, a tag's, a page's): the last in view, or one from before it, its date then said by its reader.
+ * @param {ArrayLike<number>} values @param {number} from @param {number} to
+ */
+export function lastIn(values, from, to) {
+  const first = Math.max(0, Math.ceil(from));
+  for (let i = Math.min(Math.floor(to), values.length - 1); i >= first; i--) if (values[i] === values[i]) return i;
+  return -1;
+}
+
+/**
+ * The blank after the last point, in CSS pixels, at a plot `width`: 6% of it, from 16 to 48 (a phone's plot ~18, a
+ * large screen's no wider). The one rule for every chart: its line's end clear of the scale.
+ * @param {number} width
+ */
+export const rightBlank = (width) => Math.round(Math.min(48, Math.max(16, width * 0.06)));
 
 export class Timeline {
-  /** @param {{ rightOffset?: number, minSpacing?: number, maxSpacing?: number, minDataShare?: number }} [options] */
-  constructor({ rightOffset = 24, minSpacing = 0, maxSpacing = 60, minDataShare = 1 / 6 } = {}) {
+  /** @param {{ minSpacing?: number, maxSpacing?: number, minDataShare?: number }} [options] */
+  constructor({ minSpacing = 0, maxSpacing = 60, minDataShare = 1 / 6 } = {}) {
     /** One time a logical index, in seconds, rising. @type {Float64Array} */
     this.times = new Float64Array(0);
     this.from = 0;
     this.to = 1;
     /** The plot's width in CSS pixels. */
     this.width = 1;
-    /** CSS pixels left empty past the last point when the view shows the end. */
-    this.rightOffset = rightOffset;
+    /** CSS pixels a page keeps past the blank (room for a column drawn there), at the plot's width. */
+    this.reserve = 0;
     this.minSpacing = minSpacing;
     this.maxSpacing = maxSpacing;
     this.minDataShare = minDataShare;
     /** A pan's part of a pixel, kept for the next. */
     this.rest = 0;
+    /**
+     * A view a resize kept past the zoom's bound (`maxSpacing`: fewer points than it lets in): how many points it holds,
+     * no zoom in past it (nor out to the bound: nothing moves by itself), till the view's back within the bound.
+     * Infinity: none.
+     */
+    this.kept = Infinity;
+  }
+
+  /** The first point whose center is in view, allowing only floating-point noise at the boundary. */
+  get firstVisible() {
+    return Math.ceil(this.from - NOISE);
+  }
+
+  /** The last point whose center is in view, allowing only floating-point noise at the boundary. A value beyond the edge never becomes the resting readout. */
+  get lastVisible() {
+    return Math.floor(this.to + NOISE);
+  }
+
+  /** The last point a crosshair can be on: the last one with data, or past it, the last one whose center is in view. */
+  get lastSlot() {
+    return Math.max(this.length - 1, this.lastVisible);
+  }
+
+  /**
+   * A point's time (seconds): its own, or past the last, the last's plus the step between the last two as many times
+   * (its points' step going on). NaN: none.
+   * @param {number} i
+   */
+  timeAt(i) {
+    const times = this.times, n = times.length;
+    if (i >= 0 && i < n) return times[i];
+    if (i < n || n < 2) return NaN;
+    return times[n - 1] + (i - n + 1) * (times[n - 1] - times[n - 2]);
   }
 
   get length() {
     return this.times.length;
+  }
+
+  /** CSS pixels left empty past the last point when the view shows the end: `rightBlank` and the page's `reserve`. */
+  get rightOffset() {
+    return rightBlank(this.width) + this.reserve;
+  }
+
+  /** CSS pixels the points share with the end in view: the plot less the right offset (all of it, narrower than that). */
+  get dataWidth() {
+    return this.width > this.rightOffset ? this.width - this.rightOffset : this.width;
   }
 
   /** CSS pixels a point. */
@@ -45,16 +127,21 @@ export class Timeline {
 
   /** @param {Float64Array} times */
   setTimes(times) {
-    const end = this.length > 0 && this.x(this.length - 1) <= this.width;
+    const length = this.length, end = length > 0 && this.x(length - 1) <= this.width;
     this.times = times;
-    // (Its end in view before, in view still: a new last point comes into view.)
-    if (end) this.show(this.to - this.from);
-    else this.limit();
+    // (Its end in view: shift by the points added, keeping its screen position and the pan remainder.)
+    if (end) {
+      const added = times.length - length;
+      this.from += added;
+      this.to += added;
+    }
+    this.limit();
   }
 
-  /** The last `span` points in view, the right offset past them. @param {number} span */
+  /** The last `span` points in view, the first at the left edge, the right offset past the last. @param {number} span */
   show(span) {
-    const spacing = Math.min(Math.max(this.width / span, this.minSpacing), this.maxSpacing);
+    // (Up to the zoom's bound, or as close as a resize kept it: see kept.)
+    const spacing = Math.min(Math.max(this.dataWidth / Math.max(span - 1, 0), this.minSpacing), Math.max(this.maxSpacing, this.width / this.kept));
     this.to = this.length - 1 + this.rightOffset / spacing;
     this.from = this.to - this.width / spacing;
     this.rest = 0;
@@ -69,12 +156,16 @@ export class Timeline {
     this.limit();
   }
 
-  /** The plot's width changed: the view's right end and its spacing kept. @param {number} width */
+  /**
+   * The plot's width changed: keep the same points from edge to edge, with the spacing the new width makes.
+   * @param {number} width
+   */
   resize(width) {
     if (width === this.width) return;
-    const spacing = this.spacing;
     this.width = width;
-    this.from = this.to - width / spacing;
+    const span = this.to - this.from;
+    // (Its data's view, not the placeholder's before any.)
+    if (this.length && span < width / this.maxSpacing) this.kept = span;
     this.limit();
   }
 
@@ -96,37 +187,69 @@ export class Timeline {
   }
 
   /**
-   * Zoomed about `x` (CSS pixels across the plot) by `factor` (over 1: out); about the newest point instead, where it's
-   * in view.
+   * Zoomed about `x` (CSS pixels across the plot) by `factor` (over 1: out): the point there stays there.
    * @param {number} x @param {number} factor
    */
   zoom(x, factor) {
-    const last = this.length - 1, newest = last >= 0 && this.x(last) <= this.width;
-    if (newest) x = this.x(last);
-    const at = this.index(x), next = this.#span((this.to - this.from) * factor);
+    const at = this.index(x), next = this.within((this.to - this.from) * factor);
     this.from = at - (x / this.width) * next;
     this.to = this.from + next;
     // (A pan's part of a pixel kept: a pinch pans as it zooms.)
     this.limit();
   }
 
-  /** A span within the zoom's bounds: `maxSpacing` a point at most; at least all of the data, or `minSpacing`. @param {number} span */
-  #span(span) {
-    const least = this.width / this.maxSpacing, most = this.minSpacing > 0 ? this.width / this.minSpacing : Math.max(this.length, 2) * 1.1 + this.rightOffset;
+  /**
+   * `x` (CSS pixels) on a device pixel at `dpr`, the same whatever float noise the view's moves leave in it: a tie (a
+   * point's x on a half pixel, as a spacing's halves put it) broken a millionth of a pixel early, so a pan's strip and a
+   * whole draw round it alike (else a candle there drew a pixel off in a moved picture).
+   * @param {number} x @param {number} dpr
+   */
+  snap(x, dpr) {
+    return Math.round(x * dpr + 1e-6) / dpr;
+  }
+
+  /**
+   * A span (points) within the zoom's bounds: `maxSpacing` a point at most (or as many as a resize kept, see `kept`); at
+   * most all of the data (a tenth to spare) and the right offset, or `minSpacing`. @param {number} span
+   */
+  within(span) {
+    const least = Math.min(this.width / this.maxSpacing, this.kept), most = this.minSpacing > 0 ? this.width / this.minSpacing : (Math.max(this.length, 2) * 1.1 * this.width) / this.dataWidth;
     return Math.min(Math.max(span, least), Math.max(most, least));
+  }
+
+  /**
+   * How far (points) a view from `from` to `to` moves to hold its data's share (see limit): back toward the data on the
+   * side it's past; 0, held already. A page's glide aimed with it ends where the chart holds it.
+   * @param {number} from @param {number} to
+   */
+  held(from, to) {
+    const span = to - from, last = Math.max(this.length - 1, 0), hold = Math.min(span * this.minDataShare, last);
+    return from > last - hold ? last - hold - from : to < hold ? hold - to : 0;
+  }
+
+  /** How far it can pan (CSS pixels) to `px`'s side (over 0: earlier points coming in) before an end holds it. @param {number} px */
+  room(px) {
+    const span = this.to - this.from, last = Math.max(this.length - 1, 0), hold = Math.min(span * this.minDataShare, last);
+    return Math.max(0, (px > 0 ? this.to - hold : last - hold - this.from) * this.spacing);
   }
 
   /** Its spacing within bounds, and its data holding its share of the view (all of it where there's less). */
   limit() {
     let span = this.to - this.from;
-    const fits = this.#span(span);
+    // (Back within the zoom's bound: a resize's kept view let go of.)
+    if (span >= this.width / this.maxSpacing) this.kept = Infinity;
+    const fits = this.within(span);
     if (fits !== span) {
       const middle = (this.from + this.to) / 2;
       (span = fits), (this.from = middle - span / 2), (this.to = middle + span / 2);
     }
-    const last = Math.max(this.length - 1, 0), hold = Math.min(span * this.minDataShare, last);
-    // (Its last point at least `hold` points into the view; its first at most `hold` from the view's end.)
-    if (this.from > last - hold) (this.from = last - hold), (this.to = this.from + span);
-    if (this.to < hold) (this.to = hold), (this.from = this.to - span);
+    // (Its last point at least its share of the view into it; its first at most that from the view's end.)
+    const by = this.held(this.from, this.to);
+    (this.from += by), (this.to += by);
+    // Layout and pan arithmetic can leave an exact endpoint a fraction past its bar. Every reader sees the same
+    // whole endpoint (tags, legends and date ranges), rather than rounding that noise onto the following day.
+    // (Never to nothing: a span narrower than that noise keeps its own endpoints.)
+    const from = snap(this.from), to = snap(this.to);
+    if (to > from) (this.from = from), (this.to = to);
   }
 }

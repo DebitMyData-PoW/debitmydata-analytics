@@ -1,6 +1,6 @@
 [package]
 name = "bitview_client"
-description = "Synchronous Rust client for the Bitview API"
+description = "Synchronous Rust client for Bitview. Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -17,6 +17,6 @@ bitview_catalog = { workspace = true }
 brk_types = { workspace = true }
 percent-encoding = "2.3.2"
 rapidhash = { workspace = true }
-ureq = { workspace = true }
+ureq = { workspace = true, features = ["json"] }
 serde = { workspace = true }
 serde_json = { workspace = true }

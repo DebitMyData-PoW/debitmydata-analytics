@@ -1,15 +1,16 @@
 #![doc = include_str!("../README.md")]
 
-use serde::Deserializer;
+pub use deser::de_plain;
 
-use deser::de_unquote_usize;
-
+#[cfg(test)]
+mod tests;
 #[macro_use]
 mod with_range_format;
 mod addr_chain_stats;
 mod addr_hash_prefix_matches;
 mod addr_stats;
 mod addr_validation;
+mod blindbit;
 mod block_extras;
 mod block_fee_rates_entry;
 mod block_fees_entry;
@@ -81,6 +82,7 @@ pub use addr_chain_stats::*;
 pub use addr_hash_prefix_matches::*;
 pub use addr_stats::*;
 pub use addr_validation::*;
+pub use blindbit::*;
 pub use block_extras::*;
 pub use block_fee_rates_entry::*;
 pub use block_fees_entry::*;
@@ -145,10 +147,3 @@ pub use urpd_cohort::*;
 pub use urpd_weight::*;
 pub use utxo::*;
 pub use utxo_set::*;
-
-fn de_unquote_limit<'de, D>(deserializer: D) -> Result<Option<Limit>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    de_unquote_usize(deserializer).map(|limit| limit.map(Limit::from))
-}

@@ -48,9 +48,13 @@ to the address state afterward (a catch-up's or rollback's write holds that lock
 and address reads answer 503 meanwhile), and UTXO set snapshots are replaced by
 rename. The mempool publishes only at the published tip and is loaded before the
 pin, so it is at the pin's tip, behind it, or (mid-reorg) on the branch being
-replaced: a lookup the chain answers first reads it as is (it only adds what is
-still pending), while address views, which add it to the chain's numbers, use
-the confirmed state alone until it is at the pin's tip.
+replaced. Reads see it as the pin does: past its tip, without what the pin's
+blocks after the newest block both chains hold mined or conflicted. RBF trees
+read it as is, after the chain. What only a replaced branch mined, and what the
+pool holds spending from it, is in no view until the pool follows (a second): a
+lookup of it answers 503. A transaction lookup past a lowered publication (a
+rollback rewriting its rows) asks the pool too, and answers 503 only when the
+pool doesn't hold it pending.
 
 `read` and `read_with_admission` execute the query closure once on a blocking
 worker. Calls in one closure take their own pins and can observe different
@@ -83,13 +87,9 @@ unbounded.
 
 ## Features
 
-The API features select endpoints and the plugins those endpoints read: `chain` (blocks, transactions, addresses, mining, mempool, UTXO set; implies
-`price`), `series`, `price` (oracle prices) and `urpd` (implies `price`); `full-api` enables all of
-them. Each plugin an enabled API feature reads adds its typed `HasX` requirement to
-`QueryPluginSet` and exposes its typed accessor.
-
-`full-api` is the default for standalone users; composition and adapter crates
-should disable default features and select only what they expose. Generic
-`Vecs` discovery (the `series` feature) works with any `Traversable` plugin
-without a dependency on that plugin crate. Query construction keeps direct typed
+`series` serves the generic series API: it discovers every series through `Traversable`, with no
+dependency on the plugin crates, so any composition with the mappings plugin can serve it.
+`full-api`, the default for standalone users, adds every other endpoint (chain, mempool, oracle,
+URPD), and each plugin they read adds its typed `HasX` requirement to `QueryPluginSet`. Composition
+and adapter crates should disable default features and select what they expose. Query construction keeps direct typed
 references, so hot paths perform no dynamic lookup.

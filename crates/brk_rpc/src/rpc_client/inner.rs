@@ -24,7 +24,7 @@ const RETRY_DELAY: Duration = Duration::from_secs(1);
 
 #[derive(Debug)]
 pub struct ClientInner {
-    /// Kept for [`ClientInner::asynchronous`].
+    /// Kept for [`super::Client::asynchronous`].
     #[cfg(feature = "async")]
     pub url: String,
     #[cfg(feature = "async")]
@@ -84,9 +84,9 @@ impl ClientInner {
         .into())
     }
 
-    /// One batch round-trip, responses in request order. Only the transport's own replays (a
-    /// changed cookie, a dead pooled connection), no reconnect loop: callers decide batch sizing
-    /// and failure semantics.
+    /// One batch round-trip, responses in request order, retried as single calls are (lost
+    /// connections, the node's warm-up): every batch only reads. Callers decide batch sizing and
+    /// per-item failure semantics.
     fn send_batch<'a>(
         &self,
         label: &str,
@@ -96,12 +96,45 @@ impl ClientInner {
             .into_iter()
             .map(|(method, params)| self.client.build_request(method, Some(params)))
             .collect();
-        self.client
-            .send_batch(&requests)
-            .map_err(|error| match refusal(error) {
-                Error::CorepcRPC(error) => Error::Parse(format!("batch {label} failed: {error}")),
-                refused => refused,
-            })
+        for attempt in 0..=MAX_RETRIES {
+            if attempt > 0 {
+                debug!("Retrying Bitcoin Core RPC batch {label} (attempt {attempt}/{MAX_RETRIES})");
+                sleep(RETRY_DELAY);
+            }
+            match self.client.send_batch(&requests) {
+                // A warming-up node answers every item with its warm-up error. Preserve
+                // independently valid items when just one method is unavailable; the caller
+                // owns each item's retry/fallback policy (notably stale priority metadata).
+                Ok(responses) if !responses.is_empty()
+                    && responses.iter().all(|response| response.as_ref().is_some_and(in_warmup)) => {
+                    if attempt == 0 {
+                        warn!("Bitcoin Core RPC batch {label}: the node is warming up; retrying");
+                    }
+                }
+                Ok(responses) => {
+                    if attempt > 0 {
+                        info!("Bitcoin Core RPC batch {label} succeeded after {attempt} retries");
+                    }
+                    return Ok(responses);
+                }
+                Err(e) if is_retriable(&e) => {
+                    if attempt == 0 {
+                        warn!("Bitcoin Core RPC batch {label} failed: {e}; retrying");
+                    }
+                }
+                Err(e) => return Err(refusal(e)),
+            }
+        }
+        warn!(
+            "Bitcoin Core RPC batch {label} failed after {} attempts",
+            MAX_RETRIES + 1
+        );
+        Err(JsonRpcError::Rpc(RpcError {
+            code: -1,
+            message: "Max retries exceeded".to_string(),
+            data: None,
+        })
+        .into())
     }
 
     fn serialize_args<P: Serialize>(
@@ -176,12 +209,19 @@ fn raw_result(response: Option<Response>) -> Result<Box<RawValue>> {
     }
 }
 
+/// RPC_IN_WARMUP: the node is still loading.
+fn in_warmup(response: &Response) -> bool {
+    response
+        .error
+        .as_ref()
+        .is_some_and(|error| error.code == -28)
+}
+
 /// Lost connections, server errors and the node's warm-up answers. Client errors (401, 403 from
 /// `rpcallowip` or `rpcwhitelist`, 404 for a wrong path) don't change on their own, except a
 /// proxy's timeout and rate limit (408, 429).
 fn is_retriable(error: &JsonRpcError) -> bool {
     match error {
-        // RPC_IN_WARMUP: the node is still loading.
         JsonRpcError::Rpc(e) => e.code == -28,
         JsonRpcError::Transport(e) => match e.downcast_ref() {
             Some(HttpError::Status(408 | 429)) => true,

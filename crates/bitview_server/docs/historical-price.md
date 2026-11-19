@@ -1,7 +1,7 @@
 # Historical prices
 
 `GET /api/v1/historical-price` returns completed four-hour BTC/USD closes,
-oldest first, labeled by interval end. A timestamp selects the latest nonempty
+newest first (as mempool.space), labeled by interval end. A timestamp selects the latest nonempty
 completed close at or before it. Closes start at the first priced interval
 (block 74,641, 2010-08-16): earlier unpriced intervals are skipped, and a
 timestamp before the first close returns an empty list. The current partial
@@ -12,5 +12,5 @@ mempool.space's `currency` parameter accepts `USD` only; any other value is a 40
 Indexer, mappings and price guards cover source capture. Missing/invalid
 published data fails rather than yielding a partial result or validating a 304.
 Content identity is computed after reading the selected prices. Bodies of at
-least 256 KiB keep one of two response permits through compression and the final
+least 256 KiB keep one of two response permits through the final
 frame; matching 304s take none.

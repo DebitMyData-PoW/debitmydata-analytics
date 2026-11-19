@@ -1,11 +1,15 @@
-use std::{collections::btree_map::Entry, io, path::PathBuf};
+use std::{
+    collections::{BTreeSet, btree_map::Entry},
+    io,
+    path::PathBuf,
+};
 
 use bitview_catalog::TreeNode;
 use serde_json::Value;
 
 /// Where each output goes. Rust, CLI, JavaScript, Python and the MCP tool manifest
 /// (`llm_manifest`) take a file path; each `llm` call adds a root directory for `llms.txt` and
-/// `llms-full.txt`. Missing parent directories are created.
+/// `llms-full.txt` and the site's Agent Skill index. Missing parent directories are created.
 #[derive(Debug, Clone, Default)]
 pub struct ClientOutputPaths {
     rust: Option<PathBuf>,
@@ -57,10 +61,14 @@ mod constants;
 mod generators;
 mod model;
 mod openapi;
+mod site_pages;
+#[cfg(test)]
+mod tests;
 mod topological;
 mod types;
 
 pub use client_paths::*;
+pub use site_pages::fill_site_pages;
 pub(crate) use generators::*;
 pub(crate) use openapi::*;
 pub use types::*;
@@ -185,6 +193,8 @@ pub fn generate_clients(
     for schema in &schema_values {
         collect_schema_definitions(schema, &mut schemas);
     }
+    let used = used_schemas(openapi_json, catalog, &schemas)?;
+    schemas.retain(|name, _| used.contains(name));
 
     // Every client renders the series tree from one model, with the same shape names.
     let accessors = detect_index_patterns(catalog);
@@ -237,20 +247,48 @@ pub fn generate_clients(
         )?;
     }
 
-    generate_llm_clients(
-        catalog,
-        &spec,
-        &endpoints,
-        &schemas,
-        &output_paths.llm,
-        output_paths.llm_manifest.as_deref(),
-    )?;
+    generate_llm_clients(catalog, &model, &spec, &endpoints, &schemas, output_paths)?;
 
     Ok(())
 }
 
 /// Add each leaf's value-type schema and the definitions it references (such as `Bitcoin` in
 /// `Close<Bitcoin>`); OpenAPI schemas take precedence.
+/// The schemas the clients use: those the API's operations reference (a request extractor's struct,
+/// which aide spreads into parameters, isn't one), the series' value types, and what those
+/// reference in turn.
+fn used_schemas(
+    openapi_json: &str,
+    catalog: &TreeNode,
+    schemas: &TypeSchemas,
+) -> io::Result<BTreeSet<String>> {
+    let spec: Value = serde_json::from_str(openapi_json)
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    let mut refs = BTreeSet::new();
+    collect_schema_refs(&spec["paths"], &mut refs);
+    let mut used: BTreeSet<String> = refs.into_iter().map(str::to_owned).collect();
+    catalog.for_each_leaf(&mut |leaf| {
+        used.insert(inner_type(&leaf.leaf.kind).to_owned());
+        let mut refs = BTreeSet::new();
+        collect_schema_refs(&leaf.schema, &mut refs);
+        used.extend(refs.into_iter().map(str::to_owned));
+    });
+    let mut pending: Vec<String> = used.iter().cloned().collect();
+    while let Some(name) = pending.pop() {
+        let Some(schema) = schemas.get(&name) else {
+            continue;
+        };
+        let mut refs = BTreeSet::new();
+        collect_schema_refs(schema, &mut refs);
+        for reference in refs {
+            if used.insert(reference.to_owned()) {
+                pending.push(reference.to_owned());
+            }
+        }
+    }
+    Ok(used)
+}
+
 fn collect_leaf_type_schemas(node: &TreeNode, schemas: &mut TypeSchemas) {
     node.for_each_leaf(&mut |leaf| {
         collect_schema_definitions(&leaf.schema, schemas);

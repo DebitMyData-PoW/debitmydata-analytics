@@ -6,9 +6,8 @@
 
 mod error;
 mod handlers;
+mod page_info;
 mod router;
-#[cfg(test)]
-mod tests;
 mod website;
 
 pub(crate) use error::Error;

@@ -7,12 +7,15 @@ use crate::PageSize;
 #[serde(deny_unknown_fields)]
 pub struct Pagination {
     /// Zero-based page number (default: 0)
-    #[serde(default)]
-    #[schemars(example = 0, example = 1, example = 2)]
+    #[serde(default, deserialize_with = "crate::de_plain")]
+    #[schemars(extend("examples" = [0, 1, 2]))]
     pub page: usize,
     /// Results per page, 1 to 1,000 (default: 1000)
-    #[serde(default = "Pagination::default_per_page")]
-    #[schemars(example = 100, example = 1000)]
+    #[serde(
+        default = "Pagination::default_per_page",
+        deserialize_with = "crate::de_plain"
+    )]
+    #[schemars(extend("examples" = [100, 1000]))]
     pub per_page: PageSize,
 }
 

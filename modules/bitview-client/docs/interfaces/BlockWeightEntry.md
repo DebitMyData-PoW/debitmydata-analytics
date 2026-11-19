@@ -6,7 +6,7 @@
 
 # Interface: BlockWeightEntry
 
-Defined in: modules/bitview-client/index.js:324
+Defined in: [modules/bitview-client/index.js:335](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L335)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: modules/bitview-client/index.js:324
 
 > **avgHeight**: `number`
 
-Defined in: modules/bitview-client/index.js:325
+Defined in: [modules/bitview-client/index.js:336](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L336)
 
 Average block height in this bucket
 
@@ -24,7 +24,7 @@ Average block height in this bucket
 
 > **avgWeight**: `number`
 
-Defined in: modules/bitview-client/index.js:327
+Defined in: [modules/bitview-client/index.js:338](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L338)
 
 Mean block weight in this bucket, rounded half up (weight units)
 
@@ -34,6 +34,6 @@ Mean block weight in this bucket, rounded half up (weight units)
 
 > **timestamp**: `number`
 
-Defined in: modules/bitview-client/index.js:326
+Defined in: [modules/bitview-client/index.js:337](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L337)
 
 Average block timestamp in this bucket

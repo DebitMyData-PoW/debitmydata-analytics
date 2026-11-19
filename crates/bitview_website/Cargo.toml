@@ -12,12 +12,16 @@ include = ["src/**/*", "showcases/**/*", "Cargo.toml", "README.md"]
 axum = { workspace = true }
 bitview_http = { workspace = true }
 include_dir = { workspace = true }
+flate2 = { workspace = true }
 rapidhash = { workspace = true }
-serde = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true }
 
 [dev-dependencies]
 brk_logger = { workspace = true }
-tower-http = { workspace = true }
-tower-layer = { workspace = true }
+# The example's server: a multi-thread runtime and its layers.
+tokio = { workspace = true, features = ["macros", "net", "rt-multi-thread"] }
+tower-http = { workspace = true, features = ["catch-panic", "cors", "timeout", "trace"] }
+

@@ -2,7 +2,7 @@ use aide::axum::{ApiRouter, routing::get_with};
 use axum::{extract::Path, http::HeaderMap, response::Response};
 use bitview_types::ReplacementNode;
 use brk_types::{
-    MempoolBlockContent, MempoolBlockDiff, MempoolInfo, MempoolRecentTx, Txid, Version,
+    BlockTemplate, MempoolBlockContent, MempoolBlockDiff, MempoolInfo, MempoolTxSummary, Txid, Version,
 };
 
 use super::{mempool_block, mempool_txids};
@@ -28,7 +28,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 op.id("get_mempool")
                     .tag(tags::MEMPOOL)
                     .summary("Mempool statistics")
-                    .description("*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*")
+                    .description("Current mempool backlog: transaction count, total virtual size, total fees, and fee histogram.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*")
                     .json_response::<MempoolInfo>()
                     .not_modified()
             },
@@ -64,7 +64,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     .tag(tags::MEMPOOL)
                     .summary("Recent mempool transactions")
                     .description("Get the last 10 transactions to enter the mempool.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-recent)*")
-                    .json_response::<Vec<MempoolRecentTx>>()
+                    .json_response::<Vec<MempoolTxSummary>>()
                     .not_modified()
             },
         ),
@@ -123,7 +123,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     .tag(tags::MEMPOOL)
                     .mcp_ignore()
                     .summary("Projected mempool block")
-                    .description("A projected mempool block with its transactions in order and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection, and the only one served for now (others answer 404). The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.")
+                    .description("A projected mempool block with its transactions in block order, each in esplora's light shape as `GET /api/mempool/recent` lists them (`txid`, `fee`, `vsize`, `value`: the whole body is at `GET /api/tx/{txid}`), and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, packed by Bitview as the rest are. The last one answers 404 while it holds more than a block (what's left of a busy mempool: only its stats are served), as does a block past the projection. The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.")
                     .json_response::<MempoolBlockContent>()
                     .not_modified()
                     .not_found()
@@ -144,10 +144,29 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     .tag(tags::MEMPOOL)
                     .mcp_ignore()
                     .summary("Projected mempool block changes")
-                    .description("The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction object, a body to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict cached bodies. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. Returns `404` when `since` has aged out of server history: fetch `GET /api/mempool-blocks/{index}` again.")
+                    .description("The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction in the same light shape as the block's, to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict what they cached for them. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. A `since` this server doesn't hold (aged out, another server's, or from before a restart) gets the whole block as new transactions and an empty `removed`: rebuild from `order` alone, and prune what was cached per transaction to the txids in the new `order`.")
                     .json_response::<MempoolBlockDiff>()
                     .not_modified()
                     .not_found()
+            },
+        ),
+    )
+    .api_route(
+        "/api/block-template",
+        get_with(
+            async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
+                state
+                    .respond_json_bound(headers, Version::ONE, |q| q.block_template_json())
+                    .await
+            },
+            |op| {
+                op.id("get_block_template")
+                    .tag(tags::MEMPOOL)
+                    .mcp_ignore()
+                    .summary("Next block template")
+                    .description("The next block's template (BIP 22), built by this server: projected block 0's transactions in its order, as `GET /api/mempool-blocks/0` serves them, every parent before its children. It holds `version`, `previousblockhash`, `transactions` (each with `data`, `txid`, `hash`, `depends`, `fee`, `sigops`, `weight`), `coinbasevalue` (the subsidy plus the transactions' fees), `target`, `bits`, `curtime`, `mintime` (the tip's median time past plus one), `height`, `default_witness_commitment` and the rest, the format pools and mining software read. A complete block once a miner adds a coinbase paying `coinbasevalue` and carrying `default_witness_commitment`: each is served only after the node accepts the block it describes (`getblocktemplate` proposal mode, every check but proof of work), checked apart from the pool's publication, so it trails block 0 by that check (about 0.15 s). `503` until one is accepted at the current tip.\n\n*[BIP 22](https://github.com/bitcoin/bips/blob/master/bip-0022.mediawiki)*")
+                    .json_response::<BlockTemplate>()
+                    .not_modified()
             },
         ),
     )

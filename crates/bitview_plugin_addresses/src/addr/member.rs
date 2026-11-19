@@ -37,7 +37,7 @@ pub struct AddressVecs<M: StorageMode = Rw> {
     #[traversable(lead = "Empty addresses: used before, holding nothing now.")]
     pub empty: StoredCount<M>,
     /// All previously seen addresses, funded or empty.
-    #[traversable(lead = "Addresses: all ever used, funded or empty.")]
+    #[traversable(lead = "Addresses: all ever used, funded or empty.", accumulation = Cumulative)]
     pub total: LazyPerBlock<Count>,
     /// Addresses first observed in each block: the increase in the total address
     /// count.
@@ -51,11 +51,14 @@ pub struct AddressVecs<M: StorageMode = Rw> {
     /// Addresses that have received more than one output over their lifetime. The two coinbase
     /// outputs overwritten by BIP30 duplicates at heights 91,842 and 91,880 do not count as
     /// received.
-    #[traversable(lead = "Reused addresses: ones that received more than once.")]
+    #[traversable(
+        client = "Reused",
+        lead = "Reused addresses: ones that received more than once."
+    )]
     pub reused: ReuseVecs<M>,
     /// Addresses from which more than one output has been spent over their
     /// lifetime.
-    #[traversable(lead = "Addresses spent from more than once.")]
+    #[traversable(client = "Respent", lead = "Addresses spent from more than once.")]
     pub respent: ReuseVecs<M>,
     /// Addresses whose public key or spending script has appeared on-chain. P2PK
     /// and P2TR are exposed when funded; hashed script types become exposed when
@@ -83,6 +86,7 @@ pub struct StoredCount<M: StorageMode = Rw> {
 #[derive(Clone, Traversable)]
 pub struct NewAddressCount {
     /// Value for the represented block.
+    #[traversable(accumulation = Flow)]
     pub block: LazyPreviousDeltaVec<Height, Count>,
     pub sum: LazyRollingSumsFromHeight<Count>,
 }
@@ -148,6 +152,7 @@ pub struct FundedTotal<M: StorageMode = Rw> {
     pub funded: StoredCount<M>,
     /// Addresses that have ever met the predicate, whether or not they hold
     /// unspent outputs at the represented block.
+    #[traversable(accumulation = Cumulative)]
     pub total: StoredCount<M>,
 }
 

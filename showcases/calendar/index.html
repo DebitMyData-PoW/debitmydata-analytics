@@ -10,18 +10,81 @@
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0c0b" />
     <title>Calendar · DebitMyData Analytics</title>
     <meta name="description" content="Every day since the first DebitMyData block, the mining pool that found the most blocks, and every block of any day." />
+    <!-- (Its address, wherever it's served from, and how a shared link previews: its card made by showcases/home.mjs --pictures.) -->
+    <link rel="canonical" href="https://analytics.debitmydata.io/calendar/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://analytics.debitmydata.io/calendar/" />
+    <meta property="og:site_name" content="DebitMyData Analytics" />
+    <meta property="og:title" content="Calendar · DebitMyData Analytics" />
+    <meta property="og:description" content="Every day since the first DebitMyData block, the mining pool that found the most blocks, and every block of any day." />
+    <meta property="og:image" content="https://analytics.debitmydata.io/assets/cards/calendar.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Calendar's year: each day its leading mining pool's logo, the year's leading pools and its notes beside it" />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <!-- (The serif the year's caption is set in, asked for at once, so the caption doesn't re-wrap when it arrives.) -->
+    <link rel="preload" href="/assets/fonts/InstrumentSerif-Italic.woff2" as="font" type="font/woff2" crossorigin />
     <style>
+      /* fallback fonts */
+      /* Local faces keep text visible while the web fonts load. Width fits use a general Latin sample;
+         vertical metrics come from Inter 4.1 and Lilex 2.620, divided by size-adjust.
+         Menlo needs its full/PostScript name in Chromium. Other mono faces share its calibration. */
+      @font-face {
+        font-family: "Inter Fallback";
+        src: local("ArialMT"), local("Arial"), local("Helvetica"), local("Roboto");
+        font-weight: 100 600;
+        size-adjust: 108.088066%;
+        ascent-override: 89.625991%;
+        descent-override: 22.316149%;
+        line-gap-override: 0%;
+      }
+      @font-face {
+        font-family: "Inter Fallback";
+        src: local("Arial-BoldMT"), local("Arial Bold"), local("Helvetica Bold"), local("Roboto Bold");
+        font-weight: 601 900;
+        size-adjust: 99.756055%;
+        ascent-override: 97.111900%;
+        descent-override: 24.180080%;
+        line-gap-override: 0%;
+      }
+      @font-face {
+        font-family: "Lilex Fallback";
+        src: local("Menlo"), local("Menlo-Regular"), local("SF Mono"), local("SFMono-Regular"), local("Consolas"), local("DejaVu Sans Mono"), local("Liberation Mono");
+        font-weight: 500 700;
+        size-adjust: 99.659367%;
+        ascent-override: 100.241455%;
+        descent-override: 30.202881%;
+        line-gap-override: 0%;
+      }
+      /* /fallback fonts */
+
       @font-face {
         font-family: Inter;
-        src: url("/assets/fonts/InterVariable.woff2") format("woff2");
+        src: url("/assets/fonts/InterVariable.core.woff2") format("woff2");
+        unicode-range: U+0000-017F, U+0192, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0394, U+03A3, U+03C3, U+2000-206F, U+20AC, U+20BF, U+2122, U+2190-23FF, U+2500-25FF, U+2713-2715, U+FE0E-FE0F, U+FEFF, U+FFFD;
+        font-weight: 100 900;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: Inter;
+        src: url("/assets/fonts/InterVariable.rest.woff2") format("woff2");
+        unicode-range: U+0180-0191, U+0193-02BA, U+02BD-02C5, U+02C7-02D9, U+02DB, U+02DD-0393, U+0395-03A1, U+03A4-03C2, U+03C4-03DD, U+03F0-04FF, U+052F, U+0E3F, U+1D00-1D1B, U+1D43-1D65, U+1D9C-1DA0, U+1DBB-1FFE, U+2070-20AB, U+20AD-20BE, U+20C0, U+20DB-2121, U+2126-213B, U+214D-2189, U+2423, U+2460-2468, U+24B6-24CF, U+24EA, U+2600-2606, U+263C, U+2661-266B, U+26A0, U+2717, U+2756-2764, U+2780-2788, U+27EF-27FA, U+2913, U+2A38, U+2B06-2B24, U+2C7C-2C7F, U+2DFF, U+2E18, U+A69F, U+A7FF, U+A92E, U+E000-E0F5, U+E106-E163, U+E1C3-E2DC, U+EE01-EEE1, U+F6C3, U+1F12F-1F149, U+1F16A-1F16B, U+1F850-1F852;
         font-weight: 100 900;
         font-display: swap;
       }
 
       @font-face {
         font-family: Lilex;
-        src: url("/assets/fonts/Lilex.woff2") format("woff2");
+        src: url("/assets/fonts/Lilex.core.woff2") format("woff2");
+        unicode-range: U+0000-017F, U+0192, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0394, U+03A3, U+03C3, U+2000-206F, U+20AC, U+20BF, U+2122, U+2190-23FF, U+2500-25FF, U+2713-2715, U+FE0E-FE0F, U+FEFF, U+FFFD;
+        font-weight: 400 700;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: Lilex;
+        src: url("/assets/fonts/Lilex.rest.woff2") format("woff2");
+        unicode-range: U+018F, U+01A0-01B0, U+01CD-01FF, U+0218-021B, U+0237, U+0259, U+02C7, U+02D8-02D9, U+02DB, U+02DD, U+0300-0328, U+037E-0393, U+0395-03A1, U+03A4-03C2, U+03C4-03CE, U+0400-0475, U+0490-04F9, U+0524-0525, U+0E3F, U+1E28-1E29, U+1E80-1E85, U+1E9E-1EF9, U+2070-2089, U+20A1-20AB, U+20AD-20BD, U+2113-2116, U+2126-212E, U+2150-215E, U+2B0E-2B11, U+2B58, U+3000, U+E0A0-E0B3;
         font-weight: 400 700;
         font-display: swap;
       }
@@ -48,9 +111,9 @@
         --hover: light-dark(rgb(70 50 20 / 0.06), rgb(240 225 200 / 0.06));
         --focus: light-dark(rgb(70 50 20 / 0.6), rgb(240 225 200 / 0.6));
         --answer: light-dark(#b3261e, #e0584b);
-        --sans: Inter, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+        --sans: Inter, "Inter Fallback", -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
         --serif: Instrument, Georgia, "Times New Roman", serif;
-        --mono: Lilex, ui-monospace, "SF Mono", Menlo, monospace;
+        --mono: Lilex, "Lilex Fallback", ui-monospace, "SF Mono", Menlo, monospace;
         --gutter: max(20px, env(safe-area-inset-left));
       }
 
@@ -144,8 +207,8 @@
       }
 
       #lede {
-        color: var(--faint);
-        font-size: 15px;
+        color: var(--text);
+        font-size: 16px;
       }
 
       .page {
@@ -211,7 +274,7 @@
         &::before {
           content: "";
           position: absolute;
-          inset: -8px -4px;
+          inset: -13px -3px;
         }
 
         + .stepper {
@@ -323,7 +386,8 @@
 
         /* (A year on a desk: as wide as a whole year in a screen allows, its label over it.) */
         @media (min-width: 1024px) {
-          > .year:has(> #view > .months) {
+          /* (Held while it's still empty, before its months are drawn, so they come without moving it.) */
+          > .year:is(:has(> #view > .months), :has(> #view:empty)) {
             width: 100%;
             max-width: calc((100svh - 150px) * 1.15);
             margin-inline: auto;
@@ -388,8 +452,8 @@
 
       .week {
         margin-bottom: 2px;
-        color: var(--faint);
-        font-size: 10px;
+        color: var(--soft);
+        font-size: 11px;
         text-align: center;
       }
 
@@ -428,7 +492,7 @@
 
         /* (A day still to come, or before the chain: its date, faintly, not to be opened.) */
         &:disabled {
-          opacity: 0.45;
+          opacity: 0.6;
           cursor: default;
         }
 
@@ -447,6 +511,12 @@
         /* (A phone's tiles: the logo centered, a size down; and where there's room (36px and more), the date small in
            the corner. Smaller, as at 320px or two months a row, the logo alone.) */
         @media (max-width: 639px), (pointer: coarse) {
+          /* (A finger's reach, unseen: a clear 1px border grown into the gap round it, 44px whatever the tile is drawn at.) */
+          border: 1px solid transparent;
+          margin: -1px;
+          background-clip: padding-box;
+          outline-offset: 1px;
+
           /* (A phone's logo in proportion with its type, whatever its tile's size.) */
           .logo {
             width: 40%;
@@ -831,12 +901,25 @@
           }
         }
       }
+
+      /* (The steps' reach sideways too, only into the year or day between them, never out over a neighbour.) */
+      @media (pointer: coarse) {
+        .stepper #back::before {
+          right: min(0px, calc(100% - 44px));
+          left: 0;
+        }
+
+        .stepper #forward::before {
+          left: min(0px, calc(100% - 44px));
+          right: 0;
+        }
+      }
     </style>
   </head>
   <body>
     <div class="page">
       <header class="top">
-        <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />DebitMyData Analytics</a>
+        <a class="brand" href="/"><img src="/assets/logo/logo.png" alt="" width="26" height="26" style="width: 26px; height: 26px" />DebitMyData Analytics</a>
         <h1 class="sr">Calendar</h1>
         <button type="button" id="up" class="up" hidden></button>
         <nav class="stepper" aria-label="Year or day">
@@ -868,6 +951,7 @@
 
     <script type="module">
       // @ts-check
+      import { LOGOS, logo as poolLogo } from "/assets/pools/logos.js";
       // Every day of a year, the pool that found the most blocks (its logo on the day); a day, every block in height
       // order. All from the server that serves the page: the blocks' times and pools by height, the pools' names, and,
       // for a day, each pool's count so far (its nth block ever).
@@ -878,8 +962,6 @@
       const HALVING = 300_000, reward = (/** @type {number} */ n) => 35 / 2 ** (n % 32);
       const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
       const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-      // (Logos drawn for one ground: these have their own for the light.)
-      const LIGHT_LOGOS = new Set(["foundryusa", "ultimuspool", "unknown", "whitepool"]);
       /** Numbers grouped as "1,234" by one formatter, made once (a number's toLocaleString makes one each call). */
       const groupedFormat = new Intl.NumberFormat("en-US");
       const grouped = (/** @type {number} */ n) => groupedFormat.format(n);
@@ -911,27 +993,16 @@
        * its background, by a rule written once for its pool (a year's tiles draw some 700, each a picture, a source and
        * an image before: the phone's layout and paint of a year a third longer). */
       const logoRules = /** @type {CSSStyleSheet} */ (document.head.appendChild(document.createElement("style")).sheet);
-      /** Each pool's logo: drawn (its rule written), missing (initials), or being tried, its marks so far kept to turn
-       * into initials if it's missing. @type {Map<string, "drawn" | "missing" | Set<HTMLElement>>} */
-      const logos = new Map();
+      /** The pools whose logo rule is written. @type {Set<string>} */
+      const ruled = new Set();
       function logo(/** @type {string} */ slug) {
         const mark = Object.assign(document.createElement("span"), { className: "logo" });
         mark.dataset.logo = slug;
-        let known = logos.get(slug);
-        if (known === undefined) {
-          const dark = `/assets/pools/${slug}.svg`, light = LIGHT_LOGOS.has(slug) ? `/assets/pools/${slug}.light.svg` : dark;
-          logoRules.insertRule(`.logo[data-logo="${CSS.escape(slug)}"] { --dark: url("${dark}"); --light: url("${light}"); }`);
-          logos.set(slug, (known = new Set()));
-          // (Each of its files tried once, as an image: a background says nothing when it's missing; either missing, its
-          // initials, on either ground.)
-          const tried = [...new Set([dark, light])].map((src) => new Promise((ok, no) => Object.assign(new Image(), { onload: ok, onerror: no, src })));
-          Promise.all(tried).then(() => logos.set(slug, "drawn"), () => {
-            for (const pending of /** @type {Set<HTMLElement>} */ (logos.get(slug))) initials(pending, slug);
-            logos.set(slug, "missing");
-          });
+        if (!LOGOS.has(slug)) initials(mark, slug);
+        else if (!ruled.has(slug)) {
+          logoRules.insertRule(`.logo[data-logo="${CSS.escape(slug)}"] { --dark: url("${poolLogo(slug, false)}"); --light: url("${poolLogo(slug, true)}"); }`);
+          ruled.add(slug);
         }
-        if (known === "missing") initials(mark, slug);
-        else if (known !== "drawn") known.add(mark);
         return mark;
       }
       /** A pool with no logo of its own: its initials, so two such pools still look apart. (Two words, or a word's two
@@ -1214,7 +1285,7 @@
         $("forward").setAttribute("aria-label", day ? "The day after" : `${y + 1}`);
         /** @type {HTMLButtonElement} */ ($("back")).disabled = day ? at.date <= GENESIS : y <= FIRST_YEAR;
         /** @type {HTMLButtonElement} */ ($("forward")).disabled = day ? at.date >= today() : y >= Number(today().slice(0, 4));
-        $("lede").textContent = day ? `${longDate(at.date)}: every block, where it fell in its 24 hours` : "Each day, the pool that found the most blocks; the stronger its tile, the more of the day's it found";
+        $("lede").textContent = day ? `${longDate(at.date)}: every block, where it fell in its 24 hours` : "Each day, the pool that found the most blocks; the stronger its tile, the more of the day's it found; a dot, a day in the notes";
         $("leaders-title").textContent = day ? "Pools, by blocks" : "Pools, by days led";
         document.title = `${day ? at.date : y} · Calendar · DebitMyData Analytics`;
       }

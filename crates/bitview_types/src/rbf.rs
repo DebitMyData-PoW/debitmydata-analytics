@@ -16,10 +16,13 @@ pub struct RbfTx {
     pub time: Timestamp,
     /// BIP-125 signaling: at least one input has sequence < 0xffffffff-1.
     pub rbf: bool,
-    /// Only populated on the root `tx` of an RBF response. `true` iff
-    /// this tx displaced at least one non-signaling predecessor.
+    /// On a transaction that replaced others: whether one it directly replaced didn't signal
+    /// (mempool.space's `tx.fullRbf`). Absent on one that replaced none.
     #[serde(rename = "fullRbf", skip_serializing_if = "Option::is_none", default)]
     pub full_rbf: Option<bool>,
+    /// `true` when this transaction is confirmed; absent otherwise.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub mined: Option<bool>,
 }
 
 /// One node in an RBF replacement tree. The node's `tx` replaced each
@@ -37,10 +40,15 @@ pub struct ReplacementNode {
     /// replaced it. Omitted on the root of an RBF response.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub interval: Option<u32>,
-    /// `Some(true)` iff this node's tx is currently confirmed. Absent
-    /// on serialization otherwise.
+    /// On a tree's root: `true` when a transaction anywhere in the tree is confirmed
+    /// (mempool.space's tree `mined`; the confirmed one is marked in its `tx`); absent otherwise.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub mined: Option<bool>,
+    /// On a tree's root: `true` when the tree was cut to its bounds (the newest 63 versions, at
+    /// most 4,096 transactions; its `fullRbf` flags then describe what it holds); absent
+    /// otherwise. mempool.space serves trees whole.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub truncated: Option<bool>,
     pub replaces: Vec<ReplacementNode>,
 }
 

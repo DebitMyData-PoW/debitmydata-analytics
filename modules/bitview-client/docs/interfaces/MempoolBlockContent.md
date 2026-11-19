@@ -6,7 +6,7 @@
 
 # Interface: MempoolBlockContent
 
-Defined in: modules/bitview-client/index.js:775
+Defined in: [modules/bitview-client/index.js:766](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L766)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: modules/bitview-client/index.js:775
 
 > **hash**: `string`
 
-Defined in: modules/bitview-client/index.js:776
+Defined in: [modules/bitview-client/index.js:767](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L767)
 
 Pass as `since` to `GET /api/mempool-blocks/{index}/diff/{since}` to follow changes.
 
@@ -24,7 +24,7 @@ Pass as `since` to `GET /api/mempool-blocks/{index}/diff/{since}` to follow chan
 
 > **stats**: [`MempoolBlock`](MempoolBlock.md)
 
-Defined in: modules/bitview-client/index.js:777
+Defined in: [modules/bitview-client/index.js:768](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L768)
 
 ***
 
@@ -32,6 +32,6 @@ Defined in: modules/bitview-client/index.js:777
 
 > **transactions**: [`Transaction`](Transaction.md)[]
 
-Defined in: modules/bitview-client/index.js:778
+Defined in: [modules/bitview-client/index.js:769](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L769)
 
-Full transaction bodies in `getblocktemplate` order.
+Full transaction bodies in block order (block 0's: `getblocktemplate`'s).

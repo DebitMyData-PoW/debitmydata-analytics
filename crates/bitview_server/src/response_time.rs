@@ -5,11 +5,9 @@ use axum::{
     http::{Method, Request, Response, header::ETAG},
     middleware::Next,
 };
+use bitview_http::CachePolicy;
+use brk_error::Updating;
 use tracing::{error, info};
-
-use crate::cache::{CacheParams, ErrorCachePolicy};
-#[cfg(any(feature = "chain", feature = "urpd"))]
-use crate::raw_body::RawBodyPermit;
 
 pub(crate) async fn respond(request: Request<Body>, next: Next) -> Response<Body> {
     let uri = request.uri().clone();
@@ -22,6 +20,9 @@ pub(crate) async fn respond(request: Request<Body>, next: Next) -> Response<Body
 
     if status_code.is_informational() || status_code.is_success() || status_code.is_redirection() {
         info!(%method, status, %uri, ?latency);
+    } else if let Some(at) = response.extensions().get::<Updating>() {
+        let at = at.location();
+        error!(%method, status, %uri, ?latency, %at);
     } else {
         error!(%method, status, %uri, ?latency);
     }
@@ -31,10 +32,8 @@ pub(crate) async fn respond(request: Request<Body>, next: Next) -> Response<Body
         format!("{}us", latency.as_micros()).parse().unwrap(),
     );
     if method == Method::POST {
-        CacheParams::apply_error_cache_control(response.headers_mut(), ErrorCachePolicy::NoStore);
+        CachePolicy::NoStore.apply(response.headers_mut());
         response.headers_mut().remove(ETAG);
     }
-    #[cfg(any(feature = "chain", feature = "urpd"))]
-    let response = RawBodyPermit::retain(response);
     response
 }

@@ -8,7 +8,7 @@
 
 > **Rewards** = `object`
 
-Defined in: modules/bitview-client/index.js:4343
+Defined in: [modules/bitview-client/index.js:4322](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4322)
 
 ## Type Parameters
 
@@ -24,7 +24,7 @@ Defined in: modules/bitview-client/index.js:4343
 
 ### subsidy
 
-> **subsidy**: [`MiningValueFlow`](MiningValueFlow.md)
+> **subsidy**: [`TxValue`](TxValue.md)
 
 ### unclaimed
 

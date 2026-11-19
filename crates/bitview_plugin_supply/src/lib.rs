@@ -6,7 +6,7 @@ mod velocity;
 pub use dependencies::Dependencies;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
-use bitview_primitives::PartsPerMillionSigned64;
+use bitview_primitives::{Multiple, PartsPerMillionSigned64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight,
@@ -28,8 +28,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// value is the market cap.
     #[traversable(lead = "Circulating supply: all the DMD in existence, unspent.")]
     circulating: LazyPerBlock<Bitcoin, Bitcoin>,
-    /// Value made provably unspendable: the genesis subsidy, `OP_RETURN` output
-    /// values, unclaimed block rewards and the two coinbase outputs that BIP30
+    /// Value made provably unspendable: the genesis subsidy, the values of outputs
+    /// Bitcoin Core leaves out of its UTXO set (`OP_RETURN`, or a locking script over
+    /// 10,000 bytes), unclaimed block rewards and the two coinbase outputs that BIP30
     /// duplicates overwrote (blocks 91812 and 91722, at 91842 and 91880).
     #[traversable(lead = "Burned: DMD made unspendable for good.")]
     burned: ValuePerBlockCumulativeRolling<M>,
@@ -48,4 +49,11 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(wrap = "market_cap", rename = "delta")]
     #[traversable(lead = "Market cap change: how much the market cap changed.")]
     market_cap_delta: LazyRollingDeltasFiatFromHeight<Cents, CentsSigned, PartsPerMillionSigned64>,
+    /// Network value to transactions (NVT): market cap divided by trailing-24h
+    /// transfer volume in USD. Volume is non-coinbase transaction input value,
+    /// valued at each spending block's price; it includes change and self-transfers,
+    /// so this is unadjusted on-chain volume, not economic or entity-adjusted volume.
+    /// Null without a wholly priced volume window or when volume is zero.
+    #[traversable(lead = "NVT: the network's market value against a day's unadjusted transfer value.")]
+    nvt: LazyPerBlock<Multiple>,
 }

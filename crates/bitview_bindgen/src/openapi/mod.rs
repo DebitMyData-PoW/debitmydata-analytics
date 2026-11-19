@@ -17,16 +17,18 @@ pub(crate) use response_kind::ResponseKind;
 /// Schemas by type name.
 pub(crate) type TypeSchemas = BTreeMap<String, Value>;
 
-/// What the generators read of the OpenAPI document: its title and version, and its paths, in
-/// the document's order.
+/// What the generators read of the OpenAPI document: its title, version and support page, and its
+/// paths, in the document's order.
 pub(crate) struct Spec {
     pub(crate) info: Info,
     paths: Map<String, Value>,
 }
 
+/// The support URL is required: the OpenAPI document is its one source.
 pub(crate) struct Info {
     pub(crate) title: String,
     pub(crate) version: String,
+    pub(crate) support: String,
 }
 
 /// The HTTP methods an OpenAPI path item may hold, in the order endpoints are listed.
@@ -56,6 +58,7 @@ pub(crate) fn parse_openapi_json(json: &str) -> io::Result<(Spec, TypeSchemas)> 
     let info = Info {
         title: text("/info/title")?,
         version: text("/info/version")?,
+        support: text("/info/contact/url")?,
     };
     let paths = match value.get_mut("paths") {
         Some(Value::Object(paths)) => take(paths),
@@ -155,15 +158,6 @@ fn extract_endpoint(
     let json_response_schema = content
         .and_then(|content| content.get("application/json")?.get("schema"))
         .cloned();
-    // A text body's schema (`BlockHash`, `Height`), for the MCP output schemas of text tools.
-    let text_response_schema = content
-        .and_then(|content| {
-            content
-                .get("text/plain; charset=utf-8")
-                .or_else(|| content.get("text/plain"))?
-                .get("schema")
-        })
-        .cloned();
     let supports_csv = content.is_some_and(|content| content.contains_key("text/csv"));
     let request_body = extract_request_body(operation);
 
@@ -178,7 +172,6 @@ fn extract_endpoint(
         request_body,
         response_kind,
         json_response_schema,
-        text_response_schema,
         deprecated: flag(operation, "deprecated"),
         mcp_ignored: operation.get("x-mcp-ignore") == Some(&Value::Bool(true)),
         supports_csv,

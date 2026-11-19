@@ -5,7 +5,7 @@ use brk_types::BlkPosition;
 use crate::{XORBytes, XORIndex, xor_bytes::XOR_LEN};
 
 /// The bytes before each block in the node's block files: the DebitMyData network's.
-fn magic_bytes() -> [u8; 4] {
+pub(crate) fn magic_bytes() -> [u8; 4] {
     brk_types::chain::current().magic()
 }
 
@@ -78,33 +78,71 @@ pub fn scan_bytes(
 }
 
 /// A frame's header: the magic, then the payload's length.
-const HEAD_LEN: usize = 8;
+pub(crate) const HEAD_LEN: usize = 8;
 /// The longest run of unwritten bytes taken for a hole rather than the file's end: one frame of
 /// the largest block (4,000,000 bytes serialized), all Core reserves for a block it then fails to
 /// write.
-const MAX_HOLE: usize = HEAD_LEN + 4_000_000;
+pub(crate) const MAX_HOLE: usize = HEAD_LEN + 4_000_000;
 
 /// Each block's payload offset and length in a blk file, hopping from frame to frame from
 /// `start`, a frame boundary (the file's start or a known frame's end): a scan from an arbitrary
 /// offset could take magic bytes inside a transaction for a frame. A hole of unwritten bytes,
 /// where Core reserved a block's frame and failed to write it (its disk gone, say), is stepped
 /// over to the frames Core wrote after it. Stops at the first other gap: the preallocated zero
-/// tail, or the file's end once Core trims that tail on rollover.
-pub fn frames(file: &File, xor_bytes: XORBytes, start: usize) -> io::Result<Vec<(usize, usize)>> {
-    let file_len = file.metadata()?.len() as usize;
-    let mut frames = Vec::new();
-    let mut offset = start;
-    loop {
-        if let Some(len) = frame_at(file, xor_bytes, offset, file_len)? {
-            frames.push((offset + HEAD_LEN, len));
-            offset += HEAD_LEN + len;
-        } else if let Some(next) = after_hole(file, xor_bytes, offset, file_len)? {
-            offset = next;
-        } else {
-            break;
+/// tail, or the file's end once Core trims that tail on rollover. Lazy: a caller that stops at the
+/// blocks it wants reads no further (the tail's check reads up to a frame's worth of zeros).
+pub fn frames(file: &File, xor_bytes: XORBytes, start: usize) -> io::Result<Frames<'_>> {
+    Ok(Frames {
+        file,
+        xor_bytes,
+        offset: start,
+        file_len: file.metadata()?.len() as usize,
+        done: false,
+    })
+}
+
+/// See [`frames`]. Ends after the first error.
+pub struct Frames<'a> {
+    file: &'a File,
+    xor_bytes: XORBytes,
+    offset: usize,
+    file_len: usize,
+    done: bool,
+}
+
+impl Frames<'_> {
+    /// One hop: the frame at the offset, or over a hole (`None`, the offset moved), or the end
+    /// (`None`, done).
+    fn hop(&mut self) -> io::Result<Option<(usize, usize)>> {
+        if let Some(len) = frame_at(self.file, self.xor_bytes, self.offset, self.file_len)? {
+            let frame = (self.offset + HEAD_LEN, len);
+            self.offset += HEAD_LEN + len;
+            return Ok(Some(frame));
         }
+        match after_hole(self.file, self.xor_bytes, self.offset, self.file_len)? {
+            Some(next) => self.offset = next,
+            None => self.done = true,
+        }
+        Ok(None)
     }
-    Ok(frames)
+}
+
+impl Iterator for Frames<'_> {
+    type Item = io::Result<(usize, usize)>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while !self.done {
+            match self.hop() {
+                Ok(Some(frame)) => return Some(Ok(frame)),
+                Ok(None) => {}
+                Err(e) => {
+                    self.done = true;
+                    return Some(Err(e));
+                }
+            }
+        }
+        None
+    }
 }
 
 /// The payload length of the frame whose header is at `offset`, if one is, whole in the file.
@@ -155,98 +193,4 @@ fn after_hole(
         }
     }
     Ok(None)
-}
-
-#[cfg(test)]
-mod tests {
-    use std::{env, fs, process};
-
-    use super::*;
-
-    /// A blk file's parts, in order: a frame with this long a payload, or this many unwritten bytes.
-    enum Part {
-        Frame(usize),
-        Zeros(usize),
-    }
-
-    /// The file the parts make, obfuscated with `key` (unwritten bytes stay zero on disk), and
-    /// the payload offset and length `frames` should find for each frame.
-    fn blk(name: &str, key: [u8; 8], parts: &[Part]) -> (File, Vec<(usize, usize)>) {
-        let mut bytes = Vec::new();
-        let mut expected = Vec::new();
-        for part in parts {
-            match *part {
-                Part::Frame(len) => {
-                    let start = bytes.len();
-                    bytes.extend(magic_bytes());
-                    bytes.extend((len as u32).to_le_bytes());
-                    bytes.extend((0..len).map(|i| (i * 7 + 1) as u8));
-                    for (i, byte) in bytes[start..].iter_mut().enumerate() {
-                        *byte ^= key[(start + i) % 8];
-                    }
-                    expected.push((start + HEAD_LEN, len));
-                }
-                Part::Zeros(len) => bytes.resize(bytes.len() + len, 0),
-            }
-        }
-        let path = env::temp_dir().join(format!("brk-reader-scan-{}-{name}", process::id()));
-        fs::write(&path, &bytes).unwrap();
-        let file = File::open(&path).unwrap();
-        fs::remove_file(&path).unwrap();
-        (file, expected)
-    }
-
-    const KEY: [u8; 8] = [0x0b, 0x84, 0x8d, 0x8a, 0x9a, 0xdc, 0x43, 0x89];
-
-    #[test]
-    fn steps_over_a_hole_to_the_frames_after_it() {
-        use Part::*;
-        let (file, expected) = blk(
-            "hole",
-            KEY,
-            &[
-                Frame(100),
-                Zeros(1_331_259),
-                Frame(50),
-                Frame(70),
-                Zeros(4096),
-            ],
-        );
-        assert_eq!(frames(&file, XORBytes::from(KEY), 0).unwrap(), expected);
-    }
-
-    #[test]
-    fn finds_a_header_its_key_made_start_with_zeros() {
-        use Part::*;
-        // The header after the hole starts at 108 + 1000 = 1108, phase 4: a key byte equal to the
-        // magic's first makes it zero on disk, so the zeros seem to end a byte later.
-        let mut key = KEY;
-        key[1108 % 8] = magic_bytes()[0];
-        let (file, expected) = blk("zeroed-head", key, &[Frame(100), Zeros(1000), Frame(50)]);
-        assert_eq!(frames(&file, XORBytes::from(key), 0).unwrap(), expected);
-    }
-
-    #[test]
-    fn stops_at_the_preallocated_tail() {
-        use Part::*;
-        let (file, expected) = blk("tail", KEY, &[Frame(100), Frame(30), Zeros(1 << 20)]);
-        assert_eq!(frames(&file, XORBytes::from(KEY), 0).unwrap(), expected);
-        // Zeros longer than any frame aren't a hole, whatever follows them.
-        let (file, expected) = blk(
-            "long-zeros",
-            KEY,
-            &[Frame(100), Zeros(MAX_HOLE + 16), Frame(50)],
-        );
-        assert_eq!(
-            frames(&file, XORBytes::from(KEY), 0).unwrap(),
-            expected[..1]
-        );
-    }
-
-    #[test]
-    fn steps_over_a_hole_in_an_unobfuscated_file() {
-        use Part::*;
-        let (file, expected) = blk("plain", [0; 8], &[Frame(100), Zeros(500), Frame(50)]);
-        assert_eq!(frames(&file, XORBytes::default(), 0).unwrap(), expected);
-    }
 }

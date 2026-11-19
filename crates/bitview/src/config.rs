@@ -4,7 +4,8 @@ use std::{
 };
 
 use bitview_server::{
-    CdnCacheMode, DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, Port, ServerConfig, Website,
+    CdnCacheMode, DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, Port, PublicUrl,
+    ServerConfig, Website,
 };
 use brk_error::{Error, Result};
 use brk_rpc::ConnectArgs;
@@ -21,8 +22,9 @@ use crate::{
     paths::{default_bitview_dir, expand_home},
 };
 
-/// Default size, in bytes, of the shared vector cache (`vecdb::Budgeted::init_global`).
-pub const DEFAULT_CACHE_BUDGET: usize = 2 << 30;
+/// Default size, in bytes, of the shared vector cache (`vecdb::Budgeted::init_global`). The page cache
+/// holds the same files: on a 16 GB machine 1 GiB synced ~80 s faster than 2 GiB, 512 MiB no faster.
+pub const DEFAULT_CACHE_BUDGET: usize = 1 << 30;
 
 #[derive(Debug, Default, Serialize)]
 pub struct Config {
@@ -33,6 +35,7 @@ pub struct Config {
     cdn: Option<bool>,
     maxweight: Option<usize>,
     maxutxos: Option<usize>,
+    publicurl: Option<PublicUrl>,
     cachebudget: Option<usize>,
     bitcoindir: Option<String>,
     blocksdir: Option<String>,
@@ -45,7 +48,7 @@ pub struct Config {
 
 impl Config {
     /// The settings `config.toml` and the flags name, in the order they are written.
-    const KEYS: [&'static str; 15] = [
+    const KEYS: [&'static str; 16] = [
         "bitviewdir",
         "serverbind",
         "serverport",
@@ -53,6 +56,7 @@ impl Config {
         "cdn",
         "maxweight",
         "maxutxos",
+        "publicurl",
         "cachebudget",
         "bitcoindir",
         "blocksdir",
@@ -66,8 +70,12 @@ impl Config {
     pub fn import() -> Result<RunConfig> {
         let (config_args, dump) = Self::parse_args()?;
 
-        let config =
-            Self::read(&default_bitview_dir().join("config.toml"))?.with_overrides(config_args);
+        // Without a home directory there's no config.toml: the flags alone.
+        let config = match default_bitview_dir() {
+            Some(dir) => Self::read(&dir.join("config.toml"))?,
+            None => Self::default(),
+        }
+        .with_overrides(config_args);
         if dump {
             config.dump()?;
             exit(0);
@@ -87,6 +95,7 @@ impl Config {
             cdn: overrides.cdn.or(self.cdn),
             maxweight: overrides.maxweight.or(self.maxweight),
             maxutxos: overrides.maxutxos.or(self.maxutxos),
+            publicurl: overrides.publicurl.or(self.publicurl),
             cachebudget: overrides.cachebudget.or(self.cachebudget),
             bitcoindir: overrides.bitcoindir.or(self.bitcoindir),
             blocksdir: overrides.blocksdir.or(self.blocksdir),
@@ -157,6 +166,7 @@ impl Config {
             "cdn" => self.cdn = parse(value)?,
             "maxweight" => self.maxweight = parse(value)?,
             "maxutxos" => self.maxutxos = parse(value)?,
+            "publicurl" => self.publicurl = parse(value)?,
             "cachebudget" => self.cachebudget = parse(value)?,
             "bitcoindir" => self.bitcoindir = parse(value)?,
             "blocksdir" => self.blocksdir = parse(value)?,
@@ -176,7 +186,7 @@ impl Config {
     fn parse_toml(contents: &str) -> StdResult<Self, String> {
         let mut config = Self::default();
         let mut seen = HashSet::new();
-        let contents = contents.strip_prefix('\u{feff}').unwrap_or(contents);
+        let contents = contents.trim_prefix('\u{feff}');
         for (index, line) in contents.lines().enumerate() {
             let at = |problem: String| format!("line {}: {problem}", index + 1);
             let line = line.trim();
@@ -298,6 +308,10 @@ impl Config {
             format!("[{}]", DEFAULT_MAX_UTXOS).bright_black()
         );
         println!(
+            "    --publicurl {}       The URL reaching this server alone, sent to clients so they stay on it; only for several servers behind one URL without affinity",
+            "<URL>".bright_black(),
+        );
+        println!(
             "    --cachebudget {}     Shared vector cache size in bytes {}",
             "<BYTES>".bright_black(),
             format!("[{DEFAULT_CACHE_BUDGET}]").bright_black()
@@ -398,23 +412,26 @@ impl Config {
     /// [`ConnectArgs::client`] must find RPC credentials.
     fn runner(&self) -> Result<RunConfig> {
         let connect_args = self.connect_args();
-        let blocks_path = connect_args.blocks_dir();
+        let blocks_path = connect_args.blocks_dir()?;
         if !blocks_path.is_dir() {
             return Err(Error::NotFound(format!(
                 "{} isn't a valid blocks directory; set --blocksdir or --bitcoindir (run with -h for help)",
                 blocks_path.display()
             )));
         }
+        let data_path = match self.bitviewdir.as_deref() {
+            Some(dir) => expand_home(dir),
+            None => default_bitview_dir().ok_or_else(|| {
+                Error::NotFound("no home directory to put ~/.bitview in: set --bitviewdir".into())
+            })?,
+        };
         Ok(RunConfig {
             client: connect_args.client()?,
             blocks_path,
             server: ServerConfig {
                 bind: self.serverbind.unwrap_or(DEFAULT_BIND),
                 port: self.serverport.unwrap_or_default(),
-                data_path: self
-                    .bitviewdir
-                    .as_deref()
-                    .map_or_else(default_bitview_dir, expand_home),
+                data_path,
                 website: self.website.clone().unwrap_or_default(),
                 cdn_cache_mode: if self.cdn.unwrap_or(false) {
                     CdnCacheMode::Aggressive
@@ -423,6 +440,7 @@ impl Config {
                 },
                 max_weight: self.maxweight.unwrap_or(DEFAULT_MAX_WEIGHT),
                 max_utxos: self.maxutxos.unwrap_or(DEFAULT_MAX_UTXOS),
+                public_url: self.publicurl.clone(),
             },
             cache_budget: self.cachebudget.unwrap_or(DEFAULT_CACHE_BUDGET),
         })
@@ -518,7 +536,7 @@ fn bare_value(token: &str) -> StdResult<String, String> {
     if !token.starts_with(|c: char| c.is_ascii_digit() || c == '+' || c == '-') {
         return Ok(token.to_owned());
     }
-    let number = token.strip_prefix('+').unwrap_or(token).replace('_', "");
+    let number = token.trim_prefix('+').replace('_', "");
     for (prefix, radix) in [("0x", 16), ("0o", 8), ("0b", 2)] {
         if let Some(digits) = number.strip_prefix(prefix) {
             return u64::from_str_radix(digits, radix)

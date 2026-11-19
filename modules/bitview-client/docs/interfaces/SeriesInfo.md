@@ -6,7 +6,7 @@
 
 # Interface: SeriesInfo
 
-Defined in: modules/bitview-client/index.js:1342
+Defined in: [modules/bitview-client/index.js:1309](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1309)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: modules/bitview-client/index.js:1342
 
 > `optional` **description?**: `string` \| `null`
 
-Defined in: modules/bitview-client/index.js:1343
+Defined in: [modules/bitview-client/index.js:1310](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1310)
 
 Human-readable metric definition, when documented
 
@@ -24,7 +24,7 @@ Human-readable metric definition, when documented
 
 > **indexes**: [`Index`](../type-aliases/Index.md)[]
 
-Defined in: modules/bitview-client/index.js:1344
+Defined in: [modules/bitview-client/index.js:1311](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1311)
 
 ***
 
@@ -32,10 +32,10 @@ Defined in: modules/bitview-client/index.js:1344
 
 > **nullable**: [`Index`](../type-aliases/Index.md)[]
 
-Defined in: modules/bitview-client/index.js:1345
+Defined in: [modules/bitview-client/index.js:1312](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1312)
 
 Indexes whose values can be null: a missing value (e.g. a period without blocks) or an
-undefined one (e.g. NaN)
+  undefined one (e.g. NaN)
 
 ***
 
@@ -43,7 +43,7 @@ undefined one (e.g. NaN)
 
 > **type**: `string`
 
-Defined in: modules/bitview-client/index.js:1347
+Defined in: [modules/bitview-client/index.js:1314](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1314)
 
 Value type (e.g. "Ratio", "Sats", "Cents")
 
@@ -53,6 +53,6 @@ Value type (e.g. "Ratio", "Sats", "Cents")
 
 > `optional` **unit?**: `string` \| `null`
 
-Defined in: modules/bitview-client/index.js:1348
+Defined in: [modules/bitview-client/index.js:1315](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1315)
 
 What the value type measures, when documented (e.g. "A duration in days.")

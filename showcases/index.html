@@ -2,39 +2,132 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <!-- (Its first reads, started here, ahead of launch.js, the fonts and its script: round() reads each by its name, taking the
+         very request started here, so a failed one fails there as it would have. Not <link rel="preload" as="fetch">: WebKit's
+         fetch() doesn't take what it preloaded and asks again.) -->
+    <script>
+      {
+        const first = {
+          prices: "/api/v1/prices",
+          fees: "/api/v1/fees/precise",
+          tip: "/api/blocks/tip/height",
+          blocks: "/api/v1/blocks",
+          pools: "/api/v1/mining/pools/1w",
+          inProfit: "/api/series/bulk?series=supply_in_profit_share,circulating_supply&index=day1&start=-1",
+          count: "/api/series/count",
+          disk: "/api/server/disk",
+          sync: "/api/server/sync",
+          health: "/health",
+        };
+        const send = (path) => fetch(path, { signal: AbortSignal.timeout(10_000) });
+        const kept = new Map(Object.values(first).map((path) => [path, send(path)]));
+        // (Handled here too, so only the read that takes one reports its failure.)
+        kept.forEach((reply) => reply.catch(() => {}));
+        let firstRound = true;
+        window.bitviewFirst = first;
+        window.bitviewRead = (path) => {
+          // (Only the first round's: what a later round reads is fetched then, never answered by a kept one.)
+          if (firstRound) (firstRound = false), setTimeout(() => kept.clear());
+          const reply = kept.get(path) ?? send(path);
+          kept.delete(path);
+          return reply;
+        };
+      }
+    </script>
+    <!-- (Its fonts and module, ahead of launch.js too: WebKit's parser reads a link past a script only once that script has loaded.) -->
+    <link rel="preload" href="/assets/fonts/InterVariable.core.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/assets/fonts/Lilex.core.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="modulepreload" href="/assets/pools/logos.js" />
     <!-- Its launch from a home screen, every showcase's. -->
     <script src="/assets/launch/launch.js"></script>
-    <!-- (Installed from a home screen, the page under the status bar too, the billboard's art up under the clock: else
-         iOS fills that strip itself, flat or with the page blurred, as it chooses. Read when the page is added.) -->
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#0d0c0b" />
     <title>DebitMyData Analytics</title>
-    <meta name="description" content="The DebitMyData (DMD) chain, read and measured: thousands of ready-made charts, live blocks and pools, and every series as data through an open API." />
+    <meta name="description" content="The DebitMyData (DMD) chain, read and measured: live apps, thousands of ready-made charts, and every series as data through an open API." />
     <!-- (Its share card, the billboard's first picture with the site's name: made by showcases/home.mjs --pictures.) -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="DebitMyData Analytics" />
     <meta property="og:title" content="DebitMyData Analytics" />
-    <meta property="og:description" content="The DebitMyData (DMD) chain, read and measured: thousands of charts, live blocks and pools, and every series as data." />
+    <meta property="og:description" content="The DebitMyData (DMD) chain, read and measured: live apps, thousands of ready-made charts, and every series as data through an open API." />
+    <link rel="canonical" href="https://analytics.debitmydata.io/" />
     <meta property="og:url" content="https://analytics.debitmydata.io/" />
     <meta property="og:image" content="https://analytics.debitmydata.io/assets/home/og.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="DebitMyData Analytics: charts of the DebitMyData chain" />
     <meta name="twitter:card" content="summary_large_image" />
+    <!-- (What it is, for search engines: the site, and DebitMyData with its logo.) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          { "@type": "WebSite", "name": "DebitMyData Analytics", "url": "https://analytics.debitmydata.io/" },
+          { "@type": "Organization", "name": "DebitMyData", "description": "The DebitMyData (DMD) chain, read and measured: live apps, thousands of ready-made charts, and every series as data through an open API.", "url": "https://analytics.debitmydata.io/", "logo": "https://analytics.debitmydata.io/assets/favicon/web-app-manifest-512x512.png", "sameAs": ["https://debitmydata.io/", "https://github.com/DebitMyData-PoW"] }
+        ]
+      }
+    </script>
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
     <style>
+      /* fallback fonts */
+      /* Local faces keep text visible while the web fonts load. Width fits use a general Latin sample;
+         vertical metrics come from Inter 4.1 and Lilex 2.620, divided by size-adjust.
+         Menlo needs its full/PostScript name in Chromium. Other mono faces share its calibration. */
+      @font-face {
+        font-family: "Inter Fallback";
+        src: local("ArialMT"), local("Arial"), local("Helvetica"), local("Roboto");
+        font-weight: 100 600;
+        size-adjust: 108.088066%;
+        ascent-override: 89.625991%;
+        descent-override: 22.316149%;
+        line-gap-override: 0%;
+      }
+      @font-face {
+        font-family: "Inter Fallback";
+        src: local("Arial-BoldMT"), local("Arial Bold"), local("Helvetica Bold"), local("Roboto Bold");
+        font-weight: 601 900;
+        size-adjust: 99.756055%;
+        ascent-override: 97.111900%;
+        descent-override: 24.180080%;
+        line-gap-override: 0%;
+      }
+      @font-face {
+        font-family: "Lilex Fallback";
+        src: local("Menlo"), local("Menlo-Regular"), local("SF Mono"), local("SFMono-Regular"), local("Consolas"), local("DejaVu Sans Mono"), local("Liberation Mono");
+        font-weight: 500 700;
+        size-adjust: 99.659367%;
+        ascent-override: 100.241455%;
+        descent-override: 30.202881%;
+        line-gap-override: 0%;
+      }
+      /* /fallback fonts */
+
       @font-face {
         font-family: Inter;
-        src: url("/assets/fonts/InterVariable.woff2") format("woff2");
+        src: url("/assets/fonts/InterVariable.core.woff2") format("woff2");
+        unicode-range: U+0000-017F, U+0192, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0394, U+03A3, U+03C3, U+2000-206F, U+20AC, U+20BF, U+2122, U+2190-23FF, U+2500-25FF, U+2713-2715, U+FE0E-FE0F, U+FEFF, U+FFFD;
+        font-weight: 100 900;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: Inter;
+        src: url("/assets/fonts/InterVariable.rest.woff2") format("woff2");
+        unicode-range: U+0180-0191, U+0193-02BA, U+02BD-02C5, U+02C7-02D9, U+02DB, U+02DD-0393, U+0395-03A1, U+03A4-03C2, U+03C4-03DD, U+03F0-04FF, U+052F, U+0E3F, U+1D00-1D1B, U+1D43-1D65, U+1D9C-1DA0, U+1DBB-1FFE, U+2070-20AB, U+20AD-20BE, U+20C0, U+20DB-2121, U+2126-213B, U+214D-2189, U+2423, U+2460-2468, U+24B6-24CF, U+24EA, U+2600-2606, U+263C, U+2661-266B, U+26A0, U+2717, U+2756-2764, U+2780-2788, U+27EF-27FA, U+2913, U+2A38, U+2B06-2B24, U+2C7C-2C7F, U+2DFF, U+2E18, U+A69F, U+A7FF, U+A92E, U+E000-E0F5, U+E106-E163, U+E1C3-E2DC, U+EE01-EEE1, U+F6C3, U+1F12F-1F149, U+1F16A-1F16B, U+1F850-1F852;
         font-weight: 100 900;
         font-display: swap;
       }
 
       @font-face {
         font-family: Lilex;
-        src: url("/assets/fonts/Lilex.woff2") format("woff2");
+        src: url("/assets/fonts/Lilex.core.woff2") format("woff2");
+        unicode-range: U+0000-017F, U+0192, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0394, U+03A3, U+03C3, U+2000-206F, U+20AC, U+20BF, U+2122, U+2190-23FF, U+2500-25FF, U+2713-2715, U+FE0E-FE0F, U+FEFF, U+FFFD;
+        font-weight: 500 700;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: Lilex;
+        src: url("/assets/fonts/Lilex.rest.woff2") format("woff2");
+        unicode-range: U+018F, U+01A0-01B0, U+01CD-01FF, U+0218-021B, U+0237, U+0259, U+02C7, U+02D8-02D9, U+02DB, U+02DD, U+0300-0328, U+037E-0393, U+0395-03A1, U+03A4-03C2, U+03C4-03CE, U+0400-0475, U+0490-04F9, U+0524-0525, U+0E3F, U+1E28-1E29, U+1E80-1E85, U+1E9E-1EF9, U+2070-2089, U+20A1-20AB, U+20AD-20BD, U+2113-2116, U+2126-212E, U+2150-215E, U+2B0E-2B11, U+2B58, U+3000, U+E0A0-E0B3;
         font-weight: 500 700;
         font-display: swap;
       }
@@ -70,22 +163,15 @@
         --live: light-dark(#0c7642, #3ccf7c);
         /* (Live's red: white words on it at 4.7:1.) */
         --red: #d93036;
-        --brand: #e0303a;
-        --brand-text: light-dark(#b30d18, var(--brand));
-        --sans: Inter, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
-        --mono: Lilex, ui-monospace, "SF Mono", Menlo, monospace;
+        --brand: oklch(64.34% 0.191 44.41);
+        --brand-text: light-dark(oklch(52% 0.16 44.41), var(--brand));
+        --sans: Inter, "Inter Fallback", -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+        --mono: Lilex, "Lilex Fallback", ui-monospace, "SF Mono", Menlo, monospace;
         --gutter: 16px;
         --lift: cubic-bezier(0.2, 0.7, 0.2, 1);
         --radius: 10px;
-        /* (Where the bar's line starts, under the status bar: installed on iOS, a little lower, out of the worst of the
-           blur iOS lays over an app's top some 40 pt down from its status bar, the bar's words in it else.) */
+        /* (Where the bar's line starts: under the status bar where the page runs under it (Safari's, a notch's).) */
         --bar-top: env(safe-area-inset-top);
-
-        @supports (-webkit-touch-callout: none) {
-          @media (display-mode: standalone) {
-            --bar-top: calc(env(safe-area-inset-top) + 12px);
-          }
-        }
 
         @media (min-width: 720px) {
           --gutter: 40px;
@@ -136,9 +222,10 @@
          passes over a see-through one, the bar over the billboard: so paper, in light, over a dark billboard. In Safari,
          a strip of the billboard's dark there, under the status bar or a few pixels below it, reading as the status
          bar's own: the status bar dark in either scheme, the bottom bar still the page's (the bar easing from it: see
-         .top). Installed from a home screen, no strip: the page runs up under the status bar (see the head), iOS's blur
-         at the screen's edge tinted with the body's colour; so the body's colour the billboard's dark, the page painted
-         paper over it, the root paper (where the page is pulled past either end).) */
+         .top). Installed from a home screen, no strip: iOS paints its status bar in the body's colour after a load, and
+         after a launch blurs the page up into it, tinted with that colour (its choice, not the page's); so the body's
+         colour the billboard's dark, the page painted paper over it, the root paper (where the page is pulled past
+         either end).) */
       @supports (-webkit-touch-callout: none) {
         .edge {
           position: fixed;
@@ -213,32 +300,43 @@
         gap: 12px;
         height: calc(64px + var(--bar-top));
         padding: var(--bar-top) var(--gutter) 0;
-        background: linear-gradient(to bottom, rgb(13 12 11 / 0.7), transparent);
-        transition: background-color 0.3s, box-shadow 0.3s;
+        /* (One look, at rest and scrolled alike: nothing changes as the page moves, so nothing jumps. The glass: a
+           progressive blur. Five layers behind its contents (each costs Mullvad's CPU drawing ~2ms a frame: ten
+           looked no smoother on an iPhone), each blurring two to three times as much as the one under it and stopping a little higher, so the blur builds smoothly toward the top (its contents over the
+           strongest), past its foot none: no slab, no line, as iOS's own bars end. A tint of its ground fades out with it,
+           for its words.) */
+        > .glass {
+          position: absolute;
+          inset: 0 0 -96px;
+          z-index: -1;
+          pointer-events: none;
 
-        /* (In Safari on iOS, under the status bar's flat dark (the .edge strip): from that dark, easing into the
-           billboard, no line where the two meet.) */
-        @supports (-webkit-touch-callout: none) {
-          @media not (display-mode: standalone) {
-            background: linear-gradient(#0d0c0b, rgb(13 12 11 / 0.85) 20px, rgb(13 12 11 / 0.6) 56px, transparent);
+          > i {
+            position: absolute;
+            inset: 0;
+            mask-image: linear-gradient(#000 var(--to), transparent var(--off));
+            -webkit-mask-image: linear-gradient(#000 var(--to), transparent var(--off));
           }
-        }
 
-        /* (Past the billboard: solid, the page under it blurred.) */
-        &.solid {
-          background: rgb(13 12 11 / 0.94);
-          box-shadow: 0 1px 0 rgb(246 243 238 / 0.06);
-          backdrop-filter: blur(20px) saturate(1.4);
-          -webkit-backdrop-filter: blur(20px) saturate(1.4);
+          /* (Lengths fixed from its foot, whatever its height (the installed app's, no status bar over it, is 62px
+             shorter than Safari's): over its words all five (the page frosted through); from its pills' middle (24px
+             over its foot) to 96px past it, one fewer each 24px, each one's fade overlapping the next's: a long, even
+             ease, no step to see. Each blur written out: Safari takes none through a custom property.) */
+          > i:nth-child(1) { backdrop-filter: blur(1px); -webkit-backdrop-filter: blur(1px); --to: calc(100% - 48px); --off: calc(100% - 0px); }
+          > i:nth-child(2) { backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); --to: calc(100% - 72px); --off: calc(100% - 24px); }
+          > i:nth-child(3) { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); --to: calc(100% - 96px); --off: calc(100% - 48px); }
+          > i:nth-child(4) { backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); --to: calc(100% - 120px); --off: calc(100% - 72px); }
+          > i:nth-child(5) { backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); --to: calc(100% - 144px); --off: calc(100% - 96px); }
 
-          /* (On iOS, glass: installed, under the clock as well, the page blurred under both alike; in Safari, from the
-             status bar's flat dark.) */
-          @supports (-webkit-touch-callout: none) {
-            background: rgb(13 12 11 / 0.55);
-
-            @media not (display-mode: standalone) {
-              background: linear-gradient(#0d0c0b, rgb(13 12 11 / 0.55) 28px);
-            }
+          &::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            /* (From the status bar's own color at its top, solid: the bar and the glass one piece, no seam where the
+               page's art would meet the bar; under its contents enough for its words over anything; past its foot,
+               easing out with the blur over 120px from its pills' middle (an ease-out curve's stops): a long, even fall,
+               begun under its contents, not after them.) */
+            background: linear-gradient(#0d0c0b 14px, rgb(13 12 11 / 0.88) calc(100% - 120px), rgb(13 12 11 / 0.752) calc(100% - 110px), rgb(13 12 11 / 0.634) calc(100% - 100px), rgb(13 12 11 / 0.524) calc(100% - 90px), rgb(13 12 11 / 0.424) calc(100% - 80px), rgb(13 12 11 / 0.334) calc(100% - 70px), rgb(13 12 11 / 0.253) calc(100% - 60px), rgb(13 12 11 / 0.182) calc(100% - 50px), rgb(13 12 11 / 0.122) calc(100% - 40px), rgb(13 12 11 / 0.073) calc(100% - 30px), rgb(13 12 11 / 0.035) calc(100% - 20px), rgb(13 12 11 / 0.010) calc(100% - 10px), rgb(13 12 11 / 0.000) calc(100% - 0px));
           }
         }
 
@@ -912,6 +1010,29 @@
         }
       }
 
+      /* (The way to star Bitview on GitHub: a gold star at the text's size, how many have starred it, then the words;
+         the count written by home.mjs, at two figures and a "+", so it stays true as more star it.) */
+      .stars {
+        white-space: nowrap;
+      }
+
+      .stars-count {
+        font-weight: 600;
+        color: var(--ink);
+      }
+
+      .star {
+        flex: none;
+        width: 1em;
+        height: 1em;
+        margin-right: 0.4em;
+        vertical-align: -0.125em;
+        fill: #e8a530;
+        stroke: #e8a530;
+        stroke-width: 1;
+        stroke-linejoin: round;
+      }
+
       /* An arrow in words (a way on, a way out of the site): drawn, at the text's size, on its line. */
       .glyph {
         flex: none;
@@ -1234,9 +1355,6 @@
           }
         }
 
-        li:has(> &:focus-visible) > & {
-          box-shadow: 0 0 0 2.5px var(--focus);
-        }
 
         /* (Pointed at: its edge lit.) */
         @media (pointer: fine) {
@@ -1255,6 +1373,14 @@
       /* A title's i, at its cover's corner: on a desk with the cover pointed at or focused, on a touch screen always. */
       .row > li {
         position: relative;
+        border-radius: var(--radius);
+
+        /* (Its cover's ring: on the slot, the page's ground, so the page's scheme colours it; the cover's own is dark
+           in either, and its ring was the dark scheme's light one on a light page. An outline: painted over the
+           cover's own edge.) */
+        &:has(> .tile:focus-visible) {
+          outline: 2.5px solid var(--focus);
+        }
       }
 
       .info {
@@ -2025,7 +2151,7 @@
         }
 
         /* (Its links in columns, as a streaming service's foot, across its width: Bitview and this server first, then
-           the apps, the developers', running your own; on a phone, Bitview across, the rest two by two.) */
+           the apps, the developers', running your own; on a phone, the site across, the rest two by two.) */
         .columns {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2067,6 +2193,12 @@
               flex-wrap: wrap;
               gap: 4px 16px;
 
+              /* (For fingers, its lines as far apart as each link's reach is tall (44px over a 20px line): a reach
+                 never takes the line under's link, as the link lists' do.) */
+              @media (pointer: coarse) {
+                row-gap: 24px;
+              }
+
               a {
                 position: relative;
                 font-size: 12.5px;
@@ -2075,7 +2207,7 @@
                   &::before {
                     content: "";
                     position: absolute;
-                    inset: -14px 0;
+                    inset: -12px 0;
                   }
                 }
               }
@@ -2152,7 +2284,8 @@
 
     <div class="edge" aria-hidden="true"></div>
     <header class="top">
-      <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />DebitMyData Analytics</a>
+      <div class="glass" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <a class="brand" href="/"><img src="/assets/logo/logo.png" alt="" width="26" height="26" style="width: 26px; height: 26px" />DebitMyData Analytics</a>
       <nav aria-label="Sections">
         <a href="#apps-title">Apps</a>
         <a href="#blocks-title">Blocks</a>
@@ -2196,7 +2329,7 @@
 
     <main id="shelves">
       <section class="shelf" aria-labelledby="apps-title"><h2 id="apps-title">Apps</h2></section>
-      <section class="shelf" aria-labelledby="blocks-title"><h2 id="blocks-title">Latest blocks <span class="live">Live</span> <a href="/calendar/">Calendar<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
+      <section class="shelf" aria-labelledby="blocks-title"><h2 id="blocks-title">Latest blocks <span class="live">Live</span> <a href="/explorer/">Explorer<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
       <section class="shelf" aria-labelledby="pools-title"><h2 id="pools-title">Top 10 pools this week <a href="/calendar/">Calendar<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
       <section class="shelf" aria-labelledby="charts-title"><h2 id="charts-title">Popular charts <a href="/studio/presets/">All charts<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
       <section class="shelf" aria-labelledby="topics-title"><h2 id="topics-title">Browse charts by topic <small id="topics-count"></small></h2></section>
@@ -2207,20 +2340,20 @@
     <footer>
       <div class="columns">
         <div class="home">
-          <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />DebitMyData Analytics</a>
+          <a class="brand" href="/"><img src="/assets/logo/logo.png" alt="" width="26" height="26" style="width: 26px; height: 26px" />DebitMyData Analytics</a>
           <p class="server" id="server">This server: <span id="server-state">–</span><span id="server-more"></span></p>
-          <p class="fine"><a href="https://analytics.debitmydata.io/" id="public">analytics.debitmydata.io<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><span>Open source, MIT license. Built on <a href="https://github.com/bitcoinresearchkit/mono">Bitview</a></span></p>
+          <p class="fine"><a href="https://analytics.debitmydata.io/" id="public">analytics.debitmydata.io<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><span>Open source, MIT license. Built on <a href="https://github.com/bitcoinresearchkit/mono">Bitview</a></span><a href="https://docs.debitmydata.io/data/analytics/">Docs</a></p>
         </div>
         <div id="footer-apps">
           <h3>Apps</h3>
         </div>
         <div>
           <h3>Developers</h3>
-          <a href="/api/">API</a><a href="/openapi.json">OpenAPI</a><a href="/llms.txt">llms.txt</a>
+          <a href="/api/">API</a><a href="/catalog/">Catalog</a><a href="/openapi.json">OpenAPI</a><a href="/llms.txt">llms.txt</a><a href="https://docs.debitmydata.io/data/analytics/#api">API docs<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a>
         </div>
         <div>
           <h3>DebitMyData</h3>
-          <a href="https://github.com/DebitMyData-PoW/debitmydata-analytics">Source<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="https://stats.debitmydata.io/">DMD Stats<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="https://pool.debitmydata.io/">DebitMyData pool<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a>
+          <a href="https://github.com/DebitMyData-PoW/debitmydata-analytics">Source<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="https://stats.debitmydata.io/">DMD Stats<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="https://pool.debitmydata.io/">DebitMyData pool<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="https://debitmydata.io/">debitmydata.io<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a>
         </div>
       </div>
     </footer>
@@ -2230,8 +2363,9 @@
 
     <script type="module">
       // @ts-check
+      import { LOGOS, logo as poolLogo } from "/assets/pools/logos.js";
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
-      const banner = (/** @type {string} */ id) => `/assets/home/banners/${id}.jpg`, poster = (/** @type {string} */ id) => `/assets/home/covers/${id}.jpg`;
+      const banner = (/** @type {string} */ id) => import.meta.resolve(`/assets/home/banners/${id}.jpg`), poster = (/** @type {string} */ id) => import.meta.resolve(`/assets/home/covers/${id}.jpg`);
       const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
       const mouse = matchMedia("(pointer: fine)");
       /** An element: its tag, its properties, its children. @template {keyof HTMLElementTagNameMap} K */
@@ -2273,7 +2407,6 @@
         const days = Math.floor(s / 86_400);
         return `${days} day${days > 1 ? "s" : ""}`;
       };
-      const iso = (/** @type {number} */ seconds) => new Date(seconds * 1000).toISOString().slice(0, 10);
 
       // ── What there is: the titles, each its kind, a line, its words, its way in ──
 
@@ -2285,28 +2418,34 @@
       /** @type {Title[]} */
       const APPS = /** @type {any[]} */ ([
         { id: "studio", kind: "Charts", line: "Chart any series: overlay, stack, derive, share.", href: "/studio/", made: "Every series computed from the DebitMyData chain" },
+        { id: "oracle", kind: "Mining", line: "Hashrate, DMD's reference price and difficulty, live.", href: "/oracle/", live: true, made: "Each block's difficulty and time, and the reference price" },
+        { id: "explorer", kind: "Blocks", line: "Every block, transaction and address, and what gets you in.", href: "/explorer/", live: true, made: "Each block, the mempool and every transaction's coins" },
+        { id: "compass", kind: "Market", line: "Where DMD stands, and which way it's heading.", href: "/compass/", made: "The reference price, and long- and short-term holders' cost basis" },
         { id: "calendar", kind: "Mining", line: "Every day's leading pool, every block of any day.", href: "/calendar/", live: true, made: "Each block's mining pool" },
-        { id: "series", kind: "Catalogue", line: "Every series, what it is and how to fetch it.", href: "/series/", made: "The catalogue of every series computed from the chain" },
       ]);
       // (The developers' named by what they're for, here; their words their pages'.)
       /** @type {Title[]} */
       const DEV = /** @type {any[]} */ ([
         { id: "api", name: "API", line: "Every series, block and address, over plain HTTP.", href: "/api/", made: "The DebitMyData chain's series, blocks, addresses and mempool" },
+        { id: "catalog", name: "Catalog", line: "Every series, what it is and how to fetch it.", href: "/catalog/", made: "The catalog of every series computed from the chain" },
         { id: "mcp", name: "For assistants", line: "This API, explained for Claude, ChatGPT and other assistants.", about: "Hand an assistant this server's llms.txt: what the API offers and how to find any series, in plain text.", href: "/llms.txt", made: "This server's API, for an assistant" },
       ]);
       /* from the apps */
       const FROM_APPS = {
         "/studio/": { "name": "Studio", "about": "Chart any of the DebitMyData chain's on-chain series, or start from thousands of ready-made charts: overlay, stack, derive with formulas, draw, and share a chart as a link. Free, in the browser." },
+        "/oracle/": { "name": "Oracle", "about": "The DebitMyData network on one screen: its hashrate, DMD's reference price and the difficulty, block by block and day by day, live from the chain." },
+        "/explorer/": { "name": "Explorer", "about": "What it takes to get into the next DebitMyData block, and every block, transaction and address: where a payment is, when it gets in and what it paid, read exactly from the chain." },
+        "/compass/": { "name": "Compass", "about": "Where DebitMyData stands, day by day since its first block: DMD's reference price against its long-term and short-term holders' cost basis, and which way their trends point: nine moods, from Fear to Optimism, and how long each has lasted." },
         "/calendar/": { "name": "Calendar", "about": "Every day since the first DebitMyData block, the mining pool that found the most blocks, and every block of any day." },
-        "/series/": { "name": "Series", "about": "Every series computed from the DebitMyData chain, browsed like files: what each one is, its intervals, its history drawn, and how to fetch it." },
         "/api/": { "about": "Free on-chain analytics API for the DebitMyData (DMD) chain: thousands of time series, blocks, transactions, addresses, the mempool and mining. No key, no account." },
+        "/catalog/": { "about": "Every series computed from the DebitMyData chain, browsed like files: what each one is, its intervals, its history drawn, and how to fetch it." },
       };
       /* /from the apps */
       for (const t of [...APPS, ...DEV]) Object.assign(t, /** @type {Record<string, object>} */ (FROM_APPS)[t.href]);
       for (const t of APPS) t.face = t.id;
       const ALL = [...APPS, ...DEV], byId = new Map(ALL.map((t) => [t.id, t]));
       /** The billboard's titles, in turn. */
-      const FEATURED = ["studio", "calendar", "series"].map((id) => /** @type {Title} */ (byId.get(id)));
+      const FEATURED = ["studio", "oracle", "calendar"].map((id) => /** @type {Title} */ (byId.get(id)));
 
       /** When each title was last opened on this device (ms), as stored now (another tab's opens kept; an earlier
        * page's { n, at } read as its at; anything else that isn't a finite number left out, on its own). */
@@ -2356,8 +2495,13 @@
       // they're drawn: on a desk the billboard's height times the widest banner's ratio, and 1,140 px at least (a narrow
       // desk's billboard as tall as its words, up to some 495 px; where a browser can't work it out, 130vw or that), on a
       // phone Studio's band, its top only, the widest there.)
-      // (The first, in the page from its start; the others made here, loaded when near their turn.)
-      const pictures = FEATURED.map((t, i) => (i ? art.appendChild(el("img", { alt: "", src: banner(t.id), srcset: `${banner(t.id)} 1900w, ${banner(t.id).replace(".jpg", "@2x.jpg")} 2880w`, sizes: first.sizes, loading: "lazy" })) : first));
+      // (The first, in the page from its start; the others made here, each asked for halfway through the one before it, or
+      // when chosen: all in view, stacked, a lazy one would load at once.)
+      const pictures = FEATURED.map((t, i) => (i ? art.appendChild(el("img", { alt: "" })) : first));
+      const fetchPicture = (/** @type {number} */ i) => {
+        const p = pictures[i], src = banner(FEATURED[i].id);
+        if (!p.src) Object.assign(p, { sizes: first.sizes, srcset: `${src} 1900w, ${src.replace(".jpg", "@2x.jpg")} 2880w`, src });
+      };
       const pages = FEATURED.map((t, i) => {
         const button = el("button", { type: "button", ariaLabel: t.name });
         button.addEventListener("click", () => {
@@ -2395,9 +2539,10 @@
         const t = FEATURED[i], first = at < 0;
         at = i;
         elapsed = 0;
-        pictures.forEach((p, k) => {
-          p.classList.toggle("on", k === i);
-        });
+        fetchPicture(i);
+        // (The one showing stays until this one is ready, or has failed: a picture chosen before it came never fades
+        // into an empty band; a later choice meanwhile wins.)
+        pictures[i].decode().catch(() => {}).then(() => at === i && pictures.forEach((p, k) => p.classList.toggle("on", k === i)));
         pages.forEach((b, k) => (b.setAttribute("aria-current", String(k === i)), b.style.setProperty("--done", reduced && k === i ? "100%" : "0%")));
         const words = $("words"), put = () => {
           current = i;
@@ -2433,6 +2578,7 @@
         elapsed += Math.min(100, now - last);
         last = now;
         pages[at].style.setProperty("--done", `${Math.min(100, (elapsed / SHOW) * 100)}%`);
+        if (elapsed >= SHOW / 2) fetchPicture((at + 1) % FEATURED.length);
         if (elapsed >= SHOW) show((at + 1) % FEATURED.length);
         requestAnimationFrame(tick);
       }
@@ -2496,7 +2642,10 @@
       function cover(/** @type {Title} */ t) {
         const name = el("span", { className: "name" }, t.name);
         if (t.face) name.dataset.face = t.face;
-        const a = el("a", { className: "tile named", href: t.href }, el("img", { alt: "", loading: "lazy", src: poster(t.id) }), name);
+        // (Drawn as wide as its tile from a desk's 1,100 px, 1.2 times it below, where tiles are 4:3: the 720 one for
+        // phones up to a 1440 desk at 2×.)
+        const picture = el("img", { alt: "", loading: "lazy", srcset: `${poster(t.id).replace(".jpg", "@720.jpg")} 720w, ${poster(t.id)} 960w`, sizes: "(min-width: 1100px) calc(25vw - 40px), (min-width: 720px) calc(30vw - 36px), calc(60vw - 26px)", src: poster(t.id) });
+        const a = el("a", { className: "tile named", href: t.href }, picture, name);
         a.dataset.open = t.id;
         return el("li", {}, a, info(t));
       }
@@ -2507,6 +2656,7 @@
       /** Each developer card's statement: large, in type, set here (the API's answer read live). @type {Record<string, () => HTMLElement>} */
       const STATEMENTS = {
         api: () => el("span", { className: "say" }, el("code", { className: "ask" }, el("b", {}, "GET"), "\u00a0/api/blocks/", el("wbr"), "tip/height"), el("code", { className: "big api-answer" }, "–")),
+        catalog: () => el("span", { className: "say" }, el("code", { className: "big catalog-count" }, "–"), el("span", { className: "small" }, "What each one is, and how to fetch it")),
         mcp: () => el("span", { className: "say" }, el("code", { className: "big" }, "/llms.txt"), el("span", { className: "small" }, "Claude · ChatGPT · any assistant")),
       };
       /** A developer's card: its name, its statement; as its row draws it, wherever it's shown. */
@@ -2585,7 +2735,8 @@
 
       // ── Live rows: the latest blocks, the week's pools, the charts, the topics ──
 
-      const read = (/** @type {string} */ path, kind = "json") => fetch(path, { signal: AbortSignal.timeout(10_000) }).then((r) => {
+      const early = /** @type {Record<string, string>} */ (/** @type {any} */ (window).bitviewFirst);
+      const read = (/** @type {string} */ path, kind = "json") => /** @type {Promise<Response>} */ (/** @type {any} */ (window).bitviewRead(path)).then((r) => {
         if (!r.ok) throw new Error(String(r.status));
         return kind === "json" ? r.json() : r.text();
       });
@@ -2610,16 +2761,13 @@
       /** A pool's logo, as the other pages draw it (one with none: its initials). */
       function logo(/** @type {string} */ slug, /** @type {string} */ name) {
         const mark = el("span", { className: "logo" });
-        mark.style.backgroundImage = `url("/assets/pools/${slug}.svg")`;
-        const probe = new Image();
-        probe.onerror = () => {
+        if (LOGOS.has(slug)) mark.style.backgroundImage = `url("${poolLogo(slug, false)}")`;
+        else {
           const words = name.replace(/[^A-Za-z0-9 ]/g, "").replace(/([a-z])([A-Z])/g, "$1 $2").split(/\s+/).filter(Boolean);
           const one = words[0] ?? "?";
           mark.textContent = (words.length > 1 ? words.map((w) => w[0]).join("") : one[0] + (one.slice(1).match(/[^aeiouAEIOU]/)?.[0] ?? "")).slice(0, 2).toUpperCase();
           mark.classList.add("initials");
-          mark.style.backgroundImage = "";
-        };
-        probe.src = `/assets/pools/${slug}.svg`;
+        }
         return mark;
       }
 
@@ -2632,10 +2780,10 @@
         const when = el("div", { className: "ago" }, ago(b.timestamp));
         when.dataset.at = String(b.timestamp);
         const fee = feeRate(b.extras?.medianFee ?? 0), fees = Number(((b.extras?.totalFees ?? 0) / 1e8).toFixed(3));
-        const tile = el("a", { className: "tile block", href: `/calendar/?view=day&date=${iso(b.timestamp)}` },
+        const tile = el("a", { className: "tile block", href: `/explorer/block/${b.height}` },
           el("div", { className: "head" }, el("div", {}, el("div", { className: "height" }, grouped(b.height)), when), logo(pool.slug, pool.name)),
           el("div", {}, el("div", { className: "by" }, pool.name), el("div", { className: "facts" }, el("span", {}, `${grouped(b.tx_count)} txs`), el("span", { className: "sep" }, " · "), el("span", {}, `${fee} sat/vB`), el("span", { className: "fees" }, ` · ${fees} DMD fees`))));
-        tile.dataset.open = "calendar";
+        tile.dataset.open = "explorer";
         tile.dataset.label = `Block ${grouped(b.height)}, mined by ${pool.name}`;
         tile.setAttribute("aria-label", `${tile.dataset.label}, ${when.textContent}`);
         return el("li", {}, tile);
@@ -2898,28 +3046,35 @@
         if (reading) return;
         reading = true;
         const parts = [
-          part("price-panel", read("/api/v1/prices"), (p) => {
+          part("price-panel", read(early.prices), (p) => {
             $("price").textContent = dollars(p.USD);
+            facts.oracle = `Reference price <b>${dollars(p.USD)}</b> now`;
+            refresh("oracle");
           }),
           // (The next block's rate as it is, not rounded up to a whole one as the recommended ones are.)
-          part("fees-panel", read("/api/v1/fees/precise"), (f) => ($("fee").textContent = feeRate(f.fastestFee))),
-          read("/api/blocks/tip/height", "text").then((h) => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = grouped(Number(h)))), () => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = "not answering"))),
-          read("/api/v1/blocks").then((list) => {
+          part("fees-panel", read(early.fees), (f) => ($("fee").textContent = feeRate(f.fastestFee))),
+          read(early.tip, "text").then((h) => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = grouped(Number(h)))), () => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = "not answering"))),
+          read(early.blocks).then((list) => {
             drawBlocks(list);
             answered("blocks-title", blocks, true);
             const b = list[0];
             if (b) facts.calendar = `Block <b>${grouped(b.height)}</b> by ${b.extras?.pool?.name ?? "an unknown pool"}, ${ago(b.timestamp)}`;
             refresh("calendar");
           }, () => (answered("blocks-title", blocks, false), forget("calendar"))),
-          rounds % 10 ? null : read("/api/v1/mining/pools/1w").then((d) => (drawPools(d), answered("pools-title", pools, true)), () => answered("pools-title", pools, false)),
-          counted ? null : read("/api/series/count").then((c) => {
-            facts.studio = facts.series = `<b>${grouped(c.distinct)}</b> series to chart`;
+          rounds % 10 ? null : read(early.pools).then((d) => (drawPools(d), answered("pools-title", pools, true)), () => (answered("pools-title", pools, false), forget("globe"))),
+          rounds % 10 ? null : read(early.inProfit).then(([share, supply]) => {
+            const pct = share.data.at(-1), coins = supply.data.at(-1);
+            if (pct != null && coins != null) facts.trail = `<b>${pct.toFixed(1)}%</b> of ${short(coins)} coins in profit today`;
+            refresh("trail");
+          }, () => forget("trail")),
+          counted ? null : read(early.count).then((c) => {
+            facts.studio = `<b>${grouped(c.distinct)}</b> series to chart`;
             refresh("studio");
-            refresh("series");
+            document.querySelectorAll(".catalog-count").forEach((e) => (e.textContent = `${grouped(c.distinct)} series`));
             counted = true;
           }, () => {}),
-          rounds % 20 ? null : read("/api/server/disk").then((d) => (disk = `${d.brk} beside the DebitMyData node's ${d.bitcoin}`), () => {}),
-          Promise.allSettled([read("/api/server/sync"), read("/health")]).then(([s, h]) => {
+          rounds % 20 ? null : read(early.disk).then((d) => (disk = `${d.brk} beside the DebitMyData node's ${d.bitcoin}`), () => {}),
+          Promise.allSettled([read(early.sync), read(early.health)]).then(([s, h]) => {
             [sync, health] = [s.status === "fulfilled" ? s.value : null, h.status === "fulfilled" ? h.value : null];
             showServer();
           }),
@@ -2940,11 +3095,6 @@
         if (onBillboard) (lit = "", links.forEach((a) => a.setAttribute("aria-current", "false")));
         else update();
       }, { rootMargin: "-64px 0px 0px" }).observe(/** @type {Element} */ (document.querySelector(".buttons")));
-      // (The bar solid as soon as the page moves, as a streaming home's: what slides under it blurred, glass on iOS.)
-      const bar = /** @type {HTMLElement} */ (document.querySelector(".top"));
-      const solid = () => bar.classList.toggle("solid", scrollY > 4);
-      addEventListener("scroll", solid, { passive: true });
-      solid();
       // (The section lit: the one crossing a line just under the bar, where a section jumped to lands; between two, the
       // last one lit stays. The chip lit, on a phone, slid into view.)
       let sections = /** @type {IntersectionObserver | null} */ (null);

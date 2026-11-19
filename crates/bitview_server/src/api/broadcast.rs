@@ -8,9 +8,11 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bitcoin::Weight as BitcoinWeight;
+use bitview_http::CachePolicy;
+use brk_types::Txid;
 use tokio::sync::OwnedSemaphorePermit;
 
-use crate::{AppState, Error, error::Result, extended::HeaderMapExtended, params::Empty};
+use crate::{AppState, Error, error::Result, params::Empty};
 
 // Serialized transaction bytes cannot exceed the block weight, and hex doubles them. The bound
 // includes surrounding whitespace, which is trimmed before validation.
@@ -19,7 +21,7 @@ pub const MAX_BODY_BYTES: usize = BitcoinWeight::MAX_BLOCK.to_wu() as usize * 2;
 pub struct BroadcastPermit(OwnedSemaphorePermit);
 
 impl BroadcastPermit {
-    // One active RPC and up to three admitted requests waiting asynchronously.
+    // Submissions buffering or with the node at once, each on its own node connection.
     pub const CAPACITY: usize = 4;
 }
 
@@ -51,19 +53,22 @@ fn validate_hex(body: &str) -> Result<&str> {
     Ok(hex)
 }
 
+/// Submits a raw transaction, as hex, to the node: its txid once the node accepts it.
+pub async fn submit(permit: BroadcastPermit, state: &AppState, body: &str) -> Result<Txid> {
+    let hex = validate_hex(body)?;
+    let result = state.node.send_raw_transaction(hex).await;
+    drop(permit.0);
+    result.map_err(Error::from)
+}
+
 pub async fn serve(
     permit: BroadcastPermit,
     _: Empty,
     RequestState(state): RequestState,
     body: String,
 ) -> Result<Response> {
-    let hex = validate_hex(&body)?;
-    let result = state.node.send_raw_transaction(hex).await;
-    drop(permit.0);
     // A submission's answer is never reused, like its errors.
-    let mut response = result.map_err(Error::from)?.to_string().into_response();
-    let headers = response.headers_mut();
-    headers.insert_cache_control("no-store");
-    headers.insert_cdn_cache_control("no-store");
+    let mut response = submit(permit, &state, &body).await?.to_string().into_response();
+    CachePolicy::NoStore.apply(response.headers_mut());
     Ok(response)
 }

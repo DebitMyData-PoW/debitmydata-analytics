@@ -6,7 +6,7 @@ use aide::openapi::{Contact, Info, License, OpenApi, Tag};
 use axum::body::Bytes;
 use serde_json::{to_value, to_vec};
 
-use crate::{VERSION, prepared_json::PreparedJson};
+use crate::prepared_json::PreparedJson;
 
 /// The full spec and its compact form for LLMs, pre-serialized at startup with their validators.
 pub struct OpenApiBodies {
@@ -37,10 +37,11 @@ pub mod tags {
     pub const ORACLE: &str = "Price";
     pub const UTXO_SET: &str = "UTXO Set";
     pub const URPD: &str = "URPD";
+    pub const SILENT_PAYMENTS: &str = "Silent Payments";
 }
 
 /// The tags in the spec's order, each with its description.
-const TAGS: [(&str, &str); 12] = [
+const TAGS: [(&str, &str); 13] = [
     (
         tags::SERVER,
         "API metadata, health monitoring, and OpenAPI specifications.",
@@ -133,6 +134,21 @@ const TAGS: [(&str, &str); 12] = [
         Discovery flow: `GET /api/urpd` (cohorts), `GET /api/urpd/{cohort}` (latest), \
         `GET /api/urpd/{cohort}/{point}` (any block height or UTC day with a block).",
     ),
+    (
+        tags::SILENT_PAYMENTS,
+        "BIP352 silent payments for light wallets: BlindBit oracle v1's HTTP API (what spdk \
+        and Dana, Bull Bitcoin and blindbitd speak) under `/blindbit/mainnet/`, the public \
+        oracle's paths, so a wallet switches by changing the host. Per block: the tweaks of its \
+        eligible transactions, BIP158 filters of its new Taproot outputs and of its spends of \
+        Taproot outputs, its eligible transactions' Taproot outputs and its spent index. \
+        Precomputed: no tweak or filter math per request.\n\n\
+        Transactions whose Taproot outputs all hold less than 600 sats are left out: such an \
+        output costs more to spend than it holds, and wallets skip it already. `dustLimit` is \
+        optional and takes any value, as BlindBit takes it, but one below 600 answers as 600.\n\n\
+        Out on purpose: mempool tweaks and a server-side scan. Both need a push subscription, \
+        which Bitview's API doesn't offer, and a scan would hold a wallet's scan key and minutes \
+        of CPU per request on a stateless public server.",
+    ),
 ];
 
 pub fn create_openapi() -> OpenApi {
@@ -167,7 +183,7 @@ Errors use `application/problem+json`:
   "error": {
     "type": "not_found",
     "code": "series_not_found",
-    "message": "'foo' not found, did you mean 'bar'?",
+    "message": "'foo' not found, did you mean 'bar'? What became of it: /changes/?id=foo",
     "doc_url": "/api"
   }
 }
@@ -183,7 +199,8 @@ Errors use `application/problem+json`:
 - [Bitview](https://github.com/bitcoinresearchkit/mono) - the open-source project this server is built on"#
                 .to_string(),
         ),
-        version: VERSION.to_string(),
+        // (The API's release, not the build's commit (/version's): the docs made from it stay as they are.)
+        version: format!("v{}", env!("CARGO_PKG_VERSION")),
         contact: Some(Contact {
             name: Some("DebitMyData".to_string()),
             url: Some("https://github.com/DebitMyData-PoW/debitmydata-analytics".to_string()),

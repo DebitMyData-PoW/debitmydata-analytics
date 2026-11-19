@@ -18,7 +18,7 @@ pub use has::HasCointime;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
-use bitview_urpd::Replay;
+use bitview_urpd::UrpdWalk;
 use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
@@ -32,7 +32,7 @@ use reserve_risk::Vecs as ReserveRiskVecs;
 use supply::Vecs as SupplyVecs;
 use value::Vecs as ValueVecs;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("cointime"), Version::new(14));
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("cointime"), Version::new(15));
 pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable, Plugin)]
@@ -40,7 +40,7 @@ pub const ID: PluginId = STORAGE.id();
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
-    urpd_replay: M::WriteOnly<Replay>,
+    urpd_walk: M::WriteOnly<UrpdWalk>,
 
     /// Cointime measures how long DMD remains unspent. One coinblock is one
     /// DMD held for one block interval; spending destroys the coinblocks that

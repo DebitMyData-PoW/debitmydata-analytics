@@ -3,18 +3,18 @@
 
 use std::{
     io::{self, Write},
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::Duration,
 };
 
-use brk_error::{Error, Result};
-use brk_mempool::{RbfNode, ReadOnlyState};
+use brk_error::Result;
+use brk_mempool::{ReadOnlyState, TxRemoval};
 use brk_rpc::Client;
 use brk_types::{BlockHash, FeeRate, MempoolBlockHash, PreciseRecommendedFees, Sats, Txid, VSize};
 use rustc_hash::FxHashSet;
 use serde::Deserialize;
 use serde_json::{from_slice, to_writer};
 
-use crate::event::{Event, LeaveReason};
+use crate::event::{Event, LeaveReason, now_secs};
 
 /// The previous cycle's observations. Empty on the first cycle, so it emits every available
 /// state event (`Tip`, `Block`, `Fees`) and every live tx enters: consumers get a baseline
@@ -25,6 +25,8 @@ pub struct Emitter {
     prev_mempool_block_hash: Option<MempoolBlockHash>,
     prev_fees: Option<PreciseRecommendedFees>,
     prev_txids: FxHashSet<Txid>,
+    /// `prev_txids`' hash: an unchanged pool skips rebuilding and diffing the set.
+    prev_txids_hash: Option<u64>,
 }
 
 /// The pool totals a heartbeat reports, read from the published statistics.
@@ -47,51 +49,14 @@ impl Emitter {
         out: &mut W,
         client: &Client,
         state: &ReadOnlyState,
-        took: Duration,
+        tick: Duration,
     ) -> Result<()> {
         let Some(tip) = state.tip() else {
             return Ok(());
         };
         let t = now_secs();
         let mut events = Vec::new();
-        let txids: FxHashSet<Txid> = state.txids()?.copied().collect();
-
-        let mut added = 0;
-        for txid in txids.difference(&self.prev_txids) {
-            let Some(published) = state.transaction(txid, &tip)? else {
-                continue;
-            };
-            added += 1;
-            events.push(Event::Enter {
-                t,
-                txid: *txid,
-                vsize: published.vsize,
-                fee: published.tx.fee,
-                rate: FeeRate::from((published.tx.fee, published.vsize)),
-                first_seen: published.first_seen,
-            });
-        }
-        let mut removed = 0;
-        for txid in self.prev_txids.difference(&txids) {
-            let replacer = match state.rbf_for_tx(txid, &tip) {
-                Ok(rbf) => rbf.root.as_ref().and_then(|root| replacer_of(root, txid)),
-                // A history past the RBF traversal bounds stays unclassified: retrying the
-                // cycle would hit it again until it ages out, stalling the stream.
-                Err(Error::Internal(_)) => None,
-                Err(e) => return Err(e),
-            };
-            let reason = match replacer {
-                Some(by) => LeaveReason::Replaced { by },
-                None => LeaveReason::Vanished,
-            };
-            removed += 1;
-            events.push(Event::Leave {
-                t,
-                txid: *txid,
-                reason,
-            });
-        }
-
+        // A new tip first: the leaves it mined follow it.
         if self.prev_tip != Some(tip) {
             let height = client.get_block_header_info(&tip)?.height as u32;
             events.push(Event::Tip {
@@ -100,7 +65,52 @@ impl Emitter {
                 height: height.into(),
             });
         }
-        let mempool_block_hash = state.mempool_block_hash().ok();
+        // An unchanged pool (its txids' hash) has no one entering or leaving: the set isn't rebuilt.
+        let txids_hash = state.txids_hash()?;
+        let txids: Option<FxHashSet<Txid>> = if self.prev_txids_hash == Some(txids_hash) {
+            None
+        } else {
+            Some(state.txids()?.copied().collect())
+        };
+        let (mut added, mut removed) = (0, 0);
+        if let Some(now) = &txids {
+            for txid in now.difference(&self.prev_txids) {
+                let Some(entry) = state.entry(txid, &tip)? else {
+                    continue;
+                };
+                added += 1;
+                events.push(Event::Enter {
+                    t,
+                    txid: *txid,
+                    vsize: entry.vsize,
+                    fee: entry.fee,
+                    rate: FeeRate::from((entry.fee, entry.vsize)),
+                    first_seen: entry.first_seen,
+                });
+            }
+            for txid in self.prev_txids.difference(now) {
+                let reason = match state.removal(txid, &tip)? {
+                    Some(TxRemoval::Replaced { by }) => LeaveReason::Replaced { by },
+                    Some(TxRemoval::Mined) => LeaveReason::Mined,
+                    Some(TxRemoval::Vanished) | None => LeaveReason::Vanished,
+                };
+                removed += 1;
+                events.push(Event::Leave {
+                    t,
+                    txid: *txid,
+                    reason,
+                });
+            }
+        }
+
+        // The projection and the pool on one clock: one at another tip waits for the pool.
+        let current = state.projection_tip() == Some(tip);
+        let mempool_block_hash = state
+            .mempool_block_source(0)
+            .ok()
+            .flatten()
+            .filter(|_| current)
+            .map(|block| block.hash());
         if let Some(hash) = mempool_block_hash
             && self.prev_mempool_block_hash != Some(hash)
             && let Some(block) = state.block_stats()?.first()
@@ -109,11 +119,11 @@ impl Emitter {
                 t,
                 hash,
                 count: block.tx_count,
-                vsize: block.total_vsize,
+                vsize: VSize::from(block.total_weight),
                 fee: block.total_fee,
             });
         }
-        let fees = state.precise_fees().ok();
+        let fees = state.precise_fees().ok().filter(|_| current);
         if let Some(fees) = &fees
             && self.prev_fees.as_ref() != Some(fees)
         {
@@ -127,7 +137,7 @@ impl Emitter {
             count: totals.count,
             vsize: totals.vsize,
             fee: totals.total_fee,
-            took_ms: took.as_millis() as u64,
+            tick_ms: tick.as_millis() as u64,
         });
 
         for event in &events {
@@ -142,30 +152,15 @@ impl Emitter {
         if fees.is_some() {
             self.prev_fees = fees;
         }
-        self.prev_txids = txids;
+        if let Some(txids) = txids {
+            self.prev_txids = txids;
+            self.prev_txids_hash = Some(txids_hash);
+        }
         Ok(())
     }
 }
 
-/// The tx that directly replaced `txid` in the replacement tree under `node`.
-fn replacer_of(node: &RbfNode, txid: &Txid) -> Option<Txid> {
-    node.replaces.iter().find_map(|child| {
-        if child.txid == *txid {
-            Some(node.txid)
-        } else {
-            replacer_of(child, txid)
-        }
-    })
-}
-
-fn write_line<W: Write>(out: &mut W, ev: &Event) -> io::Result<()> {
+pub fn write_line<W: Write>(out: &mut W, ev: &Event) -> io::Result<()> {
     to_writer(&mut *out, ev).map_err(io::Error::from)?;
     out.write_all(b"\n")
-}
-
-fn now_secs() -> f64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs_f64()
 }

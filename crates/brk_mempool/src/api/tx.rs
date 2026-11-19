@@ -1,100 +1,128 @@
-use std::hash::{Hash, Hasher};
+use std::{
+    hash::{BuildHasher, Hash, Hasher, RandomState},
+    sync::{Arc, LazyLock},
+};
 
 use brk_error::Result;
-use brk_types::{BlockHash, MempoolRecentTx, TxOutspend, TxStatus, Txid, Vin, Vout};
-use rustc_hash::{FxHashSet, FxHasher};
+use brk_types::{BlockHash, TagHasher, TxOutspend, TxStatus, Txid, Vin, Vout};
+use rustc_hash::FxHashSet;
+use serde::Serializer;
 
 use crate::{
-    PublishedTx, ReadOnlyState,
+    JsonBody, PendingView, PublishedEntry, PublishedTx, ReadOnlyState, TxRemoval, json,
     key::{OutpointKey, TxKey},
     state::Pool,
 };
 
+/// Random per process, mixed into a validator made from a revision counted since start: the
+/// counter restarts from zero, and another server counts its own, so without it a revision could
+/// validate a different array.
+static PROCESS_NONCE: LazyLock<u64> = LazyLock::new(|| RandomState::new().hash_one(0u8));
+
 impl ReadOnlyState {
-    pub fn contains_txid(&self, txid: &Txid, tip: &BlockHash) -> Result<bool> {
-        let state = self.pool()?.resolved_at(tip)?;
-        Ok(state.txs.contains(txid))
+    /// Why a transaction left the pool at `tip`, while the graveyard remembers it: `None` for one
+    /// pending or unknown.
+    pub fn removal(&self, txid: &Txid, tip: &BlockHash) -> Result<Option<TxRemoval>> {
+        let state = self.pool()?.at(tip)?;
+        Ok(state.graveyard.get(txid).map(|tomb| tomb.removal))
     }
 
-    /// Capture an immutable live body or its recently vanished fallback from
-    /// one completed publication. Replaced tombstones are excluded.
-    pub fn transaction(&self, txid: &Txid, tip: &BlockHash) -> Result<Option<PublishedTx>> {
-        let state = self.pool()?.resolved_at(tip)?;
+    /// A pending transaction's entry facts at `tip` (Core's fee, vsize and first sighting): what
+    /// needs no input resolved.
+    pub fn entry(&self, txid: &Txid, tip: &BlockHash) -> Result<Option<PublishedEntry>> {
+        let state = self.pool()?.at(tip)?;
+        Ok(state.txs.entry(txid).map(|entry| PublishedEntry {
+            fee: entry.fee,
+            vsize: entry.vsize,
+            first_seen: entry.first_seen,
+        }))
+    }
+
+    /// The txid array [`Self::txids_hash`] validates.
+    pub fn txids(&self) -> Result<impl Iterator<Item = &Txid>> {
+        Ok(self.pool()?.txs.txids())
+    }
+
+    /// A transaction pending in `view`, from one completed publication: none for one that left
+    /// (mined ones the chain answers; evicted, expired or replaced ones are gone). An input not
+    /// resolved yet serves its prevout as null (Esplora's form for a coinbase input), as address
+    /// pages serve it, until a later publication fills it.
+    pub fn transaction(&self, txid: &Txid, view: &PendingView) -> Result<Option<PublishedTx>> {
+        let state = self.pool()?.at(view.tip())?;
         Ok(state
             .txs
             .record(txid)
-            .map(PublishedTx::from_record)
-            .or_else(|| {
-                state
-                    .graveyard
-                    .get_vanished(txid)
-                    .map(|tomb| PublishedTx::from_record(&tomb.record))
-            }))
+            .filter(|_| view.pending(txid))
+            .map(PublishedTx::from_record))
     }
 
-    /// Spend status for a live mempool transaction's output, or `None` when
-    /// the parent is not in the mempool. Parent presence, output bounds, and
-    /// the spender are resolved from one publication.
+    /// Spend status for a pending transaction's output, or `None` when the parent isn't pending
+    /// in `view`. Parent presence, output bounds, and the spender are resolved from one
+    /// publication.
     pub fn outspend_if_present(
         &self,
         txid: &Txid,
         vout: Vout,
-        tip: &BlockHash,
+        view: &PendingView,
     ) -> Result<Option<TxOutspend>> {
-        let state = self.pool()?.resolved_at(tip)?;
-        let Some(transaction) = state.txs.get(txid) else {
+        // Spends are known from inputs' outpoints: no prevout needs resolving.
+        let state = self.pool()?.at(view.tip())?;
+        let Some(transaction) = state.txs.get(txid).filter(|_| view.pending(txid)) else {
             return Ok(None);
         };
         if usize::from(vout) >= transaction.output.len() {
             return Ok(Some(TxOutspend::UNSPENT));
         }
-        Ok(Some(Self::outspend_for(state, txid, vout)))
+        Ok(Some(Self::outspend_for(state, txid, vout, view)))
     }
 
-    /// Current mempool spend status for an output whose parent may be
-    /// confirmed. The spender's full input list is checked to rule out key
-    /// collisions.
-    pub fn outspend(&self, txid: &Txid, vout: Vout, tip: &BlockHash) -> Result<TxOutspend> {
-        let state = self.pool()?.resolved_at(tip)?;
-        Ok(Self::outspend_for(state, txid, vout))
+    /// Pending spend status for an output whose parent may be confirmed. The spender's full
+    /// input list is checked to rule out key collisions.
+    pub fn outspend(&self, txid: &Txid, vout: Vout, view: &PendingView) -> Result<TxOutspend> {
+        let state = self.pool()?.at(view.tip())?;
+        Ok(Self::outspend_for(state, txid, vout, view))
     }
 
-    /// Spend statuses for every output of a live mempool transaction, or
-    /// `None` when the parent is not in the mempool. The complete array is
-    /// resolved from one publication.
+    /// Spend statuses for every output of a pending transaction, or `None` when the parent
+    /// isn't pending in `view`. The complete array is resolved from one publication.
     pub fn outspends_if_present(
         &self,
         txid: &Txid,
-        tip: &BlockHash,
+        view: &PendingView,
     ) -> Result<Option<Vec<TxOutspend>>> {
-        let state = self.pool()?.resolved_at(tip)?;
-        let Some(transaction) = state.txs.get(txid) else {
+        let state = self.pool()?.at(view.tip())?;
+        let Some(transaction) = state.txs.get(txid).filter(|_| view.pending(txid)) else {
             return Ok(None);
         };
         let mut outspends = vec![TxOutspend::UNSPENT; transaction.output.len()];
-        Self::overlay_outspends(state, txid, &mut outspends);
+        Self::overlay_outspends(state, txid, &mut outspends, view);
         Ok(Some(outspends))
     }
 
-    /// Overlay mempool spends onto unresolved outputs of a confirmed parent.
+    /// Overlay pending spends onto unresolved outputs of a confirmed parent.
     /// Returns immediately when every output is already confirmed spent.
     /// The complete overlay uses the acquired publication.
     pub fn merge_outspends(
         &self,
         txid: &Txid,
         outspends: &mut [TxOutspend],
-        tip: &BlockHash,
+        view: &PendingView,
     ) -> Result<()> {
         if outspends.iter().all(|outspend| outspend.spent) {
             return Ok(());
         }
-        let state = self.pool()?.resolved_at(tip)?;
-        Self::overlay_outspends(state, txid, outspends);
+        let state = self.pool()?.at(view.tip())?;
+        Self::overlay_outspends(state, txid, outspends, view);
         Ok(())
     }
 
-    fn outspend_for(state: &Pool, txid: &Txid, vout: Vout) -> TxOutspend {
-        let Some((spender, vin)) = state.outpoint_spends.spender(&state.txs, txid, vout) else {
+    /// A spender the newer blocks settled (`view`) spends nothing any more.
+    fn outspend_for(state: &Pool, txid: &Txid, vout: Vout, view: &PendingView) -> TxOutspend {
+        let Some((spender, vin)) = state
+            .outpoint_spends
+            .spender(&state.txs, txid, vout)
+            .filter(|(spender, _)| view.pending(&spender.entry.txid))
+        else {
             return TxOutspend::UNSPENT;
         };
         TxOutspend {
@@ -107,7 +135,12 @@ impl ReadOnlyState {
 
     /// Resolve a spender's inputs once for the whole parent, retaining exact
     /// outpoint validation and never replacing a confirmed spend.
-    fn overlay_outspends(state: &Pool, txid: &Txid, outspends: &mut [TxOutspend]) {
+    fn overlay_outspends(
+        state: &Pool,
+        txid: &Txid,
+        outspends: &mut [TxOutspend],
+        view: &PendingView,
+    ) {
         let parent = TxKey::from(txid);
         let mut scanned = FxHashSet::default();
         for index in 0..outspends.len() {
@@ -121,7 +154,11 @@ impl ReadOnlyState {
             if !scanned.insert(spender_key) {
                 continue;
             }
-            let Some(spender) = state.txs.record_by_key(&spender_key) else {
+            let Some(spender) = state
+                .txs
+                .record_by_key(&spender_key)
+                .filter(|spender| view.pending(&spender.entry.txid))
+            else {
                 continue;
             };
             for (vin, input) in spender.tx.input.iter().enumerate() {
@@ -148,21 +185,36 @@ impl ReadOnlyState {
         }
     }
 
-    /// Order-sensitive validator for the current txid array.
+    /// The current txid array's validator: the pool's membership revision, which every change of
+    /// the array moves and nothing else does, made unique to this process ([`PROCESS_NONCE`]).
     pub fn txids_hash(&self) -> Result<u64> {
         let state = self.pool()?;
-        Ok(state.txs.txids_hash())
+        Ok(state.txs.membership_revision() ^ *PROCESS_NONCE)
     }
 
-    /// The txid array [`Self::txids_hash`] validates.
-    pub fn txids(&self) -> Result<impl Iterator<Item = &Txid>> {
-        Ok(self.pool()?.txs.txids())
-    }
-
-    /// Recently observed additions, including transactions that have since left.
-    pub fn recent_txs(&self) -> Result<Vec<MempoolRecentTx>> {
+    /// The txid array [`Self::txids_hash`] validates, as JSON: encoded once per publication.
+    pub fn txids_json(&self) -> Result<Arc<[u8]>> {
         let state = self.pool()?;
-        Ok(state.txs.recent().to_vec())
+        Ok(state
+            .txids_json
+            .get_or_init(|| {
+                let mut bytes = Vec::new();
+                serde_json::Serializer::new(&mut bytes)
+                    .collect_seq(state.txs.txids())
+                    .expect("txids serialize");
+                bytes.into()
+            })
+            .clone())
+    }
+
+    /// Recently observed additions, including transactions that have since left, as JSON: encoded
+    /// once per publication.
+    pub fn recent_json(&self) -> Result<JsonBody> {
+        let state = self.pool()?;
+        Ok(state
+            .recent_json
+            .get_or_init(|| json::body(&state.txs.recent().collect::<Vec<_>>()))
+            .clone())
     }
 
     /// Transaction times and an order-sensitive hash of that exact result,
@@ -173,7 +225,7 @@ impl ReadOnlyState {
             .iter()
             .map(|txid| state.first_seen(txid).map_or(0, u64::from))
             .collect();
-        let mut hasher = FxHasher::default();
+        let mut hasher = TagHasher::default();
         times.as_slice().hash(&mut hasher);
         Ok((times, hasher.finish()))
     }

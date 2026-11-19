@@ -77,7 +77,25 @@ fn run<V: Variant>(dir: &Path, seed: u64) {
             1..=4 => {
                 let bump = rng.chance(16);
                 let state = subjects.swap_remove(i).close(&mut rng, bump);
-                subjects.push(Subject::open(&db, state));
+                // Compound vectors reject a schema change: rebuild their whole owner, with
+                // the other vector and both histories, after all handles have been dropped.
+                if bump && let Err(error) = V::import_with(
+                    ImportOptions::new(&db, state.name, Version::new(state.version)),
+                ) {
+                    assert!(matches!(error, crate::Error::DifferentVersion { .. }));
+                    let mut states: Vec<_> = subjects.drain(..).map(|s| {
+                        let mut state = s.close(&mut rng, false);
+                        state.model = Model::default();
+                        state
+                    }).collect();
+                    states.push(state);
+                    drop(db);
+                    fs::remove_dir_all(&dir).unwrap();
+                    db = Database::open(&dir).unwrap();
+                    subjects = states.into_iter().map(|s| Subject::open(&db, s)).collect();
+                } else {
+                    subjects.push(Subject::open(&db, state));
+                }
                 subjects.last().unwrap().check(&mut rng);
             }
             5 => db.compact().unwrap(),
@@ -986,4 +1004,14 @@ impl Drop for TempDir {
     fn drop(&mut self) {
         let _ = fs::remove_dir_all(&self.0);
     }
+}
+
+/// One composition, `+`: a bump of one component never cancels another's (plain addition let
+/// `(0 + 1) + 1` meet `(0 + 2) + 2` once mixed with `combine`), and the order counts.
+#[test]
+fn versions_compose_without_cancelling() {
+    let (one, two, three) = (Version::ONE, Version::TWO, Version::new(3));
+    assert_ne!(Version::ZERO + one + one, Version::ZERO + two + two);
+    assert_ne!(one + two, two + one);
+    assert_eq!([one, two, three].into_iter().sum::<Version>(), Version::ZERO + one + two + three);
 }

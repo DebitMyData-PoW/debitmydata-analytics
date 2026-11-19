@@ -19,6 +19,7 @@ use bitview_plugin_outputs::{ID as OUTPUTS_ID, Vecs as Outputs};
 use bitview_plugin_pools::{ID as POOLS_ID, Vecs as Pools};
 use bitview_plugin_price::{ID as PRICE_ID, Vecs as Price};
 use bitview_plugin_profitability::{ID as PROFITABILITY_ID, Vecs as Profitability};
+use bitview_plugin_silent_payments::{ID as SILENT_PAYMENTS_ID, Vecs as SilentPayments};
 use bitview_plugin_supply::{ID as SUPPLY_ID, Vecs as Supply};
 use bitview_plugin_transactions::{ID as TRANSACTIONS_ID, Vecs as Transactions};
 use bitview_plugin_utxo_set::{ID as UTXO_SET_ID, Vecs as UtxoSet};
@@ -44,6 +45,8 @@ impl DefaultPlugins {
         let price = timed_import(PRICE_ID, || Price::import(context, &mappings))?;
 
         let blocks = timed_import(BLOCKS_ID, || Blocks::import(context, &indexer, &mappings))?;
+
+        let silent_payments = timed_import(SILENT_PAYMENTS_ID, || SilentPayments::import(context))?;
 
         let window_starts = mappings.lookback.window_starts();
 
@@ -250,6 +253,7 @@ impl DefaultPlugins {
             outputs,
             utxo_set,
             op_return,
+            silent_payments,
         })
     }
 }

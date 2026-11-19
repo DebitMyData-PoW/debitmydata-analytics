@@ -1,8 +1,8 @@
 use std::{
     collections::HashMap,
-    convert::Infallible,
-    fmt::{Formatter, Result as FmtResult},
+    fmt::{Formatter, Result as FmtResult, Write},
     fs,
+    io::ErrorKind,
     path::{Path, PathBuf},
     result::Result as StdResult,
     str::FromStr,
@@ -17,22 +17,39 @@ use tracing::{error, info};
 
 use crate::Error;
 
-static EMBEDDED: Dir = include_dir!("$CARGO_MANIFEST_DIR/showcases");
+pub(crate) static EMBEDDED: Dir = include_dir!("$CARGO_MANIFEST_DIR/showcases");
 
-/// Embedded files' content hashes by path, computed once on first use.
-static EMBEDDED_HASHES: OnceLock<HashMap<&'static Path, String>> = OnceLock::new();
+/// The embedded site as served, made once on first use: each file's bytes and content hash, its pages with the
+/// release's addresses written in (`versioned`), and the release itself, one hash of every file's path and hash.
+struct Served {
+    release: String,
+    files: HashMap<&'static Path, (Bytes, String)>,
+}
 
-/// A file to serve, with the content type its name declares. Embedded content carries its hash
-/// (release only), computed once.
+static SERVED: OnceLock<Served> = OnceLock::new();
+
+/// The folder whose next segment names a release (`/v/<release>/<path>`): the file at `<path>` as that release serves
+/// it, which never changes, so it's cached for good.
+pub(crate) const RELEASES: &str = "v/";
+
+/// The same files at a second address (`/w/<release>/<path>`), for workers: in WebKit, a page's module whose address a
+/// worker has also loaded comes from the network on each reload after, so a worker's modules have addresses of their
+/// own (`showcases/studio/workers.js`).
+pub(crate) const WORKERS: &str = "w/";
+
+/// A file to serve, with the content type its name declares. Embedded content carries its hash, computed once.
 pub(crate) struct File {
+    /// The file found (a folder's `index.html` for its address).
+    pub(crate) path: PathBuf,
     pub(crate) contents: Bytes,
     pub(crate) hash: Option<&'static str>,
-    pub(crate) content_type: Option<&'static str>,
+    pub(crate) content_type: &'static str,
 }
 
 impl File {
     fn fresh(contents: Vec<u8>, path: &Path) -> Self {
         Self {
+            path: path.to_owned(),
             contents: contents.into(),
             hash: None,
             content_type: content_type(path),
@@ -40,9 +57,11 @@ impl File {
     }
 
     fn embedded(file: &'static EmbeddedFile<'static>) -> Self {
+        let (contents, hash) = &served().files[file.path()];
         Self {
-            contents: Bytes::from_static(file.contents()),
-            hash: (!cfg!(debug_assertions)).then(|| embedded_hash(file)),
+            path: file.path().to_owned(),
+            contents: contents.clone(),
+            hash: Some(hash),
             content_type: content_type(file.path()),
         }
     }
@@ -53,9 +72,15 @@ pub(crate) fn hash(contents: &[u8]) -> String {
     format!("{:016x}", rapidhash_v3(contents))
 }
 
-/// The content type a file's name declares, for the kinds the showcases use.
-fn content_type(path: &Path) -> Option<&'static str> {
-    Some(match path.extension()?.to_str()? {
+/// The content type a file's name declares: the kinds a site holds, bytes otherwise.
+fn content_type(path: &Path) -> &'static str {
+    match path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .unwrap_or_default()
+    {
+        "css" => "text/css",
+        "wasm" => "application/wasm",
         "js" | "mjs" => "application/javascript",
         "json" => "application/json",
         "html" => "text/html",
@@ -67,9 +92,10 @@ fn content_type(path: &Path) -> Option<&'static str> {
         "png" => "image/png",
         "jpg" | "jpeg" => "image/jpeg",
         "svg" => "image/svg+xml",
+        "ico" => "image/x-icon",
         "webmanifest" => "application/manifest+json",
-        _ => return None,
-    })
+        _ => "application/octet-stream",
+    }
 }
 
 /// Website configuration:
@@ -101,6 +127,14 @@ impl Website {
         }
     }
 
+    /// The release the site's files are served under (`RELEASES`): the embedded site's alone, as a folder's files may
+    /// change while it's served.
+    pub(crate) fn release(&self) -> Option<&'static str> {
+        self.filesystem_path()
+            .is_none()
+            .then(|| served().release.as_str())
+    }
+
     /// The file `path` names, else the `index.html` of the folder it names (`""` is the root's). A path
     /// naming neither, without an extension, gets the page of the nearest folder above it that has one,
     /// never the root's: an app's own addresses (Studio's presets, `studio/presets/...`), while a
@@ -121,18 +155,47 @@ impl Website {
             None => {
                 candidates.find_map(|candidate| EMBEDDED.get_file(candidate).map(File::embedded))
             }
-            Some(base) => candidates
-                .map(|candidate| base.join(candidate))
-                .find(|file| file.is_file())
-                .and_then(|file| match fs::read(&file) {
-                    Ok(contents) => Some(File::fresh(contents, &file)),
-                    Err(e) => {
-                        error!("{}: {e}", file.display());
-                        None
+            Some(base) => {
+                let failed = |file: &Path, e: std::io::Error| {
+                    error!("{}: {e}", file.display());
+                    Error::internal("Failed to read website file")
+                };
+                for file in candidates.map(|candidate| base.join(candidate)) {
+                    let metadata = match fs::metadata(&file) {
+                        Ok(metadata) => metadata,
+                        Err(e)
+                            if matches!(
+                                e.kind(),
+                                ErrorKind::NotFound | ErrorKind::NotADirectory
+                            ) =>
+                        {
+                            continue;
+                        }
+                        Err(e) => return Err(failed(&file, e)),
+                    };
+                    if metadata.is_file() {
+                        let contents = fs::read(&file).map_err(|e| failed(&file, e))?;
+                        let path = file.strip_prefix(base).unwrap();
+                        let contents = if matches!(self, Self::Default)
+                            && content_type(path) == "text/html"
+                        {
+                            let html = std::str::from_utf8(&contents)
+                                .map_err(|e| Error::internal(format!("{}: {e}", file.display())))?;
+                            versioned(html, "", |path| {
+                                !path.ends_with(".html") && base.join(path).is_file()
+                            })
+                            .map_err(|e| Error::internal(format!("{}: {e}", file.display())))?
+                            .into_bytes()
+                        } else {
+                            contents
+                        };
+                        return Ok(File::fresh(contents, path));
                     }
-                }),
+                }
+                None
+            }
         };
-        file.ok_or_else(|| Error::not_found("File not found"))
+        file.ok_or_else(Error::not_found)
     }
 
     /// Log which website source is being used (call once at startup)
@@ -141,7 +204,7 @@ impl Website {
             Self::Disabled => info!("Website disabled"),
             Self::Default => {
                 if let Some(p) = self.filesystem_path() {
-                    info!("Serving website from {}", p.display());
+                    info!("Serving showcases from {}", p.display());
                 } else {
                     info!("Using embedded website");
                 }
@@ -151,25 +214,129 @@ impl Website {
     }
 }
 
-fn embedded_hash(file: &EmbeddedFile<'static>) -> &'static str {
-    fn collect(dir: &'static Dir<'static>, hashes: &mut HashMap<&'static Path, String>) {
-        for file in dir.files() {
-            hashes.insert(file.path(), hash(file.contents()));
+fn served() -> &'static Served {
+    SERVED.get_or_init(|| {
+        fn collect(dir: &'static Dir<'static>, files: &mut Vec<&'static EmbeddedFile<'static>>) {
+            files.extend(dir.files());
+            for dir in dir.dirs() {
+                collect(dir, files);
+            }
         }
-        for dir in dir.dirs() {
-            collect(dir, hashes);
+        let mut files = Vec::new();
+        collect(&EMBEDDED, &mut files);
+        files.sort_unstable_by_key(|file| file.path());
+        let hashes: Vec<String> = files.iter().map(|file| hash(file.contents())).collect();
+        // (The content type too: how a file is served is part of what the release holds for good.)
+        let mut every = String::new();
+        for (file, file_hash) in files.iter().zip(&hashes) {
+            let (path, kind) = (file.path().display(), content_type(file.path()));
+            writeln!(every, "{path}\0{kind}\0{file_hash}").unwrap();
+        }
+        let release = hash(every.as_bytes());
+        let is_file = |path: &str| !path.ends_with(".html") && EMBEDDED.get_file(path).is_some();
+        let mut errors = Vec::new();
+        let files = files
+            .into_iter()
+            .zip(hashes)
+            .filter_map(|(file, file_hash)| {
+                let result = if content_type(file.path()) == "text/html" {
+                    std::str::from_utf8(file.contents())
+                        .map_err(|e| e.to_string())
+                        .and_then(|html| versioned(html, &release, is_file))
+                        .map(|page| {
+                            let page_hash = hash(page.as_bytes());
+                            (Bytes::from(page), page_hash)
+                        })
+                } else {
+                    Ok((Bytes::from_static(file.contents()), file_hash))
+                };
+                match result {
+                    Ok(contents) => Some((file.path(), contents)),
+                    Err(e) => {
+                        errors.push(format!("{}: {e}", file.path().display()));
+                        None
+                    }
+                }
+            })
+            .collect();
+        assert!(
+            errors.is_empty(),
+            "Invalid website pages:\n{}",
+            errors.join("\n")
+        );
+        Served { release, files }
+    })
+}
+
+/// A page as a release serves it: its import map first in its head, sending every module the page loads (static,
+/// dynamic, relative or absolute; addresses already a release's excepted) to the release's address, and each of the
+/// site's files it names by its path from the root (in `src`, `srcset`, `url()`, a `<link>`'s `href`, a script's
+/// string) written at the release's address. A link's (`<a href>`) stays where readers go.
+fn versioned(html: &str, release: &str, is_file: impl Fn(&str) -> bool) -> Result<String, String> {
+    for tag in html
+        .split("<script")
+        .skip(1)
+        .filter_map(|rest| rest.split('>').next())
+    {
+        if tag.contains("type=\"module\"")
+            && let Some((_, rest)) = tag.split_once(" src=\"")
+        {
+            let src = rest.split('"').next().unwrap_or_default();
+            if !src
+                .strip_prefix('/')
+                .is_some_and(|p| !p.contains(['?', '#']) && is_file(p))
+            {
+                return Err(format!("Cannot rewrite module src {src:?}"));
+            }
         }
     }
-    let hashes = EMBEDDED_HASHES.get_or_init(|| {
-        let mut hashes = HashMap::new();
-        collect(&EMBEDDED, &mut hashes);
-        hashes
-    });
-    &hashes[file.path()]
+    let (prefix, workers) = if release.is_empty() {
+        (String::new(), String::new())
+    } else {
+        (
+            format!("/{RELEASES}{release}"),
+            format!("/{WORKERS}{release}"),
+        )
+    };
+    let mut page = String::with_capacity(html.len() + 4096);
+    let mut last = 0;
+    for (at, _) in html.match_indices('/') {
+        let before = &html[..at];
+        if !(before.ends_with(['"', '\'', '(']) || before.ends_with(", ")) {
+            continue;
+        }
+        let rest = &html[at + 1..];
+        let path = &rest[..rest
+            .find(|c: char| matches!(c, '"' | '\'' | ')' | ',' | '?' | '#') || c.is_whitespace())
+            .unwrap_or(rest.len())];
+        if is_file(path) && !is_link(before) {
+            page.push_str(&html[last..at]);
+            page.push_str(&prefix);
+            last = at;
+        }
+    }
+    page.push_str(&html[last..]);
+    let head = page.find("<head>").ok_or("Page has no <head>")? + "<head>".len();
+    page.insert_str(
+        head,
+        &format!(
+            r#"<script type="importmap">{{"imports":{{"/":"{prefix}/","/{RELEASES}":"/{RELEASES}","worker/":"{workers}/"}}}}</script>"#
+        ),
+    );
+    Ok(page)
+}
+
+/// Whether the attribute value that `before` ends opening is a link's (`<a href="`).
+fn is_link(before: &str) -> bool {
+    before
+        .strip_suffix(['"', '\''])
+        .and_then(|before| before.strip_suffix("href="))
+        .and_then(|before| before.rfind('<').map(|tag| &before[tag + 1..]))
+        .is_some_and(|tag| tag.split_whitespace().next() == Some("a"))
 }
 
 impl FromStr for Website {
-    type Err = Infallible;
+    type Err = !;
 
     fn from_str(s: &str) -> StdResult<Self, Self::Err> {
         Ok(match s.to_lowercase().as_str() {

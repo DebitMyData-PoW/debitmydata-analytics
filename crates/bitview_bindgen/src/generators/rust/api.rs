@@ -93,13 +93,14 @@ fn generate_method(output: &mut String, endpoint: &Endpoint) {
     write_method_doc(output, endpoint);
 
     let mut params = build_method_params(endpoint);
-    let body_arg = match (post, endpoint.request_body.is_some()) {
-        (false, _) => "",
-        (true, true) => {
+    // A body goes as its declared media type; a JSON one is passed as its JSON text.
+    let body_arg = match (post, endpoint.request_body.as_ref()) {
+        (false, _) => String::new(),
+        (true, Some(body)) => {
             params.push_str(", body: &str");
-            ", body"
+            format!(", body, \"{}\"", body.content_type)
         }
-        (true, false) => ", \"\"",
+        (true, None) => ", \"\", \"text/plain\"".to_string(),
     };
     writeln!(
         output,
@@ -209,9 +210,14 @@ fn write_query_assembly(output: &mut String, endpoint: &Endpoint, path: &str, pa
         };
         if list {
             let v = value("v");
+            let values = if param.required {
+                ident.to_string()
+            } else {
+                format!("{ident}.into_iter().flatten()")
+            };
             writeln!(
                 output,
-                "        for v in {ident} {{ query.push(query_pair(\"{name}\", {v})); }}"
+                "        for v in {values} {{ query.push(query_pair(\"{name}\", {v})); }}"
             )
             .unwrap();
         } else if param.required {

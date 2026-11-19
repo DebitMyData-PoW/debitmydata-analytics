@@ -8,7 +8,7 @@
 
 > **MappingsDifficultyEpoch** = `object`
 
-Defined in: modules/bitview-client/index.js:6492
+Defined in: [modules/bitview-client/index.js:6466](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6466)
 
 ## Type Parameters
 
@@ -16,4 +16,4 @@ Defined in: modules/bitview-client/index.js:6492
 
 ### firstHeight
 
-> **firstHeight**: [`SeriesPattern17`](SeriesPattern17.md)\<[`Height`](Height.md)\>
+> **firstHeight**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Height`](Height.md)\>

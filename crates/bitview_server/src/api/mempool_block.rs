@@ -1,15 +1,14 @@
 use std::sync::Arc;
 
-use axum::{http::HeaderMap, response::Response};
+use axum::{body::Bytes, http::HeaderMap, response::Response};
 use bitview_query::{Query, Result as QueryResult};
 use brk_types::{MempoolBlockHash, MempoolBlockIndex};
-use serde::Serialize;
 use serde_json::to_vec;
 use tokio::sync::Semaphore;
 
-use crate::{AppState, CacheParams, error::Result, extended::ResponseExtended, params::served};
+use crate::{AppState, CacheParams, error::Result, extended::ResponseExtended};
 
-/// A projected mempool block with its transactions (block 0: about 12 MB).
+/// A projected mempool block with its transactions in their light shape (under 1 MB).
 pub async fn serve(
     state: AppState,
     headers: HeaderMap,
@@ -20,12 +19,11 @@ pub async fn serve(
         headers,
         &state.mempool_block_bodies,
         move |query| {
-            served(index)?;
-            let source = query.resolve_mempool_block()?;
-            let params = CacheParams::live(format!("mempool-block-0-{}", source.hash()?));
+            let source = query.resolve_mempool_block(index)?;
+            let params = CacheParams::live(format!("mempool-block-{index}-{}", source.hash()));
             Ok((source, params))
         },
-        |source| source.build(),
+        |source| Ok(Bytes::from_owner(source.json())),
     )
     .await
 }
@@ -42,16 +40,15 @@ pub async fn serve_diff(
         headers,
         &state.mempool_block_diff_bodies,
         move |query| {
-            served(index)?;
-            let resolved = query.resolve_mempool_block_diff(since)?;
+            let resolved = query.resolve_mempool_block_diff(index, since)?;
             let params = CacheParams::live(format!(
-                "mempool-block-0-diff-{}-{}",
+                "mempool-block-{index}-diff-{}-{}",
                 resolved.since(),
-                resolved.source().hash()?
+                resolved.source().hash()
             ));
             Ok((resolved, params))
         },
-        |resolved| resolved.build(),
+        |resolved| Ok(to_vec(&resolved.build())?.into()),
     )
     .await
 }
@@ -59,12 +56,12 @@ pub async fn serve_diff(
 /// Encodes what `select` resolves under the `bodies` budget, retained until the body is sent: slow
 /// readers would otherwise each hold one while new requests build more. A matching conditional
 /// request answers 304 before waiting for admission.
-async fn serve_json<S: 'static, T: Serialize>(
+async fn serve_json<S: 'static>(
     state: &AppState,
     headers: HeaderMap,
     bodies: &Arc<Semaphore>,
     select: impl Fn(&Query) -> QueryResult<(S, CacheParams)> + Clone + Send + 'static,
-    build: impl Fn(S) -> brk_error::Result<T> + Clone + Send + 'static,
+    build: impl Fn(S) -> brk_error::Result<Bytes> + Clone + Send + 'static,
 ) -> Result<Response> {
     let check = select.clone();
     let params = state.query.read(move |query| Ok(check(query)?.1)).await?;
@@ -74,12 +71,12 @@ async fn serve_json<S: 'static, T: Serialize>(
     // Resolved again after admission: the template may have moved on.
     Ok(state
         .respond_admitted(
-            &state.sync_query,
+            &state.chain_query,
             bodies,
             headers,
             "application/json",
             select,
-            move |_, selected| Ok(to_vec(&build(selected)?)?.into()),
+            move |_, selected| Ok(build(selected)?),
         )
         .await?)
 }

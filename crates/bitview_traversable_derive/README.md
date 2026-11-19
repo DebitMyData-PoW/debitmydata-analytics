@@ -12,9 +12,18 @@ Field attributes:
   visible iterator.
 - `rename = "name"` changes its tree key.
 - `wrap = "path"` places it below an additional path.
+- `client = "Name"` names, in the generated clients, the branch holding the
+  field's series: the one its `wrap` makes around it, else its own in place of
+  its type's name.
+- `lead = "..."` opens the description of every series under the field.
+- `accumulation = Flow | Level | Cumulative` sets how every series under
+  the field combines over time (`Accumulation`); the innermost declaration
+  wins, and a series with none is a level.
 
-The only struct attribute is `merge`. Single-field tuple structs delegate
-transparently. Doc comments are collected as series-description fragments.
+Struct attributes: `merge`, and `client = "Name"`, the name client types take
+for the struct's branch where its Rust name describes storage. Single-field
+tuple structs delegate transparently. Doc comments are collected as
+series-description fragments.
 
 ```rust,ignore
 #[derive(Traversable)]

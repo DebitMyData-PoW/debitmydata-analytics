@@ -18,6 +18,26 @@ const EDGE_SHARE: f64 = 0.02;
 /// p25, median, p75, p90.
 pub type Stats<T> = [T; 7];
 
+/// How a distribution ranks its values, which decides what its ends are and their ids.
+#[derive(Clone, Copy)]
+pub enum Ranking {
+    /// Each value counted once ([`counted`]): its ends are the extrema, `min` and `max`.
+    Counted,
+    /// Values weighted by vsize ([`weighted`]): its ends are estimates that can leave out an
+    /// outlier mid-block, `low_estimate` and `high_estimate`.
+    Weighted,
+}
+
+impl Ranking {
+    fn stat_name(self, stat: &str) -> &str {
+        match (self, stat) {
+            (Self::Weighted, "min") => "low_estimate",
+            (Self::Weighted, "max") => "high_estimate",
+            _ => stat,
+        }
+    }
+}
+
 /// Per-block distributions of a per-transaction value, statistic first, ids `{name}_{stat}`.
 #[derive(Deref, DerefMut, Traversable)]
 pub struct TxDistribution<T, M: StorageMode = Rw>(pub DistributionStats<PerBlock<T, M>>)
@@ -33,8 +53,10 @@ where
         name: &str,
         version: Version,
         indexes: &IndexSources,
+        ranking: Ranking,
     ) -> Result<Self> {
         Ok(Self(DistributionStats::try_from_fn(|stat| {
+            let stat = ranking.stat_name(stat);
             PerBlock::import(db, &format!("{name}_{stat}"), version, indexes)
         })?))
     }
@@ -58,10 +80,12 @@ pub fn counted<T: NumericValue + Ord>(values: &mut [T]) -> Stats<T> {
 }
 
 /// Rates weighted by vsize, with Bitcoin Core's `getblockstats` rank rule: the first rate whose
-/// cumulative vsize reaches `p` of the total. Min and max follow mempool.space's effective fee
-/// heuristic: the lower of the 1st percentile and the lowest rate among the transactions
-/// overlapping the block's last 2% of vsize (block order), the higher of the 99th percentile
-/// and the highest among those overlapping its first 2%.
+/// cumulative vsize reaches `p` of the total (block space is what's sold; the median is the
+/// 50th). Min and max take mempool.space's effective fee heuristic's shape over vsize: the lower
+/// of the 1st percentile and the lowest rate among the transactions overlapping the block's last
+/// 2% of vsize (block order), the higher of the 99th percentile and the highest among those
+/// overlapping its first 2%. mempool.space ranks by transaction count instead and takes its
+/// median over the middle 0.25% of a 4M WU block: its `feeRange` differs (kept on purpose).
 pub fn weighted<T: NumericValue + Ord>(block: &mut [(T, VSize)]) -> Stats<T> {
     if block.is_empty() {
         return undefined();
