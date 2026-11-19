@@ -358,6 +358,7 @@ dependencies = [
  "bitview_plugin",
  "bitview_plugin_addresses",
  "bitview_plugin_age",
+ "bitview_plugin_bedrock",
  "bitview_plugin_blocks",
  "bitview_plugin_coinflow",
  "bitview_plugin_cointime",
