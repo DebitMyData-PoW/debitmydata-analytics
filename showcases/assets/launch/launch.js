@@ -125,8 +125,7 @@
   // (The "Get the app" window, as DebitMyData's other sites have it: its own file, after the page.)
   document.head.append(Object.assign(document.createElement("script"), { src: asset("install/install.js"), defer: true }));
   // (Its app: the whole site's, whichever page it's added from and whichever page in it is open.)
-  const name = "DebitMyData Analytics", short = "DMD Analytics", start = `${location.origin}/`;
-  const description = "The DebitMyData (DMD) chain, read and measured: live apps, thousands of ready-made charts, and every series as data through an open API.";
+  const name = "DebitMyData Analytics", short = "DMD Analytics";
   for (const [tag, attributes] of /** @type {const} */ ([
     ["meta", { name: "application-name", content: name }],
     ["meta", { name: "apple-mobile-web-app-title", content: short }],
@@ -134,16 +133,13 @@
     ["meta", { name: "apple-mobile-web-app-capable", content: "yes" }],
   ])) document.head.append(Object.assign(document.createElement(tag), attributes));
   // Its icon: the DMD coin, a file (assets/favicon/apps/bitview.png, made by showcases/home.mjs --icons): one drawn here
-  // never came on a phone in Lockdown Mode, its home screen left with the manifest's colour alone. The manifest the
-  // same on every page, word for word: one app, whichever page offers it.
+  // never came on a phone in Lockdown Mode, its home screen left with the manifest's colour alone. Its manifest a file at
+  // the site's root, the same for every page, at an address no release changes (/manifest.webmanifest): it names itself
+  // as the app's related one, so a page can ask the browser whether the app is installed (see install.js).
   const icon = asset("favicon/apps/bitview.png");
   const link = (/** @type {string} */ rel, /** @type {string} */ href) => document.head.append(Object.assign(document.createElement("link"), { rel, href }));
   link("apple-touch-icon", icon);
-  const manifest = {
-    id: start, name, short_name: short, description, start_url: start, scope: start, display: "standalone",
-    theme_color: "#08090a", background_color: ORANGE, icons: [{ src: icon, sizes: "512x512", type: "image/png" }],
-  };
-  link("manifest", `data:application/manifest+json,${encodeURIComponent(JSON.stringify(manifest))}`);
+  link("manifest", `${location.origin}/manifest.webmanifest`);
   if (standalone === false) {
     setTimeout(() => {
       const canvas = document.createElement("canvas"), context = canvas.getContext("2d"), link = document.createElement("link");

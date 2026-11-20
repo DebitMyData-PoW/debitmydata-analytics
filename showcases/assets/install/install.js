@@ -5,8 +5,10 @@
 //
 // - It offers itself on phones and tablets a moment after a page opens (2.5 seconds, while nothing is being typed), and
 //   on any device from a link ending in #get-the-app (the home page's footer has one).
-// - Never by itself inside the app, nor when the browser says the app is installed. Only "Not now" is remembered, in
-//   this browser, for 30 days, for every page.
+// - Never by itself inside the app, nor once it's installed: as the browser says (the manifest names the app as its own
+//   related one), or as this browser remembers (the app opened here, or installed from here; forgotten when the browser
+//   offers to install it again, as it does once it's gone). "Not now" remembered too, in this browser, for 30 days, for
+//   every page.
 // - Where the browser offers its own one-tap install (Chrome, Edge, Samsung Internet: once the site has had a tap and
 //   some use on that device), the window shows the Install button, even if it was already open with the steps; the
 //   browser's own banner is kept away. Elsewhere it says how: Share then Add to Home Screen on an iPhone or iPad, the
@@ -14,9 +16,25 @@
 // - Its look the pool's: a card, the app's icon, red buttons, in the site's light or dark theme. In a shadow root, the
 //   pages' own styles kept out of it.
 (() => {
-  const DECLINED = "dmd-analytics-app-not-now", DECLINE_DAYS = 30;
+  const DECLINED = "dmd-analytics-app-not-now", DECLINE_DAYS = 30, INSTALLED = "dmd-analytics-app-installed";
   const inApp = matchMedia("(display-mode: standalone)").matches || /** @type {any} */ (navigator).standalone === true;
   if (inApp) document.documentElement.classList.add("dmd-in-app");
+  // (The app installed, as this browser remembers it: the app shares its storage with the browser's pages on Android
+  // and on a computer, so opening it once tells them.)
+  const remember = (/** @type {boolean} */ yes) => {
+    try {
+      if (yes) localStorage.setItem(INSTALLED, String(Date.now()));
+      else localStorage.removeItem(INSTALLED);
+    } catch {}
+  };
+  const remembered = () => {
+    try {
+      return localStorage.getItem(INSTALLED) !== null;
+    } catch {
+      return false;
+    }
+  };
+  if (inApp) remember(true);
   const touch = matchMedia("(pointer: coarse)").matches;
   const iphone = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   const device = iphone ? "iphone" : touch ? "android" : "computer";
@@ -71,6 +89,8 @@
   addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
     prompt = event;
+    // (Offered, so not installed: an app removed since is forgotten.)
+    remember(false);
     onPrompt();
   });
 
@@ -97,7 +117,7 @@
     const offerTitle = `Get the ${name} app`;
     /** @type {HTMLImageElement} */ ($("img")).src = icon;
     title.textContent = offerTitle;
-    let installed = false, ready = false, closed = false;
+    let installed = remembered() && !prompt, ready = false, closed = false;
 
     const declinedLately = () => {
       try {
@@ -145,7 +165,7 @@
     const check = (canTell
       ? /** @type {any} */ (navigator).getInstalledRelatedApps().then((/** @type {any[]} */ apps) => apps.some((app) => app.platform === "webapp" || app.platform === "play"), () => false)
       : Promise.resolve(false)
-    ).then((/** @type {boolean} */ yes) => (installed = yes));
+    ).then((/** @type {boolean} */ yes) => (installed = (yes || remembered()) && !prompt));
     // Asked for: always opens, and forgets an earlier "Not now".
     const ask = () => {
       closed = false;
@@ -155,20 +175,22 @@
       check.then(open);
     };
 
-    onPrompt = () => (box.open ? fill() : offer());
+    // (The browser's offer says the app isn't installed, whatever was remembered.)
+    onPrompt = () => ((installed = false), box.open ? fill() : offer());
     go.addEventListener("click", () => {
       if (!prompt) return;
       const asked = prompt;
       prompt = null;
       asked.prompt();
       asked.userChoice.then((/** @type {{ outcome: string }} */ choice) => {
-        if (choice.outcome === "accepted") installed = true;
+        if (choice.outcome === "accepted") (installed = true), remember(true);
         // ("Cancel" in the browser's dialog only closes ours.)
         close();
       });
     });
     addEventListener("appinstalled", () => {
       installed = true;
+      remember(true);
       close();
     });
     // "Not now": the only answer remembered.

@@ -1,0 +1,13 @@
+{
+  "id": "/",
+  "name": "DebitMyData Analytics",
+  "short_name": "DMD Analytics",
+  "description": "The DebitMyData (DMD) chain, read and measured: live apps, thousands of ready-made charts, and every series as data through an open API.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#08090a",
+  "background_color": "#c80815",
+  "icons": [{ "src": "/assets/favicon/apps/bitview.png", "sizes": "512x512", "type": "image/png" }],
+  "related_applications": [{ "platform": "webapp", "url": "https://analytics.debitmydata.io/manifest.webmanifest" }]
+}
