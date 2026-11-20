@@ -1313,21 +1313,22 @@
       const NONE = { at: new Int32Array(0), along: new Float32Array(0), works: new Float32Array(0), times: new Float32Array(0) };
       /** How far from the line a block's typical reading is drawn, in rows (the others as far as they are, in step):
        * the hottest squares, a few rows either side of it. */
-      const PULL = 1.5;
+      const PULL = 1.2;
       /** A square's share of its column's most readings, to this power: only the closest burn, the rest fade. */
       const HOT = 1.5;
       /** The line's own light: how strong (Bitview's is 1), and how fast it fades either side of it, in rows. */
-      const LIFT = 0.8, FADE = 6.2;
+      const LIFT = 0.8, FADE = 5;
       /** The glow's far reach: how bright it is at most beside the line (dim colors only), and how fast it fades, in
        * rows: it burns into the background over some 80px either side, as Bitview's. */
-      const HALO = 0.45, REACH = 22;
+      const HALO = 0.45, REACH = 18;
       /** The grid Bitview's has (its round bitcoin amounts read as round dollars draw rows at round prices; its blocks
-       * of many or few payments, brighter or darker columns): here faint rows at round values and columns at round
-       * times, GRID_WIDTH squares wide and GRID bright at most, and columns a little brighter where blocks came
-       * faster (their pace, to the STRIPE power). */
-      const GRID = 0.8, GRID_WIDTH = 2, STRIPE = 1;
-      /** The grid's columns at most this share of its rows' spacing apart: its boxes taller than wide. */
-      const TALL = 0.6;
+       * of many or few payments, brighter or darker columns): here faint rows and columns GRID_WIDTH squares wide,
+       * their squares a little brighter than the background around them (by GRID at most, a few left out), and
+       * columns a little brighter where blocks came faster (their pace, to the STRIPE power). */
+      const GRID = 0.45, GRID_WIDTH = 1, STRIPE = 1;
+      /** The grid's boxes all alike: about BOXES of them from the chart's top to its bottom (fewer across a narrow
+       * screen), each ASPECT times as tall as it is wide: all but square, as Bitview's. */
+      const BOXES = 3, ASPECT = 1.1;
       /** The misreadings: from up to ECHO_BLOCKS blocks a column, each standing for the blocks around it; their squares
        * at most BACKGROUND bright, darker than the glow, so the line burns on them. */
       const ECHO_BLOCKS = 24, BACKGROUND = 0.4;
@@ -1414,8 +1415,8 @@
         probe.remove();
         return rgb;
       }
-      /** The squares' side and the gap between them, in CSS pixels: half Bitview's, twice as many each way. */
-      const SQUARE = 3.75, GAP = 0.75;
+      /** The squares' side and the gap between them, in CSS pixels: five eighths of Bitview's, more of them each way. */
+      const SQUARE = 4.6875, GAP = 0.9375;
       /** How near the line a square is, `d` rows from it: 1 on it, fading either side. */
       const nearLine = (/** @type {number} */ d) => Math.exp(-Math.abs(d) / FADE);
       /** A steady random number from 0 to 1 for a square. */
@@ -1440,7 +1441,7 @@
         return out;
       }
       /** The points where round times fall (hours, days, weeks, months), the widest step that puts them no more than
-       * `apart` pixels apart in frame `f`. */
+       * `apart` pixels apart in frame `f`: the grid's columns start from the last. */
       function roundTimes(/** @type {number} */ apart, /** @type {ReturnType<typeof frame>} */ f) {
         if (points.length < 2) return [];
         const t0 = points[0].t, t1 = points[points.length - 1].t, H = 3600, D = 86_400, perSecond = (f.x(points.length - 1) - f.x(0)) / Math.max(1, t1 - t0);
@@ -1541,20 +1542,25 @@
         const pace = Float64Array.from(seen, (n, c) => (n && last[c] >= first[c] ? n / (last[c] - first[c] + step) : 0));
         const paces = Array.from(pace).filter((x) => x > 0).sort((x, z) => x - z), middle = paces[Math.floor(paces.length / 2)] || 1;
         const stripe = Float64Array.from(pace, (x) => (x > 0 ? Math.max(0.8, Math.min(1.2, (x / middle) ** STRIPE)) : 1));
-        // (The grid: rows at round values, columns at round times.)
+        // (The grid: its boxes `tall` by `wide` pixels, one row on the round value nearest the middle of the line's
+        // height and one column on the last round time, the others a box apart from them.)
         const gridRow = new Uint8Array(rows), gridCol = new Uint8Array(cols);
         const valueAt = (/** @type {number} */ y) => {
           const g = f.a + ((f.bottom - y) / (f.bottom - f.top)) * (f.b - f.a);
           return f.log ? Math.exp(g) : g;
         };
-        const levels = roundValues(valueAt(f.h), valueAt(0)).map((v) => f.y(v));
-        for (const y of levels) {
+        const tall = Math.max(SQUARE * 4, Math.min(f.h / BOXES, (f.w * ASPECT) / 2.5)), wide = tall / ASPECT, halfway = (f.top + f.bottom) / 2;
+        const rounds = roundValues(valueAt(f.bottom), valueAt(f.top)).map((v) => f.y(v));
+        const rowAt = rounds.reduce((best, y) => (Math.abs(y - halfway) < Math.abs(best - halfway) ? y : best), rounds[0] ?? halfway);
+        for (let y = rowAt - Math.floor(rowAt / tall) * tall; y < f.h; y += tall) {
           const r = Math.floor(y / side);
-          for (let d = 0; d < GRID_WIDTH; d++) if (r + d >= 0 && r + d < rows) gridRow[r + d] = 1;
+          for (let d = 0; d < GRID_WIDTH; d++) if (r + d < rows) gridRow[r + d] = 1;
         }
-        // (The columns TALL as far apart as the rows, or less: its boxes stand taller than they're wide.)
-        const apart = levels.length > 1 ? Math.abs(levels[0] - levels[levels.length - 1]) / (levels.length - 1) : f.h / 3;
-        for (const k of roundTimes(apart * TALL, f)) for (let d = 0; d < GRID_WIDTH; d++) gridCol[Math.min(cols - 1, colOf(k) + d)] = 1;
+        const marks = roundTimes(wide, f), colAt = marks.length ? f.x(marks[marks.length - 1]) : f.x(f.n - 1);
+        for (let x = colAt - Math.floor(colAt / wide) * wide; x < f.w; x += wide) {
+          const c = Math.floor(x / width);
+          for (let d = 0; d < GRID_WIDTH; d++) if (c + d < cols) gridCol[c + d] = 1;
+        }
         // (Each square's pixels, its gap left clear: where its column and row start and end on the canvas.)
         const W = heat.width, image = ctx.createImageData(W, heat.height), out = new Uint32Array(image.data.buffer);
         const x0 = Int32Array.from({ length: cols }, (_, c) => Math.round(c * width * ratio)), x1 = Int32Array.from({ length: cols }, (_, c) => Math.max(x0[c] + 1, Math.round(((c + 1) * width - GAP) * ratio)));
@@ -1571,7 +1577,7 @@
             let behind = mostEcho ? BACKGROUND * stripe[c] * Math.min(1, echoes[c][r] / mostEcho) ** 0.7 : 0;
             if (gridRow[r] || gridCol[c]) {
               const h = noise(c, r);
-              if (h > 0.12) behind = Math.max(behind, GRID * (0.55 + 0.45 * h));
+              if (h > 0.12) behind += GRID * (0.5 + 0.5 * h) * (1 - behind);
             }
             const glow = picks[c] ? HALO * (halo[c][r] / picks[c]) : 0, under = own + behind * (1 - own);
             const t = under + glow * (1 - under), u = picks[c] ? lift[c][r] / picks[c] : 0;

@@ -48,8 +48,7 @@ adapted to the DebitMyData chain. Bitview's own documentation is in [docs/](docs
   over each span's time (the hashrate, the difficulty that pace calls for, or what mining one DMD
   costs). The readings make a glow around the line, brightest where most agree with it; the
   misreadings (two blocks' work in one block's time) fill the background, darker, over a faint grid
-  of round values and round times. Its chapters below show how each is worked out, with small live
-  charts.
+  of boxes all but square. Its chapters below show how each is worked out, with small live charts.
 - **The Explorer** draws its blocks full at 2,000 weight units (500 vB): DebitMyData's blocks are
   small (a coinbase alone fills a third of a square), and a block drawn at Bitcoin's 4,000,000 would
   look empty. Each block says its size and transactions, its larger squares what they are, and the
