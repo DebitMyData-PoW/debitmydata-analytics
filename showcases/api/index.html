@@ -247,22 +247,18 @@
     <script src="/modules/scalar-api-reference/1.75.1/dist/browser/standalone.js"></script>
     <script>
       // In Bitview's type and colors (Studio's), light or dark as the site's switch says (the bar's, at its right:
-      // assets/launch/launch.js; Scalar's own toggle hidden, a choice it kept from when it had one let go); no toolbar.
+      // assets/launch/launch.js), Scalar's own mode, which it keeps as "colorMode", set to it first; no toolbar.
       try {
-        localStorage.removeItem("colorMode");
+        localStorage.setItem("colorMode", document.documentElement.dataset.theme === "light" ? "light" : "dark");
       } catch {}
       const dark = () => document.documentElement.dataset.theme !== "light";
-      // (Switched: Scalar's own classes on the body, as its toggle would set them.)
-      addEventListener("dmd-theme", () => {
-        document.body.classList.toggle("dark-mode", dark());
-        document.body.classList.toggle("light-mode", !dark());
-      });
-      Scalar.createApiReference("#app", {
+      const config = {
         url: "/openapi.json",
         hideClientButton: true,
         showDeveloperTools: "never",
-        hideDarkModeToggle: true,
-        forceDarkModeState: dark() ? "dark" : "light",
+        // (Its own toggle made but hidden: the site's switch works it, see below. A mode forced on it would stay for good.)
+        hideDarkModeToggle: false,
+        darkMode: dark(),
         telemetry: false,
         withDefaultFonts: false,
         mcp: { disabled: true },
@@ -345,12 +341,28 @@
               --scalar-border-color: rgb(255 255 255 / 0.13);
             }
           }
+          /* (Its own light / dark toggle: the site's switch, in the bar, works it.) */
+          .t-doc__sidebar button[aria-pressed] {
+            display: none !important;
+          }
           /* (Scalar's own offer, not this API's: its buttons, and the client card's.) */
           .generate-sdk-button,
           .selected-client-action {
             display: none !important;
           }
         `,
+      };
+      Scalar.createApiReference("#app", config);
+      // (Switched: Scalar's own toggle pressed where its mode isn't the site's, so the whole reference turns, its page and
+      // its body alike; without it (a Scalar that's moved it), its classes on the body, as it would set them.)
+      addEventListener("dmd-theme", () => {
+        const toggle = /** @type {HTMLButtonElement | null} */ (document.querySelector(".t-doc__sidebar button[aria-pressed]"));
+        if (toggle) {
+          if ((toggle.getAttribute("aria-pressed") === "true") !== dark()) toggle.click();
+          return;
+        }
+        document.body.classList.toggle("dark-mode", dark());
+        document.body.classList.toggle("light-mode", !dark());
       });
     </script>
   </body>
