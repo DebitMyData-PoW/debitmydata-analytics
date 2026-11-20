@@ -42,7 +42,7 @@
     <script src="/assets/launch/launch.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f3f1ec" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f6f7" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d0c0b" />
     <title>DebitMyData Analytics</title>
     <meta name="description" content="The DebitMyData (DMD) chain, read and measured: live apps, thousands of ready-made charts, and every series as data through an open API." />
@@ -153,7 +153,7 @@
          each with an i for what it is. Dark where the pictures are, in either scheme. */
       :root {
         color-scheme: light dark;
-        --app: light-dark(#f3f1ec, #0d0c0b);
+        --app: light-dark(#f6f6f7, #0d0c0b);
         --ink: light-dark(#16130f, #f6f3ee);
         --text: light-dark(#3a342d, #d6cfc4);
         --soft: light-dark(#625a50, #a1988a);
@@ -178,6 +178,8 @@
         --glow: 246 243 238;
         --surface: #151311;
         --sheet: #181613;
+        /* (A tile's shadow: none on the dark, on paper one down and to the right.) */
+        --drop: 0 0 #0000;
         /* (Where the bar's line starts: under the status bar where the page runs under it (Safari's, a notch's).) */
         --bar-top: env(safe-area-inset-top);
 
@@ -300,10 +302,11 @@
          billboard and the apps' covers as well once their pictures on paper are made (the page says so, data-light-pictures:
          see LIGHT_PICTURES), dark till then, with the bar over them. */
       :root[data-theme="light"] {
-        --shade: 243 241 236;
+        --shade: 246 246 247;
         --glow: 22 19 15;
         --surface: #ffffff;
-        --sheet: #fbfaf7;
+        --sheet: #fbfbfc;
+        --drop: 7px 7px 7px 0 rgb(22 19 15 / 0.14);
 
         :is(.top, .billboard, .tile, .rank, .about) {
           color-scheme: light;
@@ -1377,7 +1380,7 @@
         border-radius: var(--radius);
         color: var(--text);
         background: var(--surface);
-        box-shadow: 0 0 0 1px var(--line);
+        box-shadow: 0 0 0 1px var(--line), var(--drop);
         outline: none;
         transition: scale 0.3s var(--lift), box-shadow 0.3s;
 
@@ -1426,7 +1429,7 @@
         /* (Pointed at: its edge lit.) */
         @media (pointer: fine) {
           &:hover {
-            box-shadow: 0 0 0 1px rgb(var(--glow) / 0.32);
+            box-shadow: 0 0 0 1px rgb(var(--glow) / 0.32), var(--drop);
           }
         }
 
@@ -1838,7 +1841,7 @@
           background:
             radial-gradient(90% 70% at 50% 30%, rgb(var(--glow) / 0.08), transparent 70%),
             var(--surface);
-          box-shadow: 0 0 0 1px var(--line);
+          box-shadow: 0 0 0 1px var(--line), var(--drop);
           text-align: center;
           transition: scale 0.3s var(--lift);
 
@@ -1900,12 +1903,12 @@
         }
 
         &:focus-visible .portrait {
-          box-shadow: 0 0 0 2.5px var(--focus);
+          box-shadow: 0 0 0 2.5px var(--focus), var(--drop);
         }
 
         @media (pointer: fine) {
           &:hover .portrait {
-            box-shadow: 0 0 0 1px rgb(var(--glow) / 0.32);
+            box-shadow: 0 0 0 1px rgb(var(--glow) / 0.32), var(--drop);
           }
         }
       }
@@ -2439,7 +2442,7 @@
       import { LOGOS, logo as poolLogo } from "/assets/pools/logos.js";
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
       /* light pictures */
-      const LIGHT_PICTURES = [];
+      const LIGHT_PICTURES = ["studio", "oracle", "explorer", "compass", "globe", "stack", "miners", "calendar"];
       /* /light pictures */
       // (The apps' pictures on paper, in the light theme, where they've been made (LIGHT_PICTURES, the apps whose pictures
       // showcases/home.mjs --pictures made on paper: NAME-light.jpg beside NAME.jpg); the dark ones else.)

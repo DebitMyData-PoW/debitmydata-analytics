@@ -376,19 +376,29 @@ console.log(`In step: ${apps.length} apps and ${dev.length} developers' pages, $
 /** The pictures: a Chromium, headless, each app's screen as a dark one with less motion, each picture cut from it at the
  * density its size needs. */
 async function makePictures() {
-  const binary = process.env.CHROMIUM ?? ["/Applications/Chromium.app/Contents/MacOS/Chromium", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/usr/bin/chromium", "/usr/bin/google-chrome"].find(existsSync);
+  const binary = process.env.CHROMIUM ?? ["/Applications/Chromium.app/Contents/MacOS/Chromium", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser", "/snap/bin/chromium", "/usr/bin/google-chrome", "/usr/bin/google-chrome-stable"].find(existsSync);
   if (!binary) return void problems.push("No Chromium for --pictures: set CHROMIUM to one");
   const profile = mkdtempSync(join(tmpdir(), "home-pictures-"));
   /** @type {ReturnType<typeof Bun.spawn> | null} */
   let browser = null;
   try {
-    browser = Bun.spawn([binary, "--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "--hide-scrollbars", "about:blank"], { stderr: "ignore", stdout: "ignore" });
+    // (As root, as on a server, a Chromium runs only without its sandbox.)
+    const asRoot = process.getuid?.() === 0;
+    browser = Bun.spawn([binary, "--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "--hide-scrollbars", ...(asRoot ? ["--no-sandbox"] : []), "about:blank"], { stderr: "pipe", stdout: "ignore" });
+    // (Its port from the file it writes in its profile, or from its own line on its errors' stream: a snap's Chromium, as
+    // Ubuntu's, keeps its own /tmp, the file out of sight. What it said, kept, to say why if it didn't start.)
+    let said = "";
+    const stream = /** @type {ReadableStream<Uint8Array>} */ (/** @type {any} */ (browser).stderr), decoder = new TextDecoder();
+    (async () => {
+      for await (const chunk of /** @type {any} */ (stream)) said += decoder.decode(chunk, { stream: true });
+    })().catch(() => {});
     let port = "";
-    for (let tries = 0; !port && tries < 100; tries++) {
+    for (let tries = 0; !port && tries < 150; tries++) {
       await Bun.sleep(100);
       if (existsSync(join(profile, "DevToolsActivePort"))) port = readFileSync(join(profile, "DevToolsActivePort"), "utf8").split("\n")[0];
+      else port = /DevTools listening on ws:\/\/[^/]*:(\d+)\//.exec(said)?.[1] ?? "";
     }
-    if (!port) return void problems.push("The Chromium for --pictures didn't start");
+    if (!port) return void problems.push(`The Chromium for --pictures didn't start (${binary})${said.trim() ? `: ${said.trim().split("\n").slice(-3).join(" / ")}` : ""}`);
     const out = join(HERE, "assets", "home");
     for (const [id, recipe] of Object.entries(pictures ? PICTURES : {})) {
       if (ONLY && id !== ONLY) continue;
