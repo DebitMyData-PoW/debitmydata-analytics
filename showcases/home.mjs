@@ -13,7 +13,8 @@
 //
 //   bun showcases/home.mjs [server]              writes FROM_APPS, then checks
 //   bun showcases/home.mjs --check [server]      fails if FROM_APPS isn't what it'd be now, or a check fails
-//   bun showcases/home.mjs --pictures [server]   also makes its pictures again (a Chromium: CHROMIUM=path, if not found)
+//   bun showcases/home.mjs --pictures [server]   also makes its pictures again, dark and on paper (the light theme's,
+//                                                NAME-light.jpg) (a Chromium: CHROMIUM=path, if not found)
 //   ... --page FILE                              another page than showcases/index.html (a draft of it)
 //   ... --pictures --only ID                     that app's pictures, icon and card alone (a new app's), the front
 //                                                page's share card too if it's its picture
@@ -288,14 +289,15 @@ else for (const [id, status] of answers) if (status !== 200) problems.push(`seri
 /** Each picture's making: its app's address (its screen's size, if not 1440×900), how long it's let settle, what's hidden
  * ("text": a canvas's words, "scene": everything but its canvas, and its tags), and where its cover and its banner are
  * cut, in its screen's points: [x, y, width, height]. A cover 960×600 and 720 wide (@720, the apps' grid's, from
- * phones to a 1440 desk at 2×); a banner 1,900 wide and 2,880 (@2x). */
+ * phones to a 1440 desk at 2×); a banner 1,900 wide and 2,880 (@2x). Each made dark and on paper (the site's light
+ * theme: NAME-light.jpg), but an app with no light theme of its own (light: false), its dark ones shown on paper too. */
 const PICTURES = {
   studio: { url: "/studio/presets/mining/hashing/hash-rate", screen: [2600, 1150], settle: 16000, cover: [677, 120, 1488, 930], banner: [265, 120, 1900, 930] },
   oracle: { url: "/oracle/", settle: 9000, cover: [0, 228, 928, 580], banner: [0, 244, 1440, 628] },
   explorer: { url: "/explorer/", settle: 9000, cover: [8, 60, 1344, 840] },
   compass: { url: "/compass/", settle: 6000, cover: [130, 60, 1088, 680] },
   globe: { url: "/globe/", settle: 9000, hide: "text", cover: [166, 44, 720, 450], banner: [43, 64, 966, 450] },
-  trail: { url: "/trail/", settle: 12000, hide: "scene", cover: [230, 130, 960, 600], banner: [60, 80, 1360, 640] },
+  trail: { url: "/trail/", settle: 12000, hide: "scene", light: false, cover: [230, 130, 960, 600], banner: [60, 80, 1360, 640] },
   stack: { url: "/stack/", settle: 8000, cover: [192, 336, 640, 400], banner: [192, 341, 648, 300] },
   miners: { url: "/miners/", settle: 9000, cover: [240, 64, 960, 600] },
   calendar: { url: "/calendar/", settle: 9000, cover: [105, 100, 384, 240], banner: [105, 100, 863, 400] },
@@ -342,6 +344,24 @@ if (!/<meta property="og:image" content="https:\/\/analytics\.debitmydata\.io\/a
 if (!existsSync(join(HERE, "assets", "home", "og.jpg"))) problems.push("No share card, assets/home/og.jpg: run with --pictures");
 
 if (pictures || icons) await makePictures();
+
+// ── Its pictures on paper: the apps whose every picture has one (NAME-light.jpg), written into the page's LIGHT_PICTURES ──
+
+const pictureFiles = (/** @type {string} */ id) => [...(appIds.includes(id) ? [`covers/${id}`, `covers/${id}@720`] : []), ...(featured.includes(id) ? [`banners/${id}`, `banners/${id}@2x`] : [])];
+const lit = Object.keys(PICTURES).filter((id) => {
+  const files = pictureFiles(id);
+  return files.length > 0 && files.every((file) => existsSync(join(HERE, "assets", "home", `${file.replace(/(@\w+)?$/, "-light$1")}.jpg`)));
+});
+const lightBlock = `/* light pictures */\n      const LIGHT_PICTURES = ${JSON.stringify(lit).replaceAll(",", ", ")};\n      /* /light pictures */`;
+const lightMarked = /\/\* light pictures \*\/[\s\S]*?\/\* \/light pictures \*\//;
+if (!lightMarked.test(html)) problems.push(`No "/* light pictures */" block in ${PAGE}`);
+else {
+  const withLight = html.replace(lightMarked, () => lightBlock);
+  if (withLight !== html) {
+    if (check) problems.push("LIGHT_PICTURES isn't the pictures on paper there now: run bun showcases/home.mjs");
+    else (writeFileSync(PAGE, withLight), (html = withLight), console.log(`LIGHT_PICTURES written: ${lit.length ? lit.join(", ") : "none"}`));
+  }
+}
 // (Every app's icon there, the favicon, and every card, once any were made.)
 for (const name of Object.keys(ICONS)) if (!existsSync(join(HERE, "assets", "favicon", "apps", `${name}.png`))) problems.push(`${name}: no icon, assets/favicon/apps/${name}.png: copy assets/favicon/web-app-manifest-512x512.png there`);
 for (const file of ["favicon.ico", ...TOUCH_ICONS]) if (!existsSync(join(HERE, file))) problems.push(`No ${file}: run with --icons`);
@@ -379,19 +399,23 @@ async function makePictures() {
       if (!wanted.length) continue;
       // (One screen at the density the largest cut needs.)
       const density = Math.max(...wanted.map(([, box, width]) => Math.ceil((width / box[2]) * 10) / 10), 1);
-      // (An app that fails: said, its pictures kept as they were, the others made.)
-      const tab = await screen(port, `${SERVER}${recipe.url}`, recipe.screen ?? [1440, 900], density, recipe.settle, /** @type {any} */ (recipe).hide).catch((error) => (problems.push(`${id}'s pictures: ${error.message}`), null));
-      if (!tab) continue;
-      try {
-        for (const [file, [x, y, w, h], width, quality] of wanted) {
-          const shot = await tab.send("Page.captureScreenshot", { format: "jpeg", quality, clip: { x, y, width: w, height: h, scale: width / (w * density) } });
-          writeFileSync(join(out, file), Buffer.from(shot.data, "base64"));
-          console.log(`made ${file}`);
+      // (Dark, then on paper, its files NAME-light.jpg: an app without a light theme of its own, dark alone.)
+      for (const theme of /** @type {any} */ (recipe).light === false ? ["dark"] : ["dark", "light"]) {
+        // (An app that fails: said, its pictures kept as they were, the others made.)
+        const tab = await screen(port, `${SERVER}${recipe.url}`, recipe.screen ?? [1440, 900], density, recipe.settle, /** @type {any} */ (recipe).hide, undefined, theme).catch((error) => (problems.push(`${id}'s pictures (${theme}): ${error.message}`), null));
+        if (!tab) continue;
+        try {
+          for (const [file, [x, y, w, h], width, quality] of wanted) {
+            const named = theme === "light" ? file.replace(/(@\w+)?\.jpg$/, "-light$1.jpg") : file;
+            const shot = await tab.send("Page.captureScreenshot", { format: "jpeg", quality, clip: { x, y, width: w, height: h, scale: width / (w * density) } });
+            writeFileSync(join(out, named), Buffer.from(shot.data, "base64"));
+            console.log(`made ${named}`);
+          }
+        } catch (error) {
+          problems.push(`${id}'s pictures (${theme}): ${/** @type {Error} */ (error).message}`);
+        } finally {
+          await tab.close();
         }
-      } catch (error) {
-        problems.push(`${id}'s pictures: ${/** @type {Error} */ (error).message}`);
-      } finally {
-        await tab.close();
       }
     }
     // (Each app's icon, at 512 px: a home screen's 180, a manifest's 512.)
@@ -484,9 +508,10 @@ function ico(/** @type {number[]} */ sizes, /** @type {Buffer[]} */ pngs) {
   return Buffer.concat([head, ...pngs]);
 }
 
-/** A page in a new tab, as a phone-free desk sees it, dark, less motion; settled; its words or all but its scene hidden;
- * or, given its HTML, that page in its place (its address's origin kept, for its files). */
-async function screen(/** @type {string} */ port, /** @type {string} */ url, /** @type {number[]} */ [width, height], /** @type {number} */ density, /** @type {number} */ settle, /** @type {string | undefined} */ hide, /** @type {string | undefined} */ html) {
+/** A page in a new tab, as a phone-free desk sees it, dark (or on paper: the site's light theme, as its switch keeps it),
+ * less motion; settled; its words or all but its scene hidden; or, given its HTML, that page in its place (its address's
+ * origin kept, for its files). */
+async function screen(/** @type {string} */ port, /** @type {string} */ url, /** @type {number[]} */ [width, height], /** @type {number} */ density, /** @type {number} */ settle, /** @type {string | undefined} */ hide, /** @type {string | undefined} */ html, theme = "dark") {
   const target = await (await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, { method: "PUT" })).json();
   const ws = new WebSocket(target.webSocketDebuggerUrl);
   const deadline = (/** @type {Promise<any>} */ promise, /** @type {string} */ what, ms = 30_000) => Promise.race([promise, Bun.sleep(ms).then(() => Promise.reject(new Error(`${what}: no answer in ${ms / 1000} s`)))]);
@@ -510,8 +535,11 @@ async function screen(/** @type {string} */ port, /** @type {string} */ url, /**
     ws.send(JSON.stringify({ id, method, params }));
   }), method);
   await send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: density, mobile: false });
-  await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: "dark" }, { name: "prefers-reduced-motion", value: "reduce" }] });
+  await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: theme }, { name: "prefers-reduced-motion", value: "reduce" }] });
   await send("Page.enable");
+  // (The site's theme as its switch keeps it, set before the page's own scripts read it: each tab its own, the cookie
+  // being every tab's.)
+  await send("Page.addScriptToEvaluateOnNewDocument", { source: `try { document.cookie = "dmd-theme-analytics=${theme}; path=/"; localStorage.setItem("dmd-theme-analytics", "${theme}"); } catch {}` });
   // (A canvas's words: not drawn; a scene's tags, its rounded boxes, too.)
   if (hide) await send("Page.addScriptToEvaluateOnNewDocument", { source: `const P = CanvasRenderingContext2D.prototype; P.fillText = P.strokeText = ${hide === "scene" ? "P.roundRect = " : ""}function () {};` });
   const went = await send("Page.navigate", { url });

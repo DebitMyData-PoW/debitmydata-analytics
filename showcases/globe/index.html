@@ -73,7 +73,7 @@
         font-display: swap;
       }
 
-      /* The planet as a print: land a field of fine dots in the ink, the countries that mine lit in the site's orange as
+      /* The planet as a print: land a field of fine dots in the ink, the countries that mine lit in DebitMyData's red as
          strong as their share, the night a little darker; everything else type and hairlines, as the Oracle's. */
       :root {
         color-scheme: light dark;
@@ -86,8 +86,9 @@
         --line: light-dark(rgb(21 25 22 / 0.15), rgb(227 232 228 / 0.13));
         --grid: light-dark(rgb(21 25 22 / 0.07), rgb(227 232 228 / 0.06));
         --focus: light-dark(rgb(21 25 22 / 0.6), rgb(227 232 228 / 0.6));
-        /* (Deep enough on the paper to be read as small text, 4.5:1 and more: a picked country's name.) */
-        --answer: light-dark(rgb(184 68 10), rgb(255 128 52));
+        /* (DebitMyData's red, its other sites': on the paper the red itself, on the night the lighter red their dark theme
+           writes in; each read as small text at 4.5:1 and more, a picked country's name.) */
+        --answer: light-dark(#c80815, #ff5a64);
         --mono: Lilex, "Lilex Fallback", ui-monospace, "SF Mono", Menlo, monospace;
         --gutter: max(20px, env(safe-area-inset-left));
       }
@@ -358,7 +359,7 @@
         }
       }
 
-      /* A country: its name, its blocks, its share; under them its share as a hairline, in the answer's orange. */
+      /* A country: its name, its blocks, its share; under them its share as a hairline, in the answer's red. */
       .country {
         border-bottom: 1px solid var(--line);
 
@@ -803,7 +804,7 @@
            it moved since the first block under it. -->
       <section class="app" aria-labelledby="title">
         <header class="top">
-          <a class="brand" href="/"><img src="/assets/logo/logo.png" alt="" width="26" height="26" style="width: 26px; height: 26px" />DebitMyData Analytics</a>
+          <a class="brand" href="/" aria-label="DebitMyData Analytics"><img src="/assets/logo/logo.png" alt="" width="26" height="26" style="width: 26px; height: 26px" /><span><span class="brand-long">DebitMyData </span>Analytics</span></a>
           <h1 id="title">Where blocks are mined</h1>
           <span class="tip-height" id="tip" hidden>Block <b class="num" id="tip-height"></b></span>
           <span data-theme-switch></span>
@@ -943,7 +944,7 @@
       const names = new Map([["unknown", "Unknown"]]);
       /** The countries with the most blocks ever, the most first: a row each in the history. @type {string[]} */
       let leading = [];
-      /** One color: a block with a known home in the answer's orange, the rest faint. */
+      /** One color: a block with a known home in the answer's red, the rest faint. */
       const colorOf = (/** @type {string | null} */ cc) => (cc ? "var(--answer)" : "var(--faint)");
 
       /** @typedef {{ cc: string | null, count: number, pools: { slug: string, count: number }[] }} Row */
@@ -1284,7 +1285,7 @@
         ctx.lineWidth = 1;
         ctx.stroke();
         // The dots: faint where the planet turns away, a little darker on the night side; a country's in the answer's
-        // orange, as strong as its share (the one picked, full).
+        // red, as strong as its share (the one picked, full).
         const sun = unit(...subsolar(new Date())), size = Math.max(0.6, R * STEP * RAD * 0.26);
         const buckets = Array.from({ length: 2 * ALPHAS }, () => new Path2D());
         // (view() for every dot, from its unit vector: the spin and tilt's sines and cosines once a frame, then sums and

@@ -102,12 +102,13 @@
       document.head.append(
         Object.assign(document.createElement("style"), {
           textContent: `[data-theme-switch] { display: inline-flex; flex: none; align-items: center }
-.dmd-theme-toggle { display: inline-grid; place-items: center; flex: none; width: 32px; height: 32px; margin: 0; padding: 0; border-radius: 999px; border: 1px solid color-mix(in srgb, currentColor 22%, transparent); background: transparent; color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color 0.15s, border-color 0.15s, color 0.15s }
+.dmd-theme-toggle { position: relative; display: inline-grid; place-items: center; flex: none; width: 32px; height: 32px; min-width: 0; min-height: 0; margin: 0; padding: 0; border-radius: 999px; border: 1px solid color-mix(in srgb, currentColor 22%, transparent); background: transparent; color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color 0.15s, border-color 0.15s, color 0.15s }
 .dmd-theme-toggle:hover { background: light-dark(#fff0f1, #33161b); border-color: light-dark(#f5c9cc, #5c1f27); color: light-dark(#c80815, #ff5a64) }
 .dmd-theme-toggle:focus-visible { outline: 2px solid light-dark(#c80815, #ff5a64); outline-offset: 2px }
 .dmd-theme-toggle svg { display: block; width: 16px; height: 16px }
 .dmd-theme-toggle .sun, :root[data-theme="dark"] .dmd-theme-toggle .moon { display: none }
-:root[data-theme="dark"] .dmd-theme-toggle .sun { display: block }`,
+:root[data-theme="dark"] .dmd-theme-toggle .sun { display: block }
+@media (pointer: coarse) { .dmd-theme-toggle::after { content: ""; position: absolute; inset: -6px } }`,
         }),
       );
       for (const slot of slots) {
@@ -118,6 +119,9 @@
       label();
     });
   }
+  // (On a phone the top bar's name is "Analytics" alone, the switch beside it: each page's name writes "DebitMyData " in
+  // a span of its own.)
+  document.head.append(Object.assign(document.createElement("style"), { textContent: "@media (max-width: 640px) { .brand-long { display: none } }" }));
   // (The "Get the app" window, as DebitMyData's other sites have it: its own file, after the page.)
   document.head.append(Object.assign(document.createElement("script"), { src: asset("install/install.js"), defer: true }));
   // (Its app: the whole site's, whichever page it's added from and whichever page in it is open.)

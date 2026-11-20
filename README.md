@@ -199,8 +199,9 @@ bun showcases/studio/seo.mjs https://analytics.debitmydata.io
 
 Then commit the changed files and update the server.
 
-The home page's pictures are screenshots of the apps, as Bitview's. Made again from the live site
-(with a Chromium installed):
+The home page's pictures are screenshots of the apps, as Bitview's: each app dark, and on paper for
+the light theme (`NAME-light.jpg`; until those are made, the light theme shows the dark ones). Made
+again from the live site (with a Chromium installed), then committed:
 
 ```
 bun showcases/home.mjs --pictures https://analytics.debitmydata.io

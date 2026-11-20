@@ -12,12 +12,12 @@
     <link rel="icon" type="image/png" sizes="96x96" href="/assets/favicon/favicon-96x96.png" />
     <script>
       // (The site's theme, as its other pages' switch keeps it: dark unless light was chosen. Nothing else loads here.)
+      let theme = "dark";
       try {
         const kept = document.cookie.match(/(?:^|;\s*)dmd-theme-analytics=(light|dark)/)?.[1] ?? localStorage.getItem("dmd-theme-analytics");
-        document.documentElement.style.colorScheme = kept === "light" ? "light" : "dark";
-      } catch {
-        document.documentElement.style.colorScheme = "dark";
-      }
+        if (kept === "light") theme = "light";
+      } catch {}
+      document.documentElement.style.colorScheme = document.documentElement.dataset.theme = theme;
     </script>
     <style>
       /* The page a browser gets for an address that names nothing (bitview_website answers it with a 404), in the
@@ -68,6 +68,64 @@
         }
       }
 
+      /* (The way home and, at the right, the site's light or dark switch: the other pages' round button.) */
+      .head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .theme {
+        position: relative;
+        display: inline-grid;
+        place-items: center;
+        flex: none;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+        border-radius: 999px;
+        color: inherit;
+        background: transparent;
+        cursor: pointer;
+
+        &:hover {
+          color: light-dark(#c80815, #ff5a64);
+          background: light-dark(#fff0f1, #33161b);
+          border-color: light-dark(#f5c9cc, #5c1f27);
+        }
+
+        svg {
+          width: 16px;
+          height: 16px;
+        }
+
+        @media (pointer: coarse) {
+          &::after {
+            content: "";
+            position: absolute;
+            inset: -6px;
+          }
+        }
+      }
+
+      .sun,
+      :root[data-theme="dark"] .moon {
+        display: none;
+      }
+
+      :root[data-theme="dark"] .sun {
+        display: block;
+      }
+
+      /* (On a phone, "Analytics" alone, as the other pages' top bars say it.) */
+      @media (max-width: 640px) {
+        .brand-long {
+          display: none;
+        }
+      }
+
       h1 {
         margin: 48px 0 4px;
         color: var(--ink);
@@ -79,7 +137,13 @@
   </head>
   <body>
     <main>
-      <a class="home" href="/"><img src="/assets/logo/logo.png" alt="" width="26" height="26" style="width: 26px; height: 26px" />DebitMyData Analytics</a>
+      <div class="head">
+        <a class="home" href="/" aria-label="DebitMyData Analytics"><img src="/assets/logo/logo.png" alt="" width="26" height="26" style="width: 26px; height: 26px" /><span><span class="brand-long">DebitMyData </span>Analytics</span></a>
+        <button class="theme" id="theme" type="button" aria-label="Switch to the light theme" title="Light theme">
+          <svg class="moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.5 14.2A8.5 8.5 0 1 1 9.8 3.5a6.8 6.8 0 0 0 10.7 10.7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          <svg class="sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5" /><path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.2M19.8 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6" /></g></svg>
+        </button>
+      </div>
 
       <h1>Page not found</h1>
       <p>Nothing is at this address. It may have been mistyped, or the page moved.</p>
@@ -91,5 +155,23 @@
         </li>
       </ul>
     </main>
+    <script>
+      // (The switch: the other theme, kept as the other pages keep it, its words saying what it does next.)
+      const button = document.getElementById("theme"), say = () => {
+        const dark = document.documentElement.dataset.theme === "dark";
+        button.setAttribute("aria-label", dark ? "Switch to the light theme" : "Switch to the dark theme");
+        button.title = dark ? "Light theme" : "Dark theme";
+      };
+      say();
+      button.addEventListener("click", () => {
+        const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+        document.documentElement.style.colorScheme = document.documentElement.dataset.theme = next;
+        try {
+          localStorage.setItem("dmd-theme-analytics", next);
+        } catch {}
+        document.cookie = `dmd-theme-analytics=${next}; path=/; max-age=31536000; samesite=lax${location.protocol === "https:" ? "; secure" : ""}`;
+        say();
+      });
+    </script>
   </body>
 </html>

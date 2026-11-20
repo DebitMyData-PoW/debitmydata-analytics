@@ -349,11 +349,20 @@
           font-weight: 500;
         }
 
-        /* (A line of its own on a phone, held while it's empty, so the totals come in without moving the page.) */
+        /* (A line of its own on a phone, under the bar's, held while it's empty, so the totals come in without moving the
+           page.) */
         @media (max-width: 640px) {
-          width: calc(100% - 42px);
+          order: 1;
+          width: 100%;
           min-height: 1lh;
           margin: 0;
+        }
+      }
+
+      /* (On a phone the light / dark switch at the end of the bar's first line, its name's, as the other pages have it.) */
+      @media (max-width: 640px) {
+        .top > [data-theme-switch] {
+          margin-left: auto;
         }
       }
 
@@ -921,7 +930,7 @@
   <body>
     <div class="page">
       <header class="top">
-        <a class="brand" href="/"><img src="/assets/logo/logo.png" alt="" width="26" height="26" style="width: 26px; height: 26px" />DebitMyData Analytics</a>
+        <a class="brand" href="/" aria-label="DebitMyData Analytics"><img src="/assets/logo/logo.png" alt="" width="26" height="26" style="width: 26px; height: 26px" /><span><span class="brand-long">DebitMyData </span>Analytics</span></a>
         <h1 class="sr">Calendar</h1>
         <button type="button" id="up" class="up" hidden></button>
         <nav class="stepper" aria-label="Year or day">

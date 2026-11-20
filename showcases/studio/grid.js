@@ -1307,10 +1307,13 @@ function renderHomeHead() {
   homeScroll().classList.toggle("at-home", top);
   $("home-tools").hidden = top;
   $("home-start").hidden = !top;
-  // (Undo and Redo where every page has them, at its head's end; Home's, in its top corner, beside the theme.)
-  const undo = /** @type {HTMLElement} */ (document.querySelector(".home-undo"));
+  // (Undo and Redo where every page has them, at its head's end; Home's, in its top corner, beside the theme. The theme
+  // on every page too: after them, at its head's end.)
+  const undo = /** @type {HTMLElement} */ (document.querySelector(".home-undo")), theme = $("home-theme"), head = /** @type {HTMLElement} */ ($("home-title").parentElement);
   if (top && undo.parentElement !== $("home-top")) $("home-top").prepend(undo);
-  else if (!top && undo.parentElement !== $("home-title").parentElement) /** @type {HTMLElement} */ ($("home-title").parentElement).append(undo);
+  else if (!top && undo.parentElement !== head) head.append(undo);
+  if (top && theme.parentElement !== $("home-top")) $("home-top").append(theme);
+  else if (!top && theme.parentElement !== head) head.append(theme);
   // (Home's own, around its page (its horizon, its corners): going and coming with it, as it fades (see goTo); back
   // as its copy's still going, that copy gone first.)
   for (const own of [$("home-horizon"), $("home-help"), $("home-top")]) {
@@ -3247,8 +3250,11 @@ function setTheme(theme) {
 }
 function renderTheme() {
   const [, name, icon] = THEMES.find(([id]) => id === prefs.theme) ?? THEMES[2];
-  $("home-theme").innerHTML = ICONS[icon];
-  $("home-theme").setAttribute("aria-label", ($("home-theme").dataset.tip = `Theme: ${name}`));
+  // (Each of its buttons: Home's, which every page of Home's has, and a chart's.)
+  for (const button of [$("home-theme"), $("chart-theme")]) {
+    button.innerHTML = ICONS[icon];
+    button.setAttribute("aria-label", (button.dataset.tip = `Theme: ${name}`));
+  }
 }
 /** The themes, from their row: the one chosen ticked. */
 function themeMenu(/** @type {HTMLElement} */ anchor) {

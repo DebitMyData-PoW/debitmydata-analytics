@@ -11057,6 +11057,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <button id="share" class="btn" type="button" aria-haspopup="dialog" data-tip="Copy a share link"><span data-icon="share"></span><span class="label">Share</span></button>
             <button id="chart-more" class="cap" type="button" aria-haspopup="menu" aria-label="More for this chart" data-tip="More" data-icon="more"></button>
             <span class="divider"></span>
+            <button id="chart-theme" class="cap home-theme" type="button" data-action="theme" aria-haspopup="menu" aria-label="Theme" data-tip="Theme"></button>
             <button id="panel-toggle" class="cap" type="button" aria-pressed="true" aria-label="Layers panel" data-tip="Layers panel" data-kbd="P" data-action="toggle-panel" data-icon="panel"></button>
           </div>
         </header>
@@ -11150,12 +11151,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         <!-- (Home's horizon, under what's on it: see renderHorizon. Over it, in the page's corners, Studio's own: the theme
              at its top right; at its bottom right, how links work, the shortcuts (by keys), the version.) -->
         <div id="home-horizon" class="home-horizon" aria-hidden="true" hidden></div>
-        <!-- (Home's top corner: Undo and Redo, there at Home (see renderHomeHead), a rule, the theme.) -->
+        <!-- (Home's top corner: Undo and Redo, there at Home (see renderHomeHead), a rule, the theme; on Home's other pages,
+             both at its head's end.) -->
         <div id="home-top" class="home-corner home-top" hidden><span class="divider"></span><button id="home-theme" class="cap home-theme" type="button" data-action="theme" aria-haspopup="menu" aria-label="Theme" data-tip="Theme"></button></div>
         <div class="home-scroll">
           <div class="home-inner">
             <!-- (On a phone, the way back to Bitview, as every showcase has it: elsewhere, the sidebar's.) -->
-            <a class="brand home-brand" href="/"><img src="/assets/logo/logo.png" alt="" width="26" height="26" style="width: 26px; height: 26px" />DebitMyData Analytics</a>
+            <a class="brand home-brand" href="/" aria-label="DebitMyData Analytics"><img src="/assets/logo/logo.png" alt="" width="26" height="26" style="width: 26px; height: 26px" /><span><span class="brand-long">DebitMyData </span>Analytics</span></a>
             <!-- (Above its name: the way up, each level a step to; the page itself only named once, by its name.) -->
             <nav id="gallery-path" class="crumbs gallery-path" aria-label="Where it is" hidden></nav>
             <div class="home-head">
