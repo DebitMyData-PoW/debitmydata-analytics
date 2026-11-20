@@ -1326,13 +1326,15 @@
        * of many or few payments, brighter or darker columns): here faint rows and columns GRID_WIDTH squares wide,
        * their squares a little brighter than the background around them (by GRID at most, a few left out), and
        * columns a little brighter where blocks came faster (their pace, to the STRIPE power). */
-      const GRID = 0.45, GRID_WIDTH = 1, STRIPE = 1;
+      const GRID = 0.36, GRID_WIDTH = 1, STRIPE = 1;
       /** The grid's boxes all alike: about BOXES of them from the chart's top to its bottom (fewer across a narrow
        * screen), each ASPECT times as tall as it is wide: all but square, as Bitview's. */
       const BOXES = 3, ASPECT = 1.1;
-      /** The misreadings: from up to ECHO_BLOCKS blocks a column, each standing for the blocks around it; their squares
-       * at most BACKGROUND bright, darker than the glow, so the line burns on them. */
-      const ECHO_BLOCKS = 24, BACKGROUND = 0.4;
+      /** The misreadings: from up to ECHO_BLOCKS blocks a column, each standing for the blocks around it. Every square
+       * over blocks at least FLOOR bright, the misreadings' at most BACKGROUND more, by their share of the column's to
+       * the EVEN power (under 1, the few and the many drawn closer: a dim, even ground as Bitview's), darker than the
+       * glow, so the line burns on them. */
+      const ECHO_BLOCKS = 24, BACKGROUND = 0.22, FLOOR = 0.05, EVEN = 0.6;
       /** A column's misreadings are measured against the square a fifth of its lit ones outshine, not its brightest
        * (a lone bright square doesn't dim the rest). */
       const BRIGHT = 0.8;
@@ -1575,10 +1577,10 @@
             // (the glow: brightest on the line, fading out), the misreadings and the grid darker behind, the glow's
             // far reach over them, lifted around the line.
             const own = most ? (sums[c][r] / most) ** HOT : 0;
-            let behind = mostEcho ? BACKGROUND * stripe[c] * Math.min(1, echoes[c][r] / mostEcho) ** 0.7 : 0;
+            let behind = seen[c] ? FLOOR + (mostEcho ? BACKGROUND * stripe[c] * Math.min(1, echoes[c][r] / mostEcho) ** EVEN : 0) : 0;
             if (gridRow[r] || gridCol[c]) {
               const h = noise(c, r);
-              if (h > 0.12) behind += GRID * (0.5 + 0.5 * h) * (1 - behind);
+              if (h > 0.12) behind += GRID * (0.2 + 0.8 * h * h) * (1 - behind);
             }
             const glow = picks[c] ? HALO * (halo[c][r] / picks[c]) : 0, under = own + behind * (1 - own);
             const t = under + glow * (1 - under), u = picks[c] ? lift[c][r] / picks[c] : 0;
