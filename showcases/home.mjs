@@ -191,9 +191,10 @@ if (!check) {
 // ── Every app's icon ──
 
 // (Each app's, the front page's "bitview": Bitview's cube (assets/favicon/app-icon.svg) in its launch tag's colour
-// (data-color; the SVG's own orange if none), a file (assets/favicon/apps/NAME.png, as launch.js links it): a home
-// screen takes one best; Bitview's also the MCP server's, MCP_ICON. Made with --pictures or --icons. A page without
-// a launch tag, as the footer's legal ones, links no icon, so has none.)
+// (data-color; the SVG's own orange if none), a file (assets/favicon/apps/NAME.png; launch.js links the front page's
+// on every page, the whole site being one app): a home screen takes one best; Bitview's also the MCP server's,
+// MCP_ICON. Made with --pictures or --icons. A page without a launch tag, as the footer's legal ones, links no icon,
+// so has none.)
 const MCP_ICON = join(HERE, "..", "crates", "bitview_mcp", "assets", "logo.png");
 /** The touch icons at the root, Bitview's own icon: iOS asks for the precomposed one first, then the other, and link
  * previews for either. */

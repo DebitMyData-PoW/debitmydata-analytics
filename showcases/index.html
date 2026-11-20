@@ -67,7 +67,8 @@
         ]
       }
     </script>
-    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg?v=2" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/assets/favicon/favicon-96x96.png" />
     <style>
       /* fallback fonts */
       /* Local faces keep text visible while the web fonts load. Width fits use a general Latin sample;
@@ -1435,8 +1436,8 @@
         }
       }
 
-      /* A chart, as a stock's card: its name, its value now large, how it moved in a year; its last ten years under
-         them, drawn from this server now, its last point lit. */
+      /* A chart, as a stock's card: its name, its value now large, how it moved in a year; its history under them,
+         from the chain's start (its last ten years, once it's older), drawn from this server now, its last point lit. */
       .chart {
         padding: 12px 14px;
 
@@ -2844,7 +2845,19 @@
         }));
       }
 
-      /** The charts: each a Studio chart, drawn here from the same series, a month a point, its last ten years. */
+      /** DebitMyData's first block's day (UTC), and the first whole day after it: that first day's hashrate is its few
+       * blocks', a few hashes a second, and would flatten every hashrate drawn after it. */
+      const GENESIS = Date.UTC(2026, 1, 20) / 1000, FIRST_DAY = "2026-02-21";
+      /** How the charts read their series, from the chain's start: a day a point while it's two years old or less, then
+       * a week a point, and past ten years a month a point over its last ten; and how many points make a year, for how
+       * each moved in one. */
+      const SPAN = (() => {
+        const days = (Date.now() / 1000 - GENESIS) / 86_400;
+        if (days <= 730) return { index: "day1", start: FIRST_DAY, year: 365 };
+        if (days <= 3650) return { index: "week1", start: `-${Math.ceil(days / 7)}`, year: 52 };
+        return { index: "month1", start: "-120", year: 12 };
+      })();
+      /** The charts: each a Studio chart, drawn here from the same series, as SPAN reads them. */
       /** @typedef {{ name: string, href: string, series: string[], colors: string[], log?: boolean, unit: (v: number) => string }} Chart */
       /** @type {Chart[]} */
       const CHARTS = [
@@ -2859,7 +2872,7 @@
         { name: "Unspent outputs", href: "/studio/presets/utxos/count", series: ["utxo_count"], colors: ["#38bdf8"], unit: (v) => short(v) },
         { name: "DMD per dollar", href: "/studio/presets/price/data-per-dollar", series: ["sats_per_dollar"], colors: ["#ff8a3d"], log: true, unit: (v) => `${grouped(v / 1e8)}\u2009DMD` },
       ];
-      /** Each series' history, a month a point. @type {Map<string, number[]>} */
+      /** Each series' history, as SPAN reads it. @type {Map<string, number[]>} */
       const histories = new Map();
       /** Each watched canvas's size, and what draws it, from one observer: drawn again when it's resized, once its data's in. */
       const sizes = /** @type {WeakMap<Element, { width: number, height: number }>} */ (new WeakMap());
@@ -2876,7 +2889,7 @@
         const rgb = color.match(/rgb\((\d+) (\d+) (\d+)/);
         return rgb ? `rgba(${rgb[1]},${rgb[2]},${rgb[3]},${a})` : color;
       };
-      /** Draws a chart's last ten years into a canvas at its size: lines, the last filled under, its last point lit. */
+      /** Draws a chart's history into a canvas at its size: lines, the last filled under, its last point lit. */
       function paint(/** @type {HTMLCanvasElement} */ canvas, /** @type {Chart} */ c) {
         // (Its size as last observed (asked of the layout only for one not yet watched): a row's many, read so,
         // each resized after another read, would each lay the page out again.)
@@ -2886,7 +2899,7 @@
         canvas.height = Math.round(box.height * dpr);
         const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
         ctx.scale(dpr, dpr);
-        const lists = c.series.map((s) => (histories.get(s) ?? []).slice(-120));
+        const lists = c.series.map((s) => histories.get(s) ?? []);
         const all = lists.flat().filter((v) => v != null && (!c.log || v > 0));
         if (!all.length) return;
         const f = (/** @type {number} */ v) => (c.log ? Math.log(v) : v);
@@ -2929,12 +2942,12 @@
           ctx.fill();
         }
       }
-      /** The series the charts and topics draw: one request for all, a month a point; read once, tried again after a
+      /** The series the charts and topics draw: one request for all, as SPAN reads them; read once, tried again after a
        * failure the next time a row needing it comes near. @type {Promise<void> | null} */
       let reading$ = null;
       /** Every series the charts and the topics draw (the topics, further down, read when this first runs). */
       const series = () => [...new Set([...CHARTS.flatMap((c) => c.series), ...TOPICS.flatMap(([, , , s]) => (s ? [s] : []))])];
-      const readHistories = () => (reading$ ??= ((ids) => read(`/api/series/bulk?series=${ids.join(",")}&index=month1`).then((/** @type {any[]} */ replies) => {
+      const readHistories = () => (reading$ ??= ((ids) => read(`/api/series/bulk?series=${ids.join(",")}&index=${SPAN.index}&start=${SPAN.start}`).then((/** @type {any[]} */ replies) => {
         replies.forEach((r, i) => histories.set(ids[i], r.data));
       }, (error) => {
         reading$ = null;
@@ -2966,11 +2979,11 @@
       near("charts-title", charts, () => readHistories().then(() => {
         for (const { c, canvas, value, moved } of chartTiles) {
           const list = histories.get(c.series[0]) ?? [], last = list.findLastIndex((v) => v != null);
-          const now = last < 0 ? null : list[last], then = last < 12 ? null : list[last - 12];
+          const now = last < 0 ? null : list[last], then = last < SPAN.year ? null : list[last - SPAN.year];
           // (Its unit, after a thin space, small and in words' face: a monospace's space is a whole figure wide.)
           const [figure, unit] = now == null ? [""] : c.unit(now).split("\u2009");
           value.replaceChildren(figure, ...(unit ? [el("small", {}, unit)] : []));
-          // (How it moved in a year: its last month against the same a year before.)
+          // (How it moved in a year: its last point against the one a year before.)
           if (now != null && then) {
             const pct = (now / then - 1) * 100;
             moved.className = `moved ${pct >= 0 ? "up" : "down"}`;

@@ -22,7 +22,8 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Explorer: the block forming now, each of its transactions a square, beside what it takes to get in, under the chain's latest blocks" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg?v=2" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/assets/favicon/favicon-96x96.png" />
     <link rel="preload" href="/assets/fonts/InterVariable.core.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/assets/fonts/Lilex.core.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="modulepreload" href="/modules/bitview-client/core.js" />
@@ -101,12 +102,13 @@
         --hair: rgb(14 14 16 / 0.05);
         --tank: #f0f0f1;
         --well: #ffffff;
-        --now: #f7931a;
-        --now-text: #a95600;
+        /* DebitMyData's red, its other sites': the block to come, the newest, and the miner's square in every block. */
+        --now: #c80815;
+        --now-text: #c80815;
         --profit: #13874a;
         --profit-text: #10773f;
         --loss: #d23a30;
-        --miner: #f7931a;
+        --miner: #c80815;
         --mono: Lilex, "Lilex Fallback", ui-monospace, monospace;
         --gutter: 40px;
         color-scheme: light;
@@ -120,8 +122,9 @@
           --hair: rgb(255 255 255 / 0.045);
           --tank: #121215;
           --well: #151518;
-          --now: #f7931a;
-          --now-text: #f7931a;
+          --now: #c80815;
+          /* (As words, the lighter red the other sites' dark theme writes in.) */
+          --now-text: #ff5a64;
           --profit: #3ccf7f;
           --profit-text: #3ccf7f;
           --loss: #ff6d60;

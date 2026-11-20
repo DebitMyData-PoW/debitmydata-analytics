@@ -1,7 +1,7 @@
 // @ts-check
 // "Get the app": the window DebitMyData's other sites have (the pool's, id.debitmydata.io's), loaded on every page by
-// assets/launch/launch.js. Each showcase is an app of its own (launch.js names it and links its icon), so the window
-// offers the page's: "Get the DebitMyData Oracle app" on the Oracle.
+// assets/launch/launch.js. The whole site is one app (launch.js names it and links its icon), so the window offers the
+// same one on every page: "Get the DebitMyData Analytics app".
 //
 // - It offers itself on phones and tablets a moment after a page opens (2.5 seconds, while nothing is being typed), and
 //   on any device from a link ending in #get-the-app (the home page's footer has one).

@@ -3,10 +3,11 @@
 // (`<script src="/assets/launch/launch.js"></script>`, `data-wait` for a page that says itself when it's ready: see
 // `bitviewLaunch.ready`).
 //
-// - Each showcase is an app of its own, the one added: its folder its start and its scope, named by the page
-//   (`data-app="Studio"`: "Bitview Studio", "Studio" under its icon; `data-color`, its design's own colour, Bitview's
-//   stamped cube in it); the front page, at "/", is Bitview, in its orange. Its manifest made and its icon linked here,
-//   for all of them; iOS takes them and its launch screen from the page it's added from, at that moment.
+// - The whole site is one app, "DebitMyData Analytics" ("DMD Analytics" under its icon): its start the front page and
+//   its scope every page at the site's address, so it's the same app whichever page it's installed from, and every
+//   page opens in it. (A page's `data-app` and `data-color` are showcases/home.mjs's, for the front page's list of
+//   apps.) Its manifest made and its icon linked here, for all of them; iOS takes them and its launch screen from the
+//   page it's added from, at that moment.
 // - In Safari, where a page is added to a home screen: its launch screen, Bitview's orange at the phone's size (iOS's
 //   white else while the app starts), made as soon as the page starts, not once it has loaded: added to a home screen
 //   before then, an app would launch white for good.
@@ -119,29 +120,26 @@
   }
   // (The "Get the app" window, as DebitMyData's other sites have it: its own file, after the page.)
   document.head.append(Object.assign(document.createElement("script"), { src: asset("install/install.js"), defer: true }));
-  // (Its app: the showcase's folder, wherever in it the page is (a Studio link's chart, a preset's address).)
-  const app = script?.dataset.app, name = app ? `DebitMyData ${app}` : "DebitMyData Analytics", short = app ?? "DMD Analytics";
-  const folder = app ? location.pathname.replace(/^(\/[^/]+).*$/, "$1/") : "/", start = `${location.origin}${folder}`;
+  // (Its app: the whole site's, whichever page it's added from and whichever page in it is open.)
+  const name = "DebitMyData Analytics", short = "DMD Analytics", start = `${location.origin}/`;
+  const description = "The DebitMyData (DMD) chain, read and measured: live apps, thousands of ready-made charts, and every series as data through an open API.";
   for (const [tag, attributes] of /** @type {const} */ ([
     ["meta", { name: "application-name", content: name }],
     ["meta", { name: "apple-mobile-web-app-title", content: short }],
     // (iOS uses a launch screen only for a page that says it's an app.)
     ["meta", { name: "apple-mobile-web-app-capable", content: "yes" }],
   ])) document.head.append(Object.assign(document.createElement(tag), attributes));
-  // Its icon: Bitview's cube in the app's colour, a file (assets/favicon/apps/, each made from app-icon.svg in its page's
-  // `data-color` by showcases/home.mjs --icons): one drawn here never came on a phone in Lockdown Mode, its home screen
-  // left with the manifest's orange alone. The manifest made once the page is read, its description the page's own.
-  const icon = asset(`favicon/apps/${app ? folder.slice(1, -1) : "bitview"}.png`);
+  // Its icon: the DMD coin, a file (assets/favicon/apps/bitview.png, made by showcases/home.mjs --icons): one drawn here
+  // never came on a phone in Lockdown Mode, its home screen left with the manifest's colour alone. The manifest the
+  // same on every page, word for word: one app, whichever page offers it.
+  const icon = asset("favicon/apps/bitview.png");
   const link = (/** @type {string} */ rel, /** @type {string} */ href) => document.head.append(Object.assign(document.createElement("link"), { rel, href }));
   link("apple-touch-icon", icon);
-  document.addEventListener("DOMContentLoaded", () => {
-    const description = /** @type {HTMLMetaElement | null} */ (document.querySelector('meta[name="description"]'))?.content;
-    const manifest = {
-      id: start, name, short_name: short, description, start_url: start, scope: start, display: "standalone",
-      theme_color: "#08090a", background_color: ORANGE, icons: [{ src: icon, sizes: "512x512", type: "image/png" }],
-    };
-    link("manifest", `data:application/manifest+json,${encodeURIComponent(JSON.stringify(manifest))}`);
-  });
+  const manifest = {
+    id: start, name, short_name: short, description, start_url: start, scope: start, display: "standalone",
+    theme_color: "#08090a", background_color: ORANGE, icons: [{ src: icon, sizes: "512x512", type: "image/png" }],
+  };
+  link("manifest", `data:application/manifest+json,${encodeURIComponent(JSON.stringify(manifest))}`);
   if (standalone === false) {
     setTimeout(() => {
       const canvas = document.createElement("canvas"), context = canvas.getContext("2d"), link = document.createElement("link");
