@@ -954,7 +954,10 @@
         <figcaption class="foot shell">
           <span class="legend"><span class="swatch" aria-hidden="true"></span><span id="legend">&nbsp;</span></span>
           <p class="ranges" id="ranges" aria-label="How far back">
-            <button type="button" data-range="7d" aria-pressed="true">7D</button>
+            <button type="button" data-range="1m" aria-pressed="true">1M</button>
+            <button type="button" data-range="15m" aria-pressed="false">15M</button>
+            <button type="button" data-range="4h" aria-pressed="false">4H</button>
+            <button type="button" data-range="7d" aria-pressed="false">7D</button>
             <button type="button" data-range="30d" aria-pressed="false">30D</button>
             <button type="button" data-range="90d" aria-pressed="false">90D</button>
             <button type="button" data-range="all" aria-pressed="false">All</button>
@@ -1101,7 +1104,7 @@
       const dark = matchMedia("(prefers-color-scheme: dark)");
       // The DebitMyData network on one screen, as Bitview's Oracle draws its price: a big number, the line under it edge
       // to edge, pointing at it telling that moment. Three measures (hashrate, the reference price, difficulty), each
-      // over 7, 30 or 90 days or all of the chain.
+      // over the last minute (the default), 15 minutes or 4 hours, 7, 30 or 90 days, or all of the chain.
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
       addEventListener("pointerdown", () => (document.documentElement.dataset.pointer = ""), { capture: true });
       addEventListener("keydown", (e) => {
@@ -1141,8 +1144,13 @@
         price: { series: "price", kicker: "DMD/USD · reference price, the cost of mining one DMD", write: dollars, about: "about-price", log: true, legend: "Behind the line, mining's cost read over 19 spans; the price is never under $0.001" },
         difficulty: { series: "difficulty", kicker: "Difficulty · set again at every block", write: (/** @type {number} */ v) => ((s) => `${s.figure}${s.prefix ? ` ${s.prefix}` : ""}`)(si(v)), about: "about-difficulty", log: true, legend: "Behind the line, blocks' pace read over 19 spans: brightest where most agree with it" },
       });
-      /** How far back: blocks (a block each 150 seconds, a few more for a fast stretch) or days. */
+      /** How far back: blocks (a block each 150 seconds, a few more for a fast stretch) or days. The short ones (`now`)
+       * reach back from now, not from the last block: their line starts at the block before them (the value it left)
+       * and ends now, so a minute without a block still has its line, flat to the live dot. */
       const RANGES = /** @type {const} */ ({
+        "1m": { index: "height", count: 30, seconds: 60, said: "past minute", now: true },
+        "15m": { index: "height", count: 60, seconds: 15 * 60, said: "past 15 minutes", now: true },
+        "4h": { index: "height", count: 400, seconds: 4 * 3600, said: "past 4 hours", now: true },
         "7d": { index: "height", count: 4400, seconds: 7 * 86400, said: "past 7 days" },
         "30d": { index: "height", count: 18_500, seconds: 30 * 86400, said: "past 30 days" },
         "90d": { index: "day1", count: 91, seconds: 90 * 86400, said: "past 90 days" },
@@ -1172,8 +1180,9 @@
 
       const asked = new URLSearchParams(location.search);
       let measure = /** @type {keyof typeof MEASURES} */ (asked.get("show") in MEASURES ? asked.get("show") : "hashrate");
-      let range = /** @type {keyof typeof RANGES} */ (asked.get("range") in RANGES ? asked.get("range") : "7d");
-      /** The points shown: when (unix seconds), the value, and the block (by block only). @type {{ t: number, v: number, h?: number }[]} */
+      let range = /** @type {keyof typeof RANGES} */ (asked.get("range") in RANGES ? asked.get("range") : "1m");
+      /** The points shown: when (unix seconds), the value, the block (by block only), and `now` for a short range's
+       * last point (the live value). @type {{ t: number, v: number, h?: number, now?: boolean }[]} */
       let points = [];
       /** The latest block: its height and time. */
       let tip = { h: 0, t: 0 };
@@ -1186,7 +1195,7 @@
         url.searchParams.set("show", measure);
         url.searchParams.set("range", range);
         if (measure === "hashrate") url.searchParams.delete("show");
-        if (range === "7d") url.searchParams.delete("range");
+        if (range === "1m") url.searchParams.delete("range");
         history.replaceState(null, "", url);
       }
 
@@ -1224,7 +1233,7 @@
         const when = k === null ? RANGES[range].said : `since ${day(points[0].t)}`;
         $("change").replaceChildren(Object.assign(document.createElement("span"), { className: "delta", textContent: delta }), Object.assign(document.createElement("span"), { className: "when", textContent: when }));
         const pt = k === null ? null : points[k];
-        $("kicker").textContent = !pt ? offline || m.kicker : pt.h !== undefined ? `Block ${grouped(pt.h)} · ${day(pt.t)}, ${clock(pt.t)}` : day(pt.t);
+        $("kicker").textContent = !pt ? offline || m.kicker : pt.now ? `Now · ${day(pt.t)}, ${clock(pt.t)}` : pt.h !== undefined ? `Block ${grouped(pt.h)} · ${day(pt.t)}, ${clock(pt.t)}` : day(pt.t);
       }
       function showTip() {
         // (Its two parts apart: a phone's bar puts them on two lines.)
@@ -1260,7 +1269,16 @@
           const [values, times] = await Promise.all([read(`/api/series/${series}/height?start=-${r.count}`), read(`/api/series/timestamp/height?start=-${r.count}`)]);
           const all = values.data.map((/** @type {number} */ v, /** @type {number} */ i) => ({ h: values.start + i, v: Number(v), t: Number(times.data[values.start + i - times.start]) }));
           const newest = all.findLast((pt) => pt.t > 0)?.t ?? 0;
-          points = all.filter((pt) => pt.v > 0 && pt.t > newest - r.seconds);
+          if (!("now" in r)) points = all.filter((pt) => pt.v > 0 && pt.t > newest - r.seconds);
+          else {
+            // (From the block before the range, each block in it, then now: the live value.)
+            const at = Math.max(newest, Math.floor(Date.now() / 1000)), from = at - r.seconds;
+            const before = all.findLast((pt) => pt.v > 0 && pt.t > 0 && pt.t <= from);
+            points = all.filter((pt) => pt.v > 0 && pt.t > from);
+            if (before) points.unshift(before);
+            const last = points.at(-1);
+            if (last) points.push({ t: at, v: last.v, now: true });
+          }
         } else {
           const values = await read(`/api/series/${series}/day1?start=${r.count ? `-${r.count}` : GENESIS_DAY}`);
           points = values.data.map((/** @type {number | null} */ v, /** @type {number} */ i) => ({ t: DAY_ZERO + (values.start + i) * 86400, v: Number(v) })).filter((pt) => pt.v > 0);
@@ -2012,7 +2030,8 @@
         } else if (height !== lastTip) {
           lastTip = height;
           refresh();
-        } else showTip();
+        } else if ("now" in RANGES[range]) refresh();	// (a short range moves on with the clock, block or not)
+        else showTip();
       }, 30_000);
     </script>
   </body>

@@ -19,8 +19,9 @@
 //   bar orange with it, the page's own after. Then nothing of it is left. Reduced motion: gone at once.
 // - Never ready (its script held back), the orange fades after a while all the same, the page's word of it shown.
 (() => {
-  // (DebitMyData's red, its badge's: the launch screen, the icon's ground.)
-  const ORANGE = "#c80815";
+  // (The launch screen's color: the site's dark ground (its theme-color and the manifest's background), so the app
+  // opens dark, as Android's own launch screen does from the manifest; was DebitMyData's red.)
+  const ORANGE = "#08090a";
   const root = document.documentElement, script = /** @type {HTMLScriptElement | null} */ (document.currentScript);
   const standalone = /** @type {any} */ (navigator).standalone;
   // The site's files beside this one's, at its address (a release's, `/v/<release>/`, as the page names it).
