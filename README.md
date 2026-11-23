@@ -42,8 +42,10 @@ adapted to the DebitMyData chain. Bitview's own documentation is in [docs/](docs
   assistants, and its terms, privacy and support pages (Bitview's own).
 - **The Oracle.** Bitview's Oracle reads Bitcoin's price from round-dollar payments; here its design
   shows the network instead: hashrate (the default), the reference price or the difficulty, a
-  switch at the top, over the last minute (the default), 15 minutes or 4 hours, 7, 30 or 90 days, or
-  the whole chain. Its grid of squares behind the line
+  switch at the top, over 15 minutes, an hour or 4 hours (the hashrate: the last hour's, from the
+  blocks), 7 (the default), 30 or 90 days, or the whole chain, with "Now" (the measure this moment) under
+  its number; a button pops the chart out into a window of its own (in Chrome and Edge, kept over the
+  other windows). Its grid of squares behind the line
   is drawn as Bitview's: where Bitview reads each payment as each of 19 round-dollar amounts, each
   block is read over 19 spans, from its own solve time to its last 10,000 blocks, each span's work
   over each span's time (the hashrate, the difficulty that pace calls for, or what mining one DMD

@@ -257,6 +257,24 @@
         font-variant-numeric: tabular-nums;
       }
 
+      /* "Now 6.68 TH/s": the hashrate this moment (the last hour's), whatever the range shows. */
+      .now-live {
+        margin: 10px 0 0;
+        color: var(--soft);
+        font-size: 14px;
+        font-variant-numeric: tabular-nums;
+
+        b {
+          color: var(--ink);
+          font-size: 17px;
+          font-weight: 600;
+        }
+
+        &[hidden] {
+          display: none;
+        }
+      }
+
       .change {
         display: flex;
         flex-wrap: wrap;
@@ -406,6 +424,74 @@
         padding: 10px 0 max(16px, env(safe-area-inset-bottom));
         color: var(--soft);
         font-size: 12px;
+      }
+
+      /* Pop out: the chart in a window of its own (on a computer: see popOut). */
+      .pop {
+        display: inline-flex;
+        flex: none;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 9px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: none;
+        color: var(--soft);
+        font-size: 12px;
+        cursor: pointer;
+
+        svg {
+          width: 13px;
+          height: 13px;
+          fill: none;
+          stroke: currentColor;
+          stroke-width: 2;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+        }
+
+        &:hover {
+          color: var(--ink);
+        }
+
+        &[hidden] {
+          display: none;
+        }
+      }
+
+      /* Popped out (Picture-in-Picture, or a window of its own: ?window): the first screen alone, sized to its
+         window; the bar and the way down left out. */
+      :root.popped {
+        body > :not(.stage) {
+          display: none !important;
+        }
+
+        .stage {
+          height: 100vh;
+          min-height: 0;
+        }
+
+        .stage > .bar,
+        .legend,
+        .more {
+          display: none;
+        }
+
+        .hero {
+          padding-top: 12px;
+        }
+
+        h1 {
+          margin-top: 6px;
+          font-size: clamp(26px, min(10vw, 11vh), 56px);
+        }
+
+        .foot {
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 8px 12px;
+          padding-bottom: 10px;
+        }
       }
 
       .legend {
@@ -944,6 +1030,7 @@
         <p class="eyebrow"><i aria-hidden="true"></i><span id="kicker">Hashrate · the DebitMyData network</span></p>
         <h1 id="value">…</h1>
         <p class="change" id="change">&nbsp;</p>
+        <p class="now-live" id="now-live" hidden></p>
       </section>
 
       <figure class="week" aria-label="The measure over time">
@@ -954,14 +1041,15 @@
         <figcaption class="foot shell">
           <span class="legend"><span class="swatch" aria-hidden="true"></span><span id="legend">&nbsp;</span></span>
           <p class="ranges" id="ranges" aria-label="How far back">
-            <button type="button" data-range="1m" aria-pressed="true">1M</button>
             <button type="button" data-range="15m" aria-pressed="false">15M</button>
+            <button type="button" data-range="1h" aria-pressed="false">1H</button>
             <button type="button" data-range="4h" aria-pressed="false">4H</button>
-            <button type="button" data-range="7d" aria-pressed="false">7D</button>
+            <button type="button" data-range="7d" aria-pressed="true">7D</button>
             <button type="button" data-range="30d" aria-pressed="false">30D</button>
             <button type="button" data-range="90d" aria-pressed="false">90D</button>
             <button type="button" data-range="all" aria-pressed="false">All</button>
           </p>
+          <button type="button" class="pop" id="pop" hidden title="The chart in a small window of its own, kept over your other windows"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-8 8M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></svg><span id="pop-label">Pop out</span></button>
           <a class="more" href="#how"><b id="more">How it's measured</b> <span aria-hidden="true">↓</span></a>
         </figcaption>
       </figure>
@@ -979,7 +1067,7 @@
             <ol class="bars" id="h-blocks" aria-label="The last 30 blocks' times, newest first"></ol>
             <div class="bars-axis" aria-hidden="true"><span id="h-blocks-newest">newest block</span><span id="h-blocks-say"></span><span>30th</span></div>
             <dl class="facts" aria-label="The network now">
-              <div><dt>Hashrate now</dt><dd id="f-hashrate">…</dd></div>
+              <div><dt>Hashrate, last hour</dt><dd id="f-hashrate">…</dd></div>
               <div><dt>Algorithm</dt><dd>SHA-256</dd></div>
               <div><dt>Block target</dt><dd>150 seconds</dd></div>
             </dl>
@@ -1104,8 +1192,10 @@
       const dark = matchMedia("(prefers-color-scheme: dark)");
       // The DebitMyData network on one screen, as Bitview's Oracle draws its price: a big number, the line under it edge
       // to edge, pointing at it telling that moment. Three measures (hashrate, the reference price, difficulty), each
-      // over the last minute (the default), 15 minutes or 4 hours, 7, 30 or 90 days, or all of the chain.
-      const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
+      // over 15 minutes, an hour or 4 hours, 7 (the default), 30 or 90 days, or all of the chain; "Now" under it, live.
+      /** The page popped out into Picture-in-Picture: its window's document (the first screen moved there). */
+      let pipDoc = /** @type {Document | null} */ (null);
+      const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id) ?? pipDoc?.getElementById(id));
       addEventListener("pointerdown", () => (document.documentElement.dataset.pointer = ""), { capture: true });
       addEventListener("keydown", (e) => {
         if (!(e.metaKey || e.ctrlKey || e.altKey)) delete document.documentElement.dataset.pointer;
@@ -1145,12 +1235,13 @@
         difficulty: { series: "difficulty", kicker: "Difficulty · set again at every block", write: (/** @type {number} */ v) => ((s) => `${s.figure}${s.prefix ? ` ${s.prefix}` : ""}`)(si(v)), about: "about-difficulty", log: true, legend: "Behind the line, blocks' pace read over 19 spans: brightest where most agree with it" },
       });
       /** How far back: blocks (a block each 150 seconds, a few more for a fast stretch) or days. The short ones (`now`)
-       * reach back from now, not from the last block: their line starts at the block before them (the value it left)
-       * and ends now, so a minute without a block still has its line, flat to the live dot. */
+       * reach back from now, not from the last block: their line starts at the block before them and ends now, at the
+       * live dot. Their hashrate is the last hour's, worked out here from the blocks (as DMD Stats does), not the
+       * server's day-long average: it moves with the network. */
       const RANGES = /** @type {const} */ ({
-        "1m": { index: "height", count: 30, seconds: 60, said: "past minute", now: true },
-        "15m": { index: "height", count: 60, seconds: 15 * 60, said: "past 15 minutes", now: true },
-        "4h": { index: "height", count: 400, seconds: 4 * 3600, said: "past 4 hours", now: true },
+        "15m": { index: "height", count: 150, seconds: 15 * 60, said: "past 15 minutes", now: true },
+        "1h": { index: "height", count: 250, seconds: 3600, said: "past hour", now: true },
+        "4h": { index: "height", count: 500, seconds: 4 * 3600, said: "past 4 hours", now: true },
         "7d": { index: "height", count: 4400, seconds: 7 * 86400, said: "past 7 days" },
         "30d": { index: "height", count: 18_500, seconds: 30 * 86400, said: "past 30 days" },
         "90d": { index: "day1", count: 91, seconds: 90 * 86400, said: "past 90 days" },
@@ -1180,14 +1271,15 @@
 
       const asked = new URLSearchParams(location.search);
       let measure = /** @type {keyof typeof MEASURES} */ (asked.get("show") in MEASURES ? asked.get("show") : "hashrate");
-      let range = /** @type {keyof typeof RANGES} */ (asked.get("range") in RANGES ? asked.get("range") : "1m");
+      let range = /** @type {keyof typeof RANGES} */ (asked.get("range") in RANGES ? asked.get("range") : "7d");
       /** The points shown: when (unix seconds), the value, the block (by block only), and `now` for a short range's
        * last point (the live value). @type {{ t: number, v: number, h?: number, now?: boolean }[]} */
       let points = [];
       /** The latest block: its height and time. */
       let tip = { h: 0, t: 0 };
-      /** Now, each measure's latest value, and whether the server can't be reached. */
-      const now = /** @type {Record<keyof typeof MEASURES, number>} */ ({ hashrate: 0, price: 0, difficulty: 0 });
+      /** Now, each measure's latest value (the hashrate: the server's day-long average; `live`: the last hour's), and
+       * whether the server can't be reached. */
+      const now = /** @type {Record<keyof typeof MEASURES | "live", number>} */ ({ hashrate: 0, price: 0, difficulty: 0, live: 0 });
       let offline = "";
 
       function remember() {
@@ -1195,7 +1287,7 @@
         url.searchParams.set("show", measure);
         url.searchParams.set("range", range);
         if (measure === "hashrate") url.searchParams.delete("show");
-        if (range === "1m") url.searchParams.delete("range");
+        if (range === "7d") url.searchParams.delete("range");
         history.replaceState(null, "", url);
       }
 
@@ -1215,9 +1307,13 @@
         };
         step(start);
       }
+      /** What the top says the measure is: the hashrate, an hour's or a day's average, as the range shows it. */
+      const kicker = () =>
+        measure !== "hashrate" ? MEASURES[measure].kicker : `${MEASURES.hashrate.kicker}, ${"now" in RANGES[range] ? "an hour's average" : "a day's average"}`;
       /** The value and its change over the range, at a point (null: now). */
       function tell(/** @type {number | null} */ k) {
-        const m = MEASURES[measure], latest = now[measure] || points.at(-1)?.v || 0;
+        const m = { kicker: kicker() }, short = "now" in RANGES[range];
+        const latest = (short ? points.at(-1)?.v : now[measure]) || now[measure] || points.at(-1)?.v || 0;
         if (k !== null && k >= points.length) k = null;
         if (!points.length) {
           if (latest) setValue(latest, false);
@@ -1239,8 +1335,17 @@
         // (Its two parts apart: a phone's bar puts them on two lines.)
         if (tip.h) $("tip").innerHTML = `<span>block ${grouped(tip.h)}</span><span class="sep"> · </span><span>${ago(tip.t)}</span>`;
       }
+      /** "Now 6.68 TH/s" under the number: the hashrate this moment, the last hour's (the number over it may be a
+       * day's average). Not for the price and the difficulty: their number is already this moment's. */
+      function showNow() {
+        const value = measure === "hashrate" ? now.live || now.hashrate : 0, box = $("now-live");
+        box.hidden = !value;
+        if (!value) return;
+        box.replaceChildren("Now ", Object.assign(document.createElement("b"), { textContent: MEASURES[measure].write(value) }));
+      }
       function showFacts() {
-        $("f-hashrate").textContent = now.hashrate ? MEASURES.hashrate.write(now.hashrate) : "…";
+        $("f-hashrate").textContent = now.live || now.hashrate ? MEASURES.hashrate.write(now.live || now.hashrate) : "…";
+        showNow();
         $("f-price").textContent = now.price ? dollars(now.price) : "…";
         $("f-difficulty").textContent = now.difficulty ? MEASURES.difficulty.write(now.difficulty) : "…";
         // (35 DMD a block, halved every 300,000 blocks; after 32 halvings, a cycle starts again at 35.)
@@ -1249,22 +1354,51 @@
 
       // ── Reading ──
 
-      /** Each measure's latest value, and the tip. */
+      /** Blocks as { h, t, d }: height, time and difficulty, their times made never to go back (as DMD Stats'). */
+      function blocksOf(/** @type {{ start: number, data: number[] }} */ diffs, /** @type {{ start: number, data: number[] }} */ times) {
+        let latest = 0;
+        return diffs.data.map((d, i) => {
+          latest = Math.max(latest, Number(times.data[diffs.start + i - times.start]) || 0);
+          return { h: diffs.start + i, t: latest, d: Number(d) };
+        });
+      }
+      /** The hashrate of the hour before `at`: the work of the blocks found in it, over an hour (as DMD Stats). */
+      function hourly(/** @type {{ h: number, t: number, d: number }[]} */ blocks, /** @type {number} */ at) {
+        let sum = 0;
+        for (let k = blocks.length - 1; k >= 0 && blocks[k].t > at - HOUR; k--) if (blocks[k].t <= at) sum += work(blocks[k].d);
+        return sum / HOUR;
+      }
+      /** Each measure's latest value, the last hour's hashrate, and the tip. */
       async function readNow() {
         const [hashrate, difficulty, price, times] = await Promise.all([
           read("/api/series/hashrate/height?start=-1"),
-          read("/api/series/difficulty/height?start=-1"),
+          read("/api/series/difficulty/height?start=-150"),
           read("/api/price").catch(() => null),
-          read("/api/series/timestamp/height?start=-1"),
+          read("/api/series/timestamp/height?start=-150"),
         ]);
         now.hashrate = Number(hashrate.data.at(-1)) || 0;
         now.difficulty = Number(difficulty.data.at(-1)) || 0;
         now.price = Number(price) || 0;
         tip = { h: times.end - 1, t: Number(times.data.at(-1)) || 0 };
+        const blocks = blocksOf(difficulty, times);
+        now.live = hourly(blocks, Math.max(blocks.at(-1)?.t ?? 0, Math.floor(Date.now() / 1000)));
       }
       /** The range's points of the measure shown, by block or by day. */
       async function readRange() {
         const r = RANGES[range], series = MEASURES[measure].series;
+        if ("now" in r && measure === "hashrate") {
+          // (Each block's hour, from blocks an hour before the range on: the block before the range, those in it, then
+          // now, the live dot: the last hour as it is this moment, older blocks leaving it as time goes by.)
+          const [diffs, times] = await Promise.all([read(`/api/series/difficulty/height?start=-${r.count}`), read(`/api/series/timestamp/height?start=-${r.count}`)]);
+          const blocks = blocksOf(diffs, times), first = blocks[0]?.t ?? 0;
+          const at = Math.max(blocks.at(-1)?.t ?? 0, Math.floor(Date.now() / 1000)), from = at - r.seconds;
+          const all = blocks.filter((b) => b.t - HOUR >= first).map((b) => ({ h: b.h, t: b.t, v: hourly(blocks, b.t) })).filter((pt) => pt.v > 0);
+          const before = all.findLast((pt) => pt.t <= from);
+          points = all.filter((pt) => pt.t > from);
+          if (before) points.unshift(before);
+          if (points.length) points.push({ t: at, v: hourly(blocks, at) || /** @type {{ v: number }} */ (points.at(-1)).v, now: true });
+          return;
+        }
         if (r.index === "height") {
           const [values, times] = await Promise.all([read(`/api/series/${series}/height?start=-${r.count}`), read(`/api/series/timestamp/height?start=-${r.count}`)]);
           const all = values.data.map((/** @type {number} */ v, /** @type {number} */ i) => ({ h: values.start + i, v: Number(v), t: Number(times.data[values.start + i - times.start]) }));
@@ -1826,12 +1960,15 @@
       // ── The chart, edge to edge ──
 
       const chart = $("chart"), svg = /** @type {SVGSVGElement} */ (/** @type {unknown} */ ($("lines")));
+      // (Kept: popped out, they're in another window's page.)
+      const foot = /** @type {HTMLElement} */ (document.querySelector(".week .foot")), moreLink = /** @type {HTMLAnchorElement} */ (document.querySelector(".more"));
       /** How far the range's lowest and highest values sit, at least, from the words over the chart. */
       const CLEAR = 28;
       function wordsOver() {
         const box = chart.getBoundingClientRect();
-        const top = Math.max(0, $("change").getBoundingClientRect().bottom - box.top);
-        const bottom = Math.min(box.height, /** @type {HTMLElement} */ (document.querySelector(".week .foot")).getBoundingClientRect().top - box.top);
+        const words = $("now-live").hidden ? $("change") : $("now-live");
+        const top = Math.max(0, words.getBoundingClientRect().bottom - box.top);
+        const bottom = Math.min(box.height, foot.getBoundingClientRect().top - box.top);
         return { top, bottom: Math.max(top, bottom) };
       }
       /** The frame: x of a point's index, y of a value (log when the range spans a factor of 4 or more). */
@@ -1972,7 +2109,8 @@
         $("more").textContent = `How ${measure === "price" ? "the reference price is set" : measure === "difficulty" ? "the difficulty is set" : "hashrate is measured"}`;
         for (const group of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll(".chapters"))) group.hidden = group.dataset.for !== measure;
         $("legend").textContent = MEASURES[measure].legend;
-        /** @type {HTMLAnchorElement} */ (document.querySelector(".more")).href = `#${MEASURES[measure].about}`;
+        moreLink.href = `#${MEASURES[measure].about}`;
+        showNow();
       }
       function choose(/** @type {Partial<{ measure: typeof measure, range: typeof range }>} */ next) {
         if (next.measure) measure = next.measure;
@@ -2004,6 +2142,60 @@
         const b = /** @type {HTMLElement} */ (e.target).closest("button");
         if (b?.dataset.range && b.dataset.range !== range) choose({ range: /** @type {typeof range} */ (b.dataset.range) });
       });
+
+      // ── Out of the page: the chart in a window of its own ──
+
+      // On a computer. In Chrome and Edge, Picture-in-Picture (as a video's): the first screen (the number, the switches,
+      // the line) moved into a small window that stays over all the others, wherever it's put and as big as it's made,
+      // still live; put back in the page when it's closed. Elsewhere (Firefox, Safari), a window of its own with this page
+      // alone in it (?window): moved and sized the same, but not kept over the others.
+      const stage = /** @type {HTMLElement} */ (document.querySelector(".stage")), popButton = $("pop");
+      if (asked.has("window")) document.documentElement.classList.add("popped");
+      popButton.hidden = asked.has("window") || !matchMedia("(hover: hover) and (pointer: fine)").matches;
+      let pip = /** @type {Window | null} */ (null);
+      async function popOut() {
+        if (pip) return pip.close();
+        const api = /** @type {any} */ (window).documentPictureInPicture;
+        if (!api) {
+          const url = new URL(location.href);
+          url.searchParams.set("window", "");
+          url.hash = "";
+          open(url, "dmd-oracle", "popup,width=520,height=460");
+          return;
+        }
+        const win = /** @type {Window} */ (await api.requestWindow({ width: 520, height: 460 }));
+        pip = win;
+        pipDoc = win.document;
+        // (Its look: the page's styles, its theme, followed as it's switched.)
+        for (const node of document.querySelectorAll('link[rel="stylesheet"], style')) pipDoc.head.append(node.cloneNode(true));
+        pipDoc.title = document.title;
+        const root = document.documentElement, theirs = pipDoc.documentElement;
+        const look = () => {
+          theirs.dataset.theme = root.dataset.theme ?? "";
+          theirs.style.colorScheme = root.style.colorScheme;
+          theirs.classList.add("popped");
+        };
+        look();
+        const watching = new MutationObserver(look);
+        watching.observe(root, { attributes: true, attributeFilter: ["data-theme", "style"] });
+        const spot = document.createComment("the first screen, popped out");
+        stage.before(spot);
+        pipDoc.body.append(stage);
+        $("pop-label").textContent = "Put back";
+        win.addEventListener("resize", () => {
+          clearTimeout(resizing);
+          resizing = setTimeout(draw, 60);
+        });
+        win.addEventListener("pagehide", () => {
+          watching.disconnect();
+          spot.replaceWith(stage);
+          pip = pipDoc = null;
+          $("pop-label").textContent = "Pop out";
+          draw();
+        }, { once: true });
+        draw();
+      }
+      popButton.addEventListener("click", () => popOut().catch((error) => console.warn("The chart couldn't pop out:", error)));
 
       // ── Start, and each new block ──
 
