@@ -17,6 +17,7 @@ _*
 /*.md
 !/TODO.md
 !/README.md
+!/INSTALL.md
 /*.py
 /*.json
 /*.html
