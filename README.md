@@ -76,19 +76,18 @@ scripts/debitmydata-regtest-check.py --node-bin <folder with debitmydatad and de
 
 ## What you need
 
-- **A fresh Ubuntu 24.04 server**: 2 vCPU, 4 GB of memory, 80 GB of disk (Vultr: Cloud Compute,
-  Regular Performance). SSH with your key. The install adds 8 GB of swap: building bitviewd needs
-  more than 4 GB.
-- **A name in Cloudflare**: `analytics.debitmydata.io`, pointing to the server's IP, **proxied**
-  (orange cloud).
-- **A Cloudflare origin certificate** for `*.debitmydata.io` and `debitmydata.io` (the one the
-  monitoring server uses works: same names).
-- **The DebitMyData Core binaries** (v1.3.5 or later): `debitmydatad` and `debitmydata-cli`,
-  built for Linux x86_64, as for the monitoring server.
+- **A fresh Ubuntu 24.04 server**: 2 vCPU, 4 GB of memory, 80 GB of disk, at any provider. SSH
+  with a key. The install adds 8 GB of swap: building bitviewd needs more than 4 GB.
+- **A name in Cloudflare** (`analytics.debitmydata.io` for DebitMyData's own), pointing to the
+  server's IP, **proxied** (orange cloud).
+- **A Cloudflare origin certificate** for that name: in Cloudflare, the domain, **SSL/TLS**,
+  **Origin Server**, **Create Certificate**. One certificate for `*.debitmydata.io` and
+  `debitmydata.io` covers every DebitMyData site.
+- **DebitMyData Core** 1.3.5 or later, for Linux x86_64: the release from GitHub (step 2).
 
 ## Install
 
-1. **The server.** Log in as root with your key, then turn off password logins:
+1. **The server.** Log in as root with the key, then turn off password logins:
 
    ```
    printf 'PasswordAuthentication no\nKbdInteractiveAuthentication no\nPermitRootLogin prohibit-password\n' > /etc/ssh/sshd_config.d/00-keys-only.conf
@@ -96,12 +95,21 @@ scripts/debitmydata-regtest-check.py --node-bin <folder with debitmydatad and de
    apt-get update && apt-get -y upgrade && apt-get -y install git
    ```
 
-2. **The DebitMyData Core binaries.** Copy them from your computer (WinSCP, or `scp`) to
-   `/usr/local/bin/`, then:
+2. **DebitMyData Core.** Download the Linux release from GitHub and check it: the SHA-256 that
+   `sha256sum` prints must be the one published with the download on
+   [debitmydata.io](https://debitmydata.io) (for a newer version, change `1.3.5` everywhere below):
 
    ```
-   chmod 755 /usr/local/bin/debitmydatad /usr/local/bin/debitmydata-cli
+   cd /tmp
+   curl -LO https://github.com/DebitMyData-PoW/DebitMyData-PoW-Core/releases/download/v1.3.5/debitmydata-1.3.5-x86_64-linux-gnu.tar.gz
+   sha256sum debitmydata-1.3.5-x86_64-linux-gnu.tar.gz
+   tar -xzf debitmydata-1.3.5-x86_64-linux-gnu.tar.gz
+   install -m 755 debitmydata-1.3.5-x86_64-linux-gnu/debitmydatad debitmydata-1.3.5-x86_64-linux-gnu/debitmydata-cli /usr/local/bin/
+   rm -rf debitmydata-1.3.5-x86_64-linux-gnu*
    ```
+
+   Binaries built from [the source](https://github.com/DebitMyData-PoW/DebitMyData-PoW-Core) work
+   too: copy `debitmydatad` and `debitmydata-cli` to `/usr/local/bin/`.
 
 3. **The certificate.** Paste the origin certificate, then its private key (Ctrl+O, Enter, Ctrl+X
    to save):
