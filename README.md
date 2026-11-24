@@ -5,6 +5,8 @@ On-chain analytics for the DebitMyData (DMD) chain, with an open API, live at
 since the first block becomes thousands of series and charts that anyone can explore, compare and
 download, without an account.
 
+![DebitMyData Analytics: the home page and the Oracle](docs/images/analytics-preview.webp)
+
 It is a fork of [Bitview](https://github.com/bitcoinresearchkit/mono), the Bitcoin Research Kit,
 adapted to the DebitMyData chain. Bitview's own documentation is in [docs/](docs/README.md).
 
